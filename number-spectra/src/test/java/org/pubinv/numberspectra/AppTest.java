@@ -1,4 +1,4 @@
-package org.pubinv;
+package org.pubinv.numberspectra;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
