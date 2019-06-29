@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 public class ExpressionList {
+    public static ExpressionList E0 = new ExpressionList();
+    
     public List<Set<Expr>> expressions = new ArrayList<>();
     
 	@Override
