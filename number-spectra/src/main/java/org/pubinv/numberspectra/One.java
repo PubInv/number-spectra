@@ -1,4 +1,4 @@
-package org.pubinv;
+package org.pubinv.numberspectra;
 
 public class One implements Expr {
 	@Override

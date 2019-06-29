@@ -1,6 +1,6 @@
-package org.pubinv;
+package org.pubinv.numberspectra;
 
-public class Power implements Expr {
+public class Plus implements Expr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -17,7 +17,7 @@ public class Power implements Expr {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Power other = (Power) obj;
+		Plus other = (Plus) obj;
 		if (lhs == null) {
 			if (other.lhs != null)
 				return false;
@@ -32,7 +32,7 @@ public class Power implements Expr {
 	}
 	final Expr lhs;
 	final Expr rhs;
-	public Power(Expr lhs, Expr rhs) {
+	public Plus(Expr lhs, Expr rhs) {
 		super();
 		this.lhs = lhs;
 		this.rhs = rhs;

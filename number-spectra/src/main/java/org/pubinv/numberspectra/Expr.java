@@ -1,4 +1,4 @@
-package org.pubinv;
+package org.pubinv.numberspectra;
 
 /**
  * Base for all expressions.
