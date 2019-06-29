@@ -1,4 +1,4 @@
-package coorg.pubinv;
+package org.pubinv;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
