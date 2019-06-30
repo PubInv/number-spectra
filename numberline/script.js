@@ -5,7 +5,8 @@ const log = (...args) => console.log(args);
 
 const COLORS = {
   PRIMARY: '#000000',
-  SECONDARY: '#ffffff' };
+  SECONDARY: '#ffffff',
+  TEXT: '#ff0000'};
 
 
 const numberlineFactory = (mountElem, config = {}) => {
@@ -169,20 +170,30 @@ const numberlineFactory = (mountElem, config = {}) => {
     const numLabels = getNumLabels();
     const numSpecials = specials.length;
     const numTicks = numLabels + numTicksBetweenLabels * (numLabels - 1);
-    const ticksBottom = two.height - padding.bottom;
+
+    const bottom = two.height - padding.bottom;
     const tickYInc = getActionAreaHeight() / (numTicks - 1);
 
+    const labelHeight = getActionAreaHeight() / (numLabels - 1);
+
     paths.specials = specials.map((s, i) => {
-      console.log("in draw",s);
       let radius = tickRadii.small;
 
-      const lineY = ticksBottom - tickYInc * s.value;
+      const lineY = bottom - tickYInc * s.value;
 
-      var m = two.width / 2 - 10
+      var m = two.width / 2 - 10;
       var margin = 10;
       var line = two.makeLine(margin, lineY, 2*m+margin , lineY);
       line.linewidth = 1;
       line.stroke = "rgba(255, 0, 0, 1.0)";
+
+      const textX = two.width / 2 + 2 + 20*(i % 2);
+      const textY = lineY - 5;
+      const text = two.makeText(s.expression_text,textX,textY);
+      text.fill = COLORS.TEXT;
+      text.size = 14;
+      text.alignment = 'left';
+      text.baseline = 'middle';
 
       tickData[i] = {
         y: lineY,
