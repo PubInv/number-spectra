@@ -1,4 +1,4 @@
-package coorg.pubinv;
+package org.pubinv.numberspectra;
 
 /**
  * Hello world!
