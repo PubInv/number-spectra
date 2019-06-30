@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" >
+
+<head>
+  <meta charset="UTF-8">
+  <title>Two.js SVG - Numberline</title>
+  <style>
+body { 
+  font-family: 'Open Sans', sans-serif!important;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  font-family: 'Open Sans', sans-serif!important;
+  font-weight: normal;
+}
+</style>
+
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:300,300italic' rel='stylesheet' type='text/css'>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/foundation/6.2.3/foundation.css'>
+
+      <link rel="stylesheet" href="./style.css">
+
+  
+</head>
+
+<body>
+
+  
+<div class="stage">
+  <div class="stage__controls js-controls">
+    <div>
+      <h1>Two.js SVG - Numberline</h1>
+      <h5>Handle Value<span class="js-range-output" data-type="handle-value"></span></h5>
+      <input type="range" name="handle-value" min="-50" max="100" value="0"/>
+      <h5>
+         Min<span class="js-range-output" data-type="nl-min"></span></h5>
+      <input type="range" name="nl-min" min="-50" max="50" value="0"/>
+      <h5>
+         Max<span class="js-range-output" data-type="nl-max"></span></h5>
+      <input type="range" name="nl-max" min="-50" max="100" value="50"/>
+      <h5>
+         Label increment<span class="js-range-output" data-type="nl-labelIncrement"></span></h5>
+      <input type="range" name="nl-labelIncrement" min="1" max="20" value="10"/>
+      <h5>
+         Ticks Between Labels<span class="js-range-output" data-type="nl-numTicksBetweenLabels"></span></h5>
+      <input type="range" name="nl-numTicksBetweenLabels" min="0" max="20" value="9"/>
+      <h5>Unit </h5>
+      <input type="text" name="nl-unit" value="mm"/>
+    </div>
+    <p class="grid-item--end text--center"><a href="https://codepen.io/larrybotha/" target="_blank">more like this</a></p>
+  </div>
+  <div class="stage__mount">
+    <div class="mount js-mount"></div>
+  </div>
+</div>
+  <script src='https://cdn.jsdelivr.net/gh/jonobr1/two.js@8641196c7fb029b48ba0f3b1f13bc5c84ff56907/build/two.js'></script>
+
+  
+
+    <script  src="./script.js"></script>
+
+
+
+
+</body>
+
+</html>

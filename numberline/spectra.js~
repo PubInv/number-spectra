@@ -1,0 +1,7 @@
+
+var SPECTRA0 =
+{
+  value: 3.141592,
+  expression_text: "PI",
+  client_data: 357; // This is a placeholder
+}

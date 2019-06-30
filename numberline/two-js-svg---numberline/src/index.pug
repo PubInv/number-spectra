@@ -1,0 +1,38 @@
+.stage
+  .stage__controls.js-controls
+    div
+      h1 Two.js SVG - Numberline
+
+      h5
+        | Handle Value
+        span.js-range-output(data-type="handle-value")
+      input(type="range", name="handle-value", min=-50, max=100, value=0)
+
+      h5 
+        | Min
+        span.js-range-output(data-type="nl-min")
+      input(type="range", name="nl-min", min=-50, max=50, value=0)
+
+      h5 
+        | Max
+        span.js-range-output(data-type="nl-max")
+      input(type="range", name="nl-max", min=-50, max=100, value=50)
+
+      h5 
+        | Label increment
+        span.js-range-output(data-type="nl-labelIncrement")
+      input(type="range", name="nl-labelIncrement", min=1, max=20, value=10)
+
+      h5 
+        | Ticks Between Labels
+        span.js-range-output(data-type="nl-numTicksBetweenLabels")
+      input(type="range", name="nl-numTicksBetweenLabels", min=0, max=20, value=9)
+
+      h5 Unit 
+      input(type="text", name="nl-unit", value="mm")
+
+    p.grid-item--end.text--center
+      a(href="https://codepen.io/larrybotha/", target="_blank") more like this
+
+  .stage__mount
+    .mount.js-mount
