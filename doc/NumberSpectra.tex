@@ -71,4 +71,27 @@
 
 \section{Introduction}
 
+\section{Integer Spectrum}
+
+Our first approach is to develop what we call the ``integer spectra'', which
+are perhaps the simplest possible generation rules.  These rules
+generate expressions of definite length, counted as one for each symbol
+use.
+
+Define $E_n$ to be the set of all expressions of precisely length $n$.
+
+The generating rules are:
+\begin{itemize}
+\item ``1'' is a zero-ary symbol.
+  \item $(! k)$ is a unary symbol operating on a expression $k$.
+  \item $(+ k j)$ is a binary operation on $k$ and $j$ where $j$ is less than $k$, by the ordering of the size of the expression first and then the value
+    if the sizes are the same.
+  \item $(* k j)$ is similar.
+  \item $(** k j)$ is has the value $k^j$.
+    \item $-k$ is a unary operation.
+\end{itemize}
+(This of course could be thought of as a grammar.)
+From this grammar, a straigforward algorithm generates $E_n$ with all smaller
+classes as input.
+
 \end{document}
