@@ -44,9 +44,12 @@ public class Power implements Expr {
 		if (lhs.equals(Const.NAN)) return lhs;
 		if (rhs.equals(Const.NAN)) return rhs;
 		
+		// A ^ 1 = A
 		if (rhs.equals(Const.ONE)) return lhs;
+		// A ^ 0 = 1
 		if (rhs.equals(Const.ZERO)) return Const.ONE;
 		
+		// A ^ (-B)  = 1 / (A ^ B)
 		if (rhs.isNegatable()) {
 			return Reciprocal.make(make(lhs, rhs.negate()));
 		}
@@ -61,6 +64,8 @@ public class Power implements Expr {
 				return new Const(new Rational(rl.p.pow(xp), rl.q.pow(xp)));
 			}
 		}
+		
+		// 1 ^ B = 1
 		if (lhs.equals(Const.ONE)) return lhs;
 		
 		if (rhs.equals(Const.NEGATIVE_INFINITY) || rhs.equals(Const.PLUS_INFINITY)) {
