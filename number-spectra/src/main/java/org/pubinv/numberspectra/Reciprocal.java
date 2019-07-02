@@ -34,10 +34,12 @@ public class Reciprocal implements Expr {
 	}
 	
 	public static Expr make(Expr e) {
+		// 1 / (1 / A) = A
 		if (e instanceof Reciprocal) {
 			return ((Reciprocal)e).operand;
 		} else if (e instanceof Const) {
 			return new Const(((Const) e).rational.reciprocal());
+	    // 1 / -A = -(1 / A)
 		} else if (e.isNegatable()) {
 			return Negate.make(make(e.negate()));
 		}
