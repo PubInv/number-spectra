@@ -61,22 +61,24 @@ public class Times implements Expr {
 		if (rhs.isNegatable()) {
 			return Negate.make(make(lhs, rhs.negate()));
 		}
+		
+		// A * (B * C) = (A * B) * C
 		if (rhs instanceof Times) {
 			Times rtimes = (Times) rhs;
 			return make(make(lhs, rtimes.lhs), rtimes.rhs);
 		} else if (rhs instanceof Const) {
 			Rational rr = ((Const) rhs).rational;
 
-			// K + K
+			// K * K
 			if (lhs instanceof Const) {
 				return new Const(((Const) lhs).rational.multiply(rr));
 			} else if (lhs instanceof Times) {
 				Times timesLhs = (Times) lhs;
-				// (K + e) + K
+				// (K * e) * K
 				if (timesLhs.lhs instanceof Const) {
 					return make(timesLhs.rhs, new Const(((Const) (timesLhs.lhs)).rational.multiply(rr)));
 				}
-				// (e + K) + K
+				// (e * K) * K
 				if (timesLhs.rhs instanceof Const) {
 					return make(timesLhs.lhs, new Const(((Const) (timesLhs.rhs)).rational.multiply(rr)));
 				}
