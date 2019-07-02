@@ -1,8 +1,6 @@
 package org.pubinv.numberspectra;
 
-import java.math.BigInteger;
-
-public class Negate implements Expr {
+public class Reciprocal implements Expr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -19,7 +17,7 @@ public class Negate implements Expr {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		Negate other = (Negate) obj;
+		Reciprocal other = (Reciprocal) obj;
 		if (operand == null) {
 			if (other.operand != null)
 				return false;
@@ -30,37 +28,39 @@ public class Negate implements Expr {
 
 	final Expr operand;
 
-	private Negate(Expr operand) {
+	private Reciprocal(Expr operand) {
 		super();
 		this.operand = operand;
 	}
 	
 	public static Expr make(Expr e) {
-		if (e instanceof Negate) {
-			return ((Negate)e).operand;
+		if (e instanceof Reciprocal) {
+			return ((Reciprocal)e).operand;
 		} else if (e instanceof Const) {
-			return new Const(((Const) e).rational.negate());
+			return new Const(((Const) e).rational.reciprocal());
+		} else if (e.isNegatable()) {
+			return Negate.make(make(e.negate()));
 		}
-		return new Negate(e);
+		return new Reciprocal(e);
 	}
 	
 	@Override
 	public String toString() {
-		return "(- " + operand + ")";
+		return "(/ 1 " + operand + ")";
 	}
 	
 	@Override
 	public boolean isNegatable() {
-		return true;
+		return operand.isNegatable();
 	}
 	
 	@Override
 	public Expr negate() {
-		return operand;
+		return make(operand.negate());
 	}
 	
 	@Override
 	public double eval() {
-		return -operand.eval();
+		return 1 / operand.eval();
 	}
 }

@@ -2,9 +2,12 @@ package org.pubinv.numberspectra;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.TreeMap;
 
 import org.junit.Test;
 
@@ -17,13 +20,45 @@ public class TestExpressionSet {
 
 	@Test
 	public void testE1() {
-		assertEquals(ExpressionSet.generateE1().expressions, new HashSet<Expr>(Arrays.asList(new One())));
+		assertEquals(ExpressionSet.generateE1().expressions, new HashSet<Expr>(Arrays.asList(new Const(Rational.ONE))));
 	}
 
 	@Test
 	public void testE2() {
-		assertEquals(ExpressionSet.generateE2().expressions, new HashSet<Expr>(Arrays.asList(
-				new Factorial(new One()),
-				new Negate(new One()))));
+		assertEquals(ExpressionSet.generateE(ExpressionSet.generateE1()).expressions, new HashSet<Expr>(Arrays.asList(
+				Factorial.make(new Const(Rational.ONE)),
+				Reciprocal.make(new Const(Rational.ONE)),
+				Negate.make(new Const(Rational.ONE))
+				)));
+	}
+
+	@Test
+	public void testE3() {
+		ExpressionSet E0 = ExpressionSet.generateE0();
+		ExpressionSet E1 = ExpressionSet.generateE1();
+		ExpressionSet E2 = ExpressionSet.generateE(E0, E1);
+		ExpressionSet E3 = ExpressionSet.generateE(E0, E1, E2);
+	    System.out.println(E3);
+	}
+	
+	@Test
+	public void testEn() {
+		Rational.of(1, -1);
+		ExpressionSet E0 = ExpressionSet.generateE0();
+		ExpressionSet E1 = ExpressionSet.generateE1();
+		List<ExpressionSet> history = new ArrayList<>();
+		history.add(E0);
+		history.add(E1);
+		for(int i = 0; i < 10; i++) {
+			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
+			TreeMap<Double, Expr> map = new TreeMap<>();
+			for(Expr e: set.expressions) {
+				map.put(e.eval(), e);
+			}
+			map.forEach((k, v) -> {
+				System.out.println(history.size() + ":" + k + "=" + v);				
+			});
+			history.add(set);
+		}
 	}
 }
