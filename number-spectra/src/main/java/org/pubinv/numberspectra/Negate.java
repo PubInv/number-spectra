@@ -36,8 +36,8 @@ public class Negate implements Expr {
 	}
 	
 	public static Expr make(Expr e) {
-		if (e instanceof Negate) {
-			return ((Negate)e).operand;
+		if (e.isNegatable()) {
+			return e.negate();
 		} else if (e instanceof Const) {
 			return new Const(((Const) e).rational.negate());
 		}
