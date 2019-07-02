@@ -47,8 +47,10 @@ public class Plus implements Expr {
 		if (lhs.equals(Const.NAN)) return lhs;
 		if (rhs.equals(Const.NAN)) return rhs;
 		
+		// 0 + rhs = rhs
 		if (lhs.equals(Const.ZERO)) return rhs;
 		
+		// lhs + 0 = lhs
 		if (rhs.equals(Const.ZERO)) return lhs;
 		
 		if (rhs instanceof Plus) {
@@ -56,16 +58,16 @@ public class Plus implements Expr {
 			return make(make(lhs, rplus.lhs), rplus.rhs);
 		} else if (rhs instanceof Const) {
 			Rational rr = ((Const) rhs).rational;
-			// K + K
+			// K * K
 			if (lhs instanceof Const) {
 				return new Const(((Const) lhs).rational.add(rr));
 			} else if (lhs instanceof Plus) {
 				Plus plusLhs = (Plus) lhs;
-				// (K + e) + K
+				// (K * e) * K
 				if (plusLhs.lhs instanceof Const) {
 					return make(plusLhs.rhs, new Const(((Const) (plusLhs.lhs)).rational.add(rr)));
 				}
-				// (e + K) + K
+				// (e * K) * K
 				if (plusLhs.rhs instanceof Const) {
 					return make(plusLhs.lhs, new Const(((Const) (plusLhs.rhs)).rational.add(rr)));
 				}

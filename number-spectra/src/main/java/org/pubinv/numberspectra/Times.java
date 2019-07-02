@@ -45,10 +45,14 @@ public class Times implements Expr {
 		if (lhs.equals(Const.NAN)) return lhs;
 		if (rhs.equals(Const.NAN)) return rhs;
 		
-		if (lhs.equals(Const.ZERO)) return lhs;
+		// 0 * rhs = 0
+		if (lhs.equals(Const.ZERO)) return Const.ZERO;
+		// 1 * rhs = rhs
 		if (lhs.equals(Const.ONE)) return rhs;
 		
-		if (rhs.equals(Const.ZERO)) return rhs;
+		// lhs * 0 = 0
+		if (rhs.equals(Const.ZERO)) return Const.ZERO;
+		// lhs * 1 = 0
 		if (rhs.equals(Const.ONE)) return lhs;
 		
 		if (lhs.isNegatable()) {
