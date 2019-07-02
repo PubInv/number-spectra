@@ -55,9 +55,11 @@ public class Times implements Expr {
 		// lhs * 1 = 0
 		if (rhs.equals(Const.ONE)) return lhs;
 		
+		// (-A * B) = -(A * B)
 		if (lhs.isNegatable()) {
 			return Negate.make(make(lhs.negate(), rhs));
 		}
+		// (A * -B) = -(A * B)
 		if (rhs.isNegatable()) {
 			return Negate.make(make(lhs, rhs.negate()));
 		}
