@@ -5,9 +5,9 @@ package org.pubinv.numberspectra;
  */
 public interface Expr {
 	@Override
-	public int hashCode();
+	int hashCode();
 	@Override
-	public boolean equals(Object o);
+	boolean equals(Object o);
 	@Override
 	String toString();
 	

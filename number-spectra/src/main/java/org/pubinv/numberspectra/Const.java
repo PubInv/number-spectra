@@ -3,11 +3,11 @@ package org.pubinv.numberspectra;
 public class Const implements Expr {
 	final Rational rational;
 	
-	static final Const NAN = new Const(Rational.NAN);
-	static final Const PLUS_INFINITY = new Const(Rational.PLUS_INFINITY);
-	static final Const NEGATIVE_INFINITY = new Const(Rational.NEGATIVE_INFINITY);
-	static final Const ZERO = new Const(Rational.ZERO);
-	static final Const ONE = new Const(Rational.ONE);
+	public static final Const NAN = new Const(Rational.NAN);
+	public static final Const PLUS_INFINITY = new Const(Rational.PLUS_INFINITY);
+	public static final Const NEGATIVE_INFINITY = new Const(Rational.NEGATIVE_INFINITY);
+	public static final Const ZERO = new Const(Rational.ZERO);
+	public static final Const ONE = new Const(Rational.ONE);
 	
 	public Const(Rational rational) {
 		super();

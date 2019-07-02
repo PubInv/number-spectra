@@ -38,14 +38,8 @@ public class Factorial implements Expr {
 	public static Expr make(Expr e) {
 		if (e instanceof Const) {
 			Rational r = ((Const)e).rational;
-			if (r.isInteger() && r.p.signum() >= 0 && r.p.compareTo(BigInteger.valueOf(10)) <= 0) {
-				long l = r.p.longValue();
-				long res = 1;
-				while(l > 1) {
-					res *= l;
-					l--;
-				}
-				return new Const(Rational.of(res));
+			if (r.isInteger() && r.p.signum() >= 0 && r.p.compareTo(BigInteger.valueOf(100)) <= 0) {
+				return new Const(new Rational(ifac(r.p.longValue()), BigInteger.ONE));
 			} else if (r.isInteger() && r.p.signum() < 0 ) {
 				return new Const(Rational.of(0, 0));
 			} else if (r.isPositiveInfinity()) {
@@ -55,6 +49,15 @@ public class Factorial implements Expr {
 			}
 		}
 		return new Factorial(e);
+	}
+
+	private static BigInteger ifac(long l) {
+		BigInteger res = BigInteger.ONE;
+		while(l > 1) {
+			res = res.multiply(BigInteger.valueOf(l));
+			l--;
+		}
+		return res;
 	}
 	
 	@Override
