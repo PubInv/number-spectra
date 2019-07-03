@@ -28,6 +28,9 @@ public final class Power extends BinaryOp {
 			Const rhsConst = (Const) rhs;
 			Rational rl = lhsConst.rational;
 			Rational rr = rhsConst.rational;
+			
+			// X ^ (A / 1) = X ^ A
+			// X ^ (A / B) = (X ^ A) ^ (1 / B)
 			{
 				Rational pp = rl.pow(rr.p);
 				if (rr.q.equals(BigInteger.ONE)) {
