@@ -1,6 +1,6 @@
 package org.pubinv.numberspectra;
 
-public class Const implements Expr {
+public final class Const implements Expr {
 	final Rational rational;
 	
 	public static final Const NAN = new Const(Rational.NAN);

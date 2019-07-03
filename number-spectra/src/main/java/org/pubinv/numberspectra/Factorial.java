@@ -2,12 +2,12 @@ package org.pubinv.numberspectra;
 
 import java.math.BigInteger;
 
-public class Factorial implements Expr {
+public final class Factorial implements Expr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((operand == null) ? 0 : operand.hashCode());
+		result = prime * result + operand.hashCode();
 		return result;
 	}
 
@@ -20,10 +20,7 @@ public class Factorial implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Factorial other = (Factorial) obj;
-		if (operand == null) {
-			if (other.operand != null)
-				return false;
-		} else if (!operand.equals(other.operand))
+		if (!operand.equals(other.operand))
 			return false;
 		return true;
 	}

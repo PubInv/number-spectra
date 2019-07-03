@@ -1,12 +1,12 @@
 package org.pubinv.numberspectra;
 
-public class Plus implements Expr {
+public final class Plus implements Expr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((lhs == null) ? 0 : lhs.hashCode());
-		result = prime * result + ((rhs == null) ? 0 : rhs.hashCode());
+		result = prime * result + lhs.hashCode();
+		result = prime * result + rhs.hashCode();
 		return result;
 	}
 	@Override
@@ -18,15 +18,7 @@ public class Plus implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Plus other = (Plus) obj;
-		if (lhs == null) {
-			if (other.lhs != null)
-				return false;
-		} else if (!lhs.equals(other.lhs))
-			return false;
-		if (rhs == null) {
-			if (other.rhs != null)
-				return false;
-		} else if (!rhs.equals(other.rhs))
+		if (!rhs.equals(other.rhs))
 			return false;
 		return true;
 	}
