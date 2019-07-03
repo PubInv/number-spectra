@@ -75,14 +75,14 @@ public final class Rational extends Number implements Comparable<Rational> {
     
 	@Override
     public String toString() {
-		if (q.equals(BigInteger.ZERO)) {
-			if (p.equals(BigInteger.ZERO)) {
-				return String.valueOf(Double.NaN);			
-			} else if (p.signum() < 0) {
-				return String.valueOf(Double.NEGATIVE_INFINITY);	
-			} else {
-				return String.valueOf(Double.POSITIVE_INFINITY);	
-			}
+		if (equals(Rational.NAN)) {
+			return String.valueOf(Double.NaN);			
+		}
+		if (equals(Rational.NEGATIVE_INFINITY)) {
+			return String.valueOf(Double.NEGATIVE_INFINITY);			
+		}
+		if (equals(Rational.POSITIVE_INFINITY)) {
+			return String.valueOf(Double.POSITIVE_INFINITY);			
 		}
     	if (q.equals(BigInteger.ONE)) {
     		return p.toString();
