@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
 public final class Power extends BinaryOp {
 	private Power(Expr lhs, Expr rhs) {

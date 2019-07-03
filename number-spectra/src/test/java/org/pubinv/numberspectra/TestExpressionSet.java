@@ -10,6 +10,12 @@ import java.util.List;
 import java.util.TreeMap;
 
 import org.junit.Test;
+import org.pubinv.numberspectra.expr.Const;
+import org.pubinv.numberspectra.expr.Expr;
+import org.pubinv.numberspectra.expr.Factorial;
+import org.pubinv.numberspectra.expr.Negate;
+import org.pubinv.numberspectra.expr.Rational;
+import org.pubinv.numberspectra.expr.Reciprocal;
 
 public class TestExpressionSet {
 

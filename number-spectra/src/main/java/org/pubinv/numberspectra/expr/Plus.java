@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
 public final class Plus extends BinaryOp {
 	private Plus(Expr lhs, Expr rhs) {

@@ -6,6 +6,16 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.pubinv.numberspectra.expr.Const;
+import org.pubinv.numberspectra.expr.Expr;
+import org.pubinv.numberspectra.expr.Factorial;
+import org.pubinv.numberspectra.expr.Negate;
+import org.pubinv.numberspectra.expr.Plus;
+import org.pubinv.numberspectra.expr.Power;
+import org.pubinv.numberspectra.expr.Rational;
+import org.pubinv.numberspectra.expr.Reciprocal;
+import org.pubinv.numberspectra.expr.Times;
+
 public class ArityCatalog {
 	public static ArityCatalog INSTANCE = new ArityCatalog();
 	

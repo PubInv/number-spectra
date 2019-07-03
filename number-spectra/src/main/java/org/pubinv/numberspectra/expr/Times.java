@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
 public final class Times extends BinaryOp {
 	private Times(Expr lhs, Expr rhs) {

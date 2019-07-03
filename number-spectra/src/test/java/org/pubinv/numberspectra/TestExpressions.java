@@ -3,6 +3,13 @@ package org.pubinv.numberspectra;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+import org.pubinv.numberspectra.expr.Const;
+import org.pubinv.numberspectra.expr.Negate;
+import org.pubinv.numberspectra.expr.Plus;
+import org.pubinv.numberspectra.expr.Power;
+import org.pubinv.numberspectra.expr.Rational;
+import org.pubinv.numberspectra.expr.Reciprocal;
+import org.pubinv.numberspectra.expr.Times;
 
 public class TestExpressions {
 

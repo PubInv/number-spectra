@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
 public final class Reciprocal extends UnaryOp {
 	private Reciprocal(Expr operand) {

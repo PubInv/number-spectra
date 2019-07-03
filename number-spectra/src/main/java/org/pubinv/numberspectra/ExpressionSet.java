@@ -6,6 +6,8 @@ import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.pubinv.numberspectra.expr.Expr;
+
 public class ExpressionSet {
     final Set<Expr> expressions;
     

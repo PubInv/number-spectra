@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
 public abstract class UnaryOp extends BaseExpr implements Expr {
 	@Override
