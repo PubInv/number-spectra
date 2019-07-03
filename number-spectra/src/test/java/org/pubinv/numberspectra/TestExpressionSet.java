@@ -49,16 +49,16 @@ public class TestExpressionSet {
 		List<ExpressionSet> history = new ArrayList<>();
 		history.add(E0);
 		history.add(E1);
+		TreeMap<Double, Expr> map = new TreeMap<>();
 		for(int i = 0; i < 10; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
-			TreeMap<Double, Expr> map = new TreeMap<>();
 			for(Expr e: set.expressions) {
 				map.put(e.eval(), e);
 			}
-			map.forEach((k, v) -> {
-				System.out.println(history.size() + ":" + k + "=" + v);				
-			});
 			history.add(set);
 		}
+		map.forEach((k, v) -> {
+			System.out.println(k + "=" + v);				
+		});
 	}
 }

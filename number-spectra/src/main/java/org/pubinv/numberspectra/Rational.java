@@ -36,9 +36,9 @@ public class Rational {
     }
     
     public Rational add(Rational rhs) {
-    	BigInteger p1 = p.multiply(rhs.q);
-    	BigInteger p2 = rhs.p.multiply(q);
-    	return new Rational(p1.add(p2), q.multiply(rhs.q));
+    	return new Rational(
+    			p.multiply(rhs.q).add(rhs.p.multiply(q)),
+    			q.multiply(rhs.q));
     }
 
     public Rational multiply(Rational rhs) {
@@ -60,20 +60,6 @@ public class Rational {
     	return new Rational(BigInteger.valueOf(p), BigInteger.valueOf(q));
     }
     
-    public boolean isNan() {
-    	return q.equals(BigInteger.ZERO) && p.equals(BigInteger.ZERO);
-    }
-    
-    public boolean isPositiveInfinity() {
-    	return q.equals(BigInteger.ZERO) && p.signum() > 0;
-    }
-    public boolean isNegativeInfinity() {
-    	return q.equals(BigInteger.ZERO) && p.signum() < 0;
-    }
-    public boolean isInfinity() {
-    	return q.equals(BigInteger.ZERO) && p.signum() != 0;
-    }
-
 	@Override
     public String toString() {
 		if (q.equals(BigInteger.ZERO)) {

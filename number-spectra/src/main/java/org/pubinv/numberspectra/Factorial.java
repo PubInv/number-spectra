@@ -42,9 +42,9 @@ public class Factorial implements Expr {
 				return new Const(new Rational(ifac(r.p.longValue()), BigInteger.ONE));
 			} else if (r.isInteger() && r.p.signum() < 0 ) {
 				return new Const(Rational.of(0, 0));
-			} else if (r.isPositiveInfinity()) {
+			} else if (r.equals(Rational.PLUS_INFINITY)) {
 				return new Const(r);
-			}else if (r.isNegativeInfinity() || r.isNan()) {
+			}else if (r.equals(Rational.NEGATIVE_INFINITY) || r.equals(Rational.NAN)) {
 				return new Const(Rational.of(0, 0));
 			}
 		}
@@ -77,7 +77,7 @@ public class Factorial implements Expr {
 	
 	@Override
 	public double eval() {
-		return logGamma(operand.eval());
+		return gamma(operand.eval());
 	}
 	
 	static double logGamma(double x) {
