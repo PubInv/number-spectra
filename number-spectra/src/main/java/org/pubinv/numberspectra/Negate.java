@@ -5,7 +5,7 @@ public final class Negate implements Expr {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result +operand.hashCode();
+		result = prime * result + operand.hashCode();
 		return result;
 	}
 

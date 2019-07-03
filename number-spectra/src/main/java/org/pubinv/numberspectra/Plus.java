@@ -18,6 +18,8 @@ public final class Plus implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Plus other = (Plus) obj;
+		if (!lhs.equals(other.lhs))
+			return false;
 		if (!rhs.equals(other.rhs))
 			return false;
 		return true;
