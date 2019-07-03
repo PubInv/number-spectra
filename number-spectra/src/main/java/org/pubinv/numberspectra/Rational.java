@@ -72,10 +72,10 @@ public final class Rational extends Number implements Comparable<Rational> {
     public static Rational of(long p, long q) {
     	return of(BigInteger.valueOf(p), BigInteger.valueOf(q));
     }
-    
+ 
     public Rational pow(BigInteger n) {
     	if (n.signum() < 0) {
-    		throw new ArithmeticException();
+    		return pow(n.negate()).reciprocal();
     	}
     	if (n.equals(BigInteger.ZERO)) {
     		return Rational.of(1);

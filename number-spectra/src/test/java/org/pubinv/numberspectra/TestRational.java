@@ -90,6 +90,7 @@ public class TestRational {
 		assertEquals(Rational.ZERO.pow(BigInteger.ONE), Rational.of(0));
 		assertEquals(Rational.of(3).pow(BigInteger.ZERO), Rational.of(1));
 		assertEquals(Rational.of(3).pow(BigInteger.ONE), Rational.of(3));
+		assertEquals(Rational.of(3).pow(BigInteger.valueOf(-1)), Rational.of(1, 3));
 		assertEquals(Rational.of(3).pow(BigInteger.valueOf(2)), Rational.of(9));
 		assertEquals(Rational.of(3).pow(BigInteger.valueOf(3)), Rational.of(27));
 		assertEquals(Rational.of(3).pow(BigInteger.valueOf(5)), Rational.of(3 * 3 * 3 * 3 * 3));
