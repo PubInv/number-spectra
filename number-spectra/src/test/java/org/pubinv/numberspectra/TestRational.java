@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigInteger;
+
 import org.junit.Test;
 
 public class TestRational {
@@ -80,6 +82,17 @@ public class TestRational {
 		assertNotEquals(Rational.POSITIVE_INFINITY, Rational.NAN);
 		assertNotEquals(Rational.NEGATIVE_INFINITY, Rational.NAN);
 		assertNotEquals(Rational.ZERO, Rational.NAN);
+	}
+
+	@Test
+	public void testPow() {
+		assertEquals(Rational.ZERO.pow(BigInteger.ZERO), Rational.of(1));
+		assertEquals(Rational.ZERO.pow(BigInteger.ONE), Rational.of(0));
+		assertEquals(Rational.of(3).pow(BigInteger.ZERO), Rational.of(1));
+		assertEquals(Rational.of(3).pow(BigInteger.ONE), Rational.of(3));
+		assertEquals(Rational.of(3).pow(BigInteger.valueOf(2)), Rational.of(9));
+		assertEquals(Rational.of(3).pow(BigInteger.valueOf(3)), Rational.of(27));
+		assertEquals(Rational.of(3).pow(BigInteger.valueOf(5)), Rational.of(3 * 3 * 3 * 3 * 3));
 	}
 
 	@Test

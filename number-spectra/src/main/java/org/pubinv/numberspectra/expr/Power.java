@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import java.math.BigInteger;
+
 import org.pubinv.numberspectra.Rational;
 
 public final class Power extends BinaryOp {
@@ -26,9 +28,13 @@ public final class Power extends BinaryOp {
 			Const rhsConst = (Const) rhs;
 			Rational rl = lhsConst.rational;
 			Rational rr = rhsConst.rational;
-			if (rr.isInteger() && rr.compareTo(Rational.of(10)) < 0) {
-				int xp = rr.intValue();
-				return new Const(Rational.of(rl.p.pow(xp), rl.q.pow(xp)));
+			{
+				Rational pp = rl.pow(rr.p);
+				if (rr.q.equals(BigInteger.ONE)) {
+					return new Const(pp);
+				} else {
+					return new Power(new Const(pp), new Const(Rational.of(BigInteger.ONE, rr.q)));
+				}
 			}
 		}
 		

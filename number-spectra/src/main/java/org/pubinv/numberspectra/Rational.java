@@ -73,6 +73,22 @@ public final class Rational extends Number implements Comparable<Rational> {
     	return of(BigInteger.valueOf(p), BigInteger.valueOf(q));
     }
     
+    public Rational pow(BigInteger n) {
+    	if (n.signum() < 0) {
+    		throw new ArithmeticException();
+    	}
+    	if (n.equals(BigInteger.ZERO)) {
+    		return Rational.of(1);
+    	}
+    	BigInteger[] divrem = n.divideAndRemainder(BigInteger.valueOf(2));
+    	Rational r = pow(divrem[0]);
+    	r = r.multiply(r);
+    	if (divrem[1].equals(BigInteger.ONE)) {
+    		r = r.multiply(this);
+    	}
+    	return r;
+    }
+    
 	@Override
     public String toString() {
 		if (equals(Rational.NAN)) {
