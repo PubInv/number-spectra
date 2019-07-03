@@ -18,9 +18,7 @@ public final class Negate implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Negate other = (Negate) obj;
-		if (!operand.equals(other.operand))
-			return false;
-		return true;
+		return operand.equals(other.operand);
 	}
 
 	final Expr operand;

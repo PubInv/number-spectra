@@ -18,11 +18,7 @@ public final class Power implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Power other = (Power) obj;
-		if (!lhs.equals(other.lhs))
-			return false;
-		if (!rhs.equals(other.rhs))
-			return false;
-		return true;
+		return lhs.equals(other.lhs) && rhs.equals(other.rhs);
 	}
 	final Expr lhs;
 	final Expr rhs;

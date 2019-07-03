@@ -118,11 +118,7 @@ public final class Rational extends Number implements Comparable<Rational> {
 		if (getClass() != obj.getClass())
 			return false;
 		Rational other = (Rational) obj;
-		if (!p.equals(other.p))
-			return false;
-		if (!q.equals(other.q))
-			return false;
-		return true;
+		return p.equals(other.p) && q.equals(other.q);
 	}
 
 	@Override

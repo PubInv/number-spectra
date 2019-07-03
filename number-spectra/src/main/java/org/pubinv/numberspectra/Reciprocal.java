@@ -18,9 +18,7 @@ public final class Reciprocal implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Reciprocal other = (Reciprocal) obj;
-		if (!operand.equals(other.operand))
-			return false;
-		return true;
+		return operand.equals(other.operand);
 	}
 
 	final Expr operand;

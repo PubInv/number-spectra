@@ -20,9 +20,7 @@ public final class Factorial implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Factorial other = (Factorial) obj;
-		if (!operand.equals(other.operand))
-			return false;
-		return true;
+		return operand.equals(other.operand);
 	}
 
 	final Expr operand;

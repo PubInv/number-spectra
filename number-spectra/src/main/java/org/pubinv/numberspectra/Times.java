@@ -19,11 +19,7 @@ public final class Times implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Times other = (Times) obj;
-		if (!lhs.equals(other.lhs))
-			return false;
-		if (!rhs.equals(other.rhs))
-			return false;
-		return true;
+		return lhs.equals(other.lhs) && rhs.equals(other.rhs);
 	}
 
 	final Expr lhs;

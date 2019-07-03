@@ -31,9 +31,7 @@ public final class Const implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Const other = (Const) obj;
-        if (!rational.equals(other.rational))
-			return false;
-		return true;
+        return rational.equals(other.rational);
 	}
 
 	@Override
