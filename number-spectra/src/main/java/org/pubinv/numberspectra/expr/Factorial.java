@@ -2,6 +2,8 @@ package org.pubinv.numberspectra.expr;
 
 import java.math.BigInteger;
 
+import org.pubinv.numberspectra.Rational;
+
 public final class Factorial extends UnaryOp {
 	private Factorial(Expr operand) {
 		super(operand);

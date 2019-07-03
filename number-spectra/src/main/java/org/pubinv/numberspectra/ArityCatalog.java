@@ -12,7 +12,6 @@ import org.pubinv.numberspectra.expr.Factorial;
 import org.pubinv.numberspectra.expr.Negate;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Power;
-import org.pubinv.numberspectra.expr.Rational;
 import org.pubinv.numberspectra.expr.Reciprocal;
 import org.pubinv.numberspectra.expr.Times;
 

@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import org.pubinv.numberspectra.Rational;
+
 public final class Power extends BinaryOp {
 	private Power(Expr lhs, Expr rhs) {
 		super(lhs, rhs);

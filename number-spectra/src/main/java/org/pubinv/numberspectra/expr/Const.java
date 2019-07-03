@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import org.pubinv.numberspectra.Rational;
+
 public final class Const extends BaseExpr implements Expr {
 	final Rational rational;
 	

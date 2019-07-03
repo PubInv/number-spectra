@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import org.pubinv.numberspectra.Rational;
+
 public final class Times extends BinaryOp {
 	private Times(Expr lhs, Expr rhs) {
 		super(lhs, rhs);

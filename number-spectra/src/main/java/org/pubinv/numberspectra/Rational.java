@@ -1,4 +1,4 @@
-package org.pubinv.numberspectra.expr;
+package org.pubinv.numberspectra;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.pubinv.numberspectra.expr.Rational;
 
 public class TestRational {
 
