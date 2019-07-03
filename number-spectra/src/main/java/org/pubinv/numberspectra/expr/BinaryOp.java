@@ -1,6 +1,6 @@
 package org.pubinv.numberspectra.expr;
 
-public abstract class BinaryOp implements Expr {
+public abstract class BinaryOp extends BaseExpr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;

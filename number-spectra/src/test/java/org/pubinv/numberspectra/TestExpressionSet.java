@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.Test;
@@ -54,16 +55,22 @@ public class TestExpressionSet {
 		List<ExpressionSet> history = new ArrayList<>();
 		history.add(E0);
 		history.add(E1);
-		TreeMap<Double, Expr> map = new TreeMap<>();
+		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
 		for(int i = 0; i < 10; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
 			for(Expr e: set.expressions) {
-				map.put(e.eval(), e);
+				double f = e.eval();
+				Set<Expr> l = map.get(f);
+				if (l == null) {
+					l = new HashSet<>();
+					map.put(f, l);
+				}
+				l.add(e);
 			}
 			history.add(set);
 		}
 		map.forEach((k, v) -> {
-			System.out.println(k + "=" + v);				
+			System.out.println(v.size()+":"+k + "=" + v);				
 		});
 	}
 }

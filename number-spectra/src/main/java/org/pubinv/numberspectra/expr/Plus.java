@@ -38,6 +38,9 @@ public final class Plus extends BinaryOp {
 				}
 			}
 		}
+		if (lhs instanceof Const && !(rhs instanceof Const)) {
+			return new Plus(rhs, lhs);
+		}
 		return new Plus(lhs, rhs);
 	}
 	
