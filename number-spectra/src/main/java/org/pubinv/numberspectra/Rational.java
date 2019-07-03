@@ -1,13 +1,20 @@
 package org.pubinv.numberspectra;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 
-public class Rational {
-    public final BigInteger p;
+public class Rational extends Number implements Comparable<Rational> {
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public final BigInteger p;
     public final BigInteger q;
     
     public static Rational NEGATIVE_INFINITY = new Rational(BigInteger.ONE.negate(), BigInteger.ZERO);
-    public static Rational PLUS_INFINITY = new Rational(BigInteger.ONE, BigInteger.ZERO);
+    public static Rational POSITIVE_INFINITY = new Rational(BigInteger.ONE, BigInteger.ZERO);
     public static Rational NAN = new Rational(BigInteger.ZERO, BigInteger.ZERO);
     public static Rational ONE = new Rational(BigInteger.ONE, BigInteger.ONE);
     public static Rational ZERO = new Rational(BigInteger.ZERO, BigInteger.ONE);
@@ -90,6 +97,13 @@ public class Rational {
 	}
 
 	@Override
+	public int compareTo(Rational o) {
+		BigInteger i1 = p.multiply(o.q);
+		BigInteger i2 = o.p.multiply(q);
+		return i1.compareTo(i2);
+	}
+
+	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
@@ -109,5 +123,29 @@ public class Rational {
 		} else if (!q.equals(other.q))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int intValue() {
+		return p.divide(q).intValue();
+	}
+
+	@Override
+	public long longValue() {
+		return p.divide(q).longValue();
+	}
+
+	@Override
+	public float floatValue() {
+		BigDecimal pd = new BigDecimal(p);
+		BigDecimal qd = new BigDecimal(q);
+		return pd.divide(qd, new MathContext(20)).floatValue();
+	}
+
+	@Override
+	public double doubleValue() {
+		BigDecimal pd = new BigDecimal(p);
+		BigDecimal qd = new BigDecimal(q);
+		return pd.divide(qd, new MathContext(20)).doubleValue();
 	}
 }

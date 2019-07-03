@@ -16,8 +16,8 @@ public class TestRational {
 		assertNotEquals(Rational.of(1,2), Rational.ZERO);
 		assertEquals(Rational.of(1,2), Rational.of(-1, -2));
 		assertEquals(Rational.of(-1,2), Rational.of(1, -2));
-		assertNotEquals(Rational.PLUS_INFINITY, Rational.NEGATIVE_INFINITY);
-		assertNotEquals(Rational.PLUS_INFINITY, Rational.NAN);
+		assertNotEquals(Rational.POSITIVE_INFINITY, Rational.NEGATIVE_INFINITY);
+		assertNotEquals(Rational.POSITIVE_INFINITY, Rational.NAN);
 		assertNotEquals(Rational.NEGATIVE_INFINITY, Rational.NAN);
 		assertNotEquals(Rational.ZERO, Rational.NAN);
 	}
@@ -27,19 +27,19 @@ public class TestRational {
 		assertEquals(Rational.ZERO.negate(), Rational.of(0));
 		assertEquals(Rational.ONE.negate(), Rational.of(-1));
 		assertEquals(Rational.of(-1).negate(), Rational.ONE);
-		assertEquals(Rational.PLUS_INFINITY.negate(), Rational.NEGATIVE_INFINITY);
-		assertEquals(Rational.NEGATIVE_INFINITY.negate(), Rational.PLUS_INFINITY);
+		assertEquals(Rational.POSITIVE_INFINITY.negate(), Rational.NEGATIVE_INFINITY);
+		assertEquals(Rational.NEGATIVE_INFINITY.negate(), Rational.POSITIVE_INFINITY);
 		assertEquals(Rational.NAN.negate(), Rational.NAN);
 	}
 
 	@Test
 	public void testRecip() {
-		assertEquals(Rational.ZERO.reciprocal(), Rational.PLUS_INFINITY);
+		assertEquals(Rational.ZERO.reciprocal(), Rational.POSITIVE_INFINITY);
 		assertEquals(Rational.ONE.reciprocal(), Rational.of(1));
 		assertEquals(Rational.of(2).reciprocal(), Rational.of(1, 2));
 		assertEquals(Rational.of(1, 2).reciprocal(), Rational.of(2));
 		assertEquals(Rational.of(2, 3).reciprocal(), Rational.of(3, 2));
-		assertEquals(Rational.PLUS_INFINITY.reciprocal(), Rational.ZERO);
+		assertEquals(Rational.POSITIVE_INFINITY.reciprocal(), Rational.ZERO);
 		assertEquals(Rational.NEGATIVE_INFINITY.reciprocal(), Rational.ZERO);
 		assertEquals(Rational.NAN.reciprocal(), Rational.NAN);
 	}
@@ -51,11 +51,11 @@ public class TestRational {
 		assertEquals(Rational.ONE.add(Rational.ONE), Rational.of(2));
 		assertEquals(Rational.of(2,3).add(Rational.of(3,4)), Rational.of(8 + 9, 3 * 4));
 		assertEquals(Rational.of(-2,3).add(Rational.of(3,4)), Rational.of(-8 + 9, 3 * 4));
-		assertEquals(Rational.PLUS_INFINITY.add(Rational.ZERO), Rational.PLUS_INFINITY);
+		assertEquals(Rational.POSITIVE_INFINITY.add(Rational.ZERO), Rational.POSITIVE_INFINITY);
 		assertEquals(Rational.NEGATIVE_INFINITY.add(Rational.ZERO), Rational.NEGATIVE_INFINITY);
 		assertEquals(Rational.NAN.add(Rational.ZERO), Rational.NAN);
-		assertEquals(Rational.PLUS_INFINITY.add(Rational.NEGATIVE_INFINITY), Rational.NAN);
-		assertEquals(Rational.PLUS_INFINITY.add(Rational.NAN), Rational.NAN);
+		assertEquals(Rational.POSITIVE_INFINITY.add(Rational.NEGATIVE_INFINITY), Rational.NAN);
+		assertEquals(Rational.POSITIVE_INFINITY.add(Rational.NAN), Rational.NAN);
 		assertEquals(Rational.NEGATIVE_INFINITY.add(Rational.NAN), Rational.NAN);
 	}
 

@@ -4,7 +4,7 @@ public class Const implements Expr {
 	final Rational rational;
 	
 	public static final Const NAN = new Const(Rational.NAN);
-	public static final Const PLUS_INFINITY = new Const(Rational.PLUS_INFINITY);
+	public static final Const PLUS_INFINITY = new Const(Rational.POSITIVE_INFINITY);
 	public static final Const NEGATIVE_INFINITY = new Const(Rational.NEGATIVE_INFINITY);
 	public static final Const ZERO = new Const(Rational.ZERO);
 	public static final Const ONE = new Const(Rational.ONE);
@@ -56,6 +56,15 @@ public class Const implements Expr {
 	
 	@Override
 	public double eval() {
-		return rational.p.doubleValue() / rational.q.doubleValue();
+		if (rational.equals(Rational.NAN)) {
+			return Double.NaN;
+		}
+		if (rational.equals(Rational.POSITIVE_INFINITY)) {
+			return Double.POSITIVE_INFINITY;
+		}
+		if (rational.equals(Rational.NEGATIVE_INFINITY)) {
+			return Double.NEGATIVE_INFINITY;
+		}
+		return rational.doubleValue();
 	}
 }

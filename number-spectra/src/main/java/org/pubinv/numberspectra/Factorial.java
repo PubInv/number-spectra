@@ -38,14 +38,14 @@ public class Factorial implements Expr {
 	public static Expr make(Expr e) {
 		if (e instanceof Const) {
 			Rational r = ((Const)e).rational;
-			if (r.isInteger() && r.p.signum() >= 0 && r.p.compareTo(BigInteger.valueOf(100)) <= 0) {
-				return new Const(new Rational(ifac(r.p.longValue()), BigInteger.ONE));
-			} else if (r.isInteger() && r.p.signum() < 0 ) {
-				return new Const(Rational.of(0, 0));
-			} else if (r.equals(Rational.PLUS_INFINITY)) {
+			if (r.equals(Rational.POSITIVE_INFINITY)) {
 				return new Const(r);
-			}else if (r.equals(Rational.NEGATIVE_INFINITY) || r.equals(Rational.NAN)) {
-				return new Const(Rational.of(0, 0));
+			} else if (r.equals(Rational.NEGATIVE_INFINITY) || r.equals(Rational.NAN)) {
+				return new Const(Rational.NAN);
+			} else if (r.isInteger() && r.signum() < 0 ) {
+				return new Const(Rational.NAN);
+			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(100)) <= 0) {
+				return new Const(new Rational(ifac(r.longValue()), BigInteger.ONE));
 			}
 		}
 		return new Factorial(e);
@@ -82,8 +82,13 @@ public class Factorial implements Expr {
 	
 	static double logGamma(double x) {
 		double tmp = (x - 0.5) * Math.log(x + 4.5) - (x + 4.5);
-		double ser = 1.0 + 76.18009173 / (x + 0) - 86.50532033 / (x + 1) + 24.01409822 / (x + 2) - 1.231739516 / (x + 3)
-				+ 0.00120858003 / (x + 4) - 0.00000536382 / (x + 5);
+		double ser = 1.0
+				+ 76.18009173 / (x + 0)
+				- 86.50532033 / (x + 1)
+				+ 24.01409822 / (x + 2)
+				- 1.231739516 / (x + 3)
+				+ 0.00120858003 / (x + 4)
+				- 0.00000536382 / (x + 5);
 		return tmp + Math.log(ser * Math.sqrt(2 * Math.PI));
 	}
 

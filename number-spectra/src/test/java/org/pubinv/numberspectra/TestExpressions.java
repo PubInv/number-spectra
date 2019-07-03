@@ -15,8 +15,8 @@ public class TestExpressions {
 
 	@Test
 	public void testRecip() {
-		assertEquals(Reciprocal.make(new Const(Rational.ZERO)), new Const(Rational.PLUS_INFINITY));
-		assertEquals(Reciprocal.make(new Const(Rational.PLUS_INFINITY)), new Const(Rational.ZERO));
+		assertEquals(Reciprocal.make(new Const(Rational.ZERO)), new Const(Rational.POSITIVE_INFINITY));
+		assertEquals(Reciprocal.make(new Const(Rational.POSITIVE_INFINITY)), new Const(Rational.ZERO));
 		assertEquals(Reciprocal.make(new Const(Rational.of(5))), new Const(Rational.of(1,5)));
 		assertEquals(Reciprocal.make(new Const(Rational.of(1, 5))), new Const(Rational.of(5)));
 	}
@@ -27,10 +27,10 @@ public class TestExpressions {
 		assertEquals(Plus.make(new Const(Rational.ONE), new Const(Rational.ZERO)), new Const(Rational.of(1)));
 		assertEquals(Plus.make(new Const(Rational.ZERO), new Const(Rational.ONE)), new Const(Rational.of(1)));
 		assertEquals(Plus.make(new Const(Rational.ONE), new Const(Rational.ONE)), new Const(Rational.of(2)));
-		assertEquals(Plus.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.ONE)), new Const(Rational.PLUS_INFINITY));
+		assertEquals(Plus.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.ONE)), new Const(Rational.POSITIVE_INFINITY));
 		assertEquals(Plus.make(new Const(Rational.NEGATIVE_INFINITY), new Const(Rational.ONE)), new Const(Rational.NEGATIVE_INFINITY));
-		assertEquals(Plus.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.NAN));
-		assertEquals(Plus.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.PLUS_INFINITY)), new Const(Rational.NAN));
+		assertEquals(Plus.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.NAN));
+		assertEquals(Plus.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.POSITIVE_INFINITY)), new Const(Rational.NAN));
 	}
 
 	@Test
@@ -41,11 +41,11 @@ public class TestExpressions {
 		assertEquals(Times.make(new Const(Rational.of(0)), new Const(Rational.of(3))), new Const(Rational.of(0)));
 		assertEquals(Times.make(new Const(Rational.of(3)), new Const(Rational.of(0))), new Const(Rational.of(0)));
 		
-		assertEquals(Times.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.ONE)), new Const(Rational.PLUS_INFINITY));
+		assertEquals(Times.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.ONE)), new Const(Rational.POSITIVE_INFINITY));
 		assertEquals(Times.make(new Const(Rational.NEGATIVE_INFINITY), new Const(Rational.ONE)), new Const(Rational.NEGATIVE_INFINITY));
-		assertEquals(Times.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.NEGATIVE_INFINITY));
-		assertEquals(Times.make(new Const(Rational.NEGATIVE_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.PLUS_INFINITY));
-		assertEquals(Times.make(new Const(Rational.PLUS_INFINITY), new Const(Rational.PLUS_INFINITY)), new Const(Rational.PLUS_INFINITY));
+		assertEquals(Times.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.NEGATIVE_INFINITY));
+		assertEquals(Times.make(new Const(Rational.NEGATIVE_INFINITY), new Const(Rational.NEGATIVE_INFINITY)), new Const(Rational.POSITIVE_INFINITY));
+		assertEquals(Times.make(new Const(Rational.POSITIVE_INFINITY), new Const(Rational.POSITIVE_INFINITY)), new Const(Rational.POSITIVE_INFINITY));
 	}
 	
 	@Test
