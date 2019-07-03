@@ -45,7 +45,7 @@ public class Factorial implements Expr {
 			} else if (r.isInteger() && r.signum() < 0 ) {
 				return new Const(Rational.NAN);
 			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(100)) <= 0) {
-				return new Const(new Rational(ifac(r.longValue()), BigInteger.ONE));
+				return new Const(Rational.of(ifac(r.longValue())));
 			}
 		}
 		return new Factorial(e);

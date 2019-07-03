@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
 
-public class Rational extends Number implements Comparable<Rational> {
+public final class Rational extends Number implements Comparable<Rational> {
     /**
 	 * 
 	 */
@@ -19,7 +19,7 @@ public class Rational extends Number implements Comparable<Rational> {
     public static Rational ONE = new Rational(BigInteger.ONE, BigInteger.ONE);
     public static Rational ZERO = new Rational(BigInteger.ZERO, BigInteger.ONE);
     
-    public Rational(BigInteger p, BigInteger q) {
+    private Rational(BigInteger p, BigInteger q) {
 		super();
 		BigInteger div = p.gcd(q);
 		if (q.signum() < 0 && div.signum() > 0) {
@@ -35,7 +35,7 @@ public class Rational extends Number implements Comparable<Rational> {
 	}
     
     public int signum() {
-    	return p.signum() * q.signum();
+    	return p.signum();
     }
     
     public boolean isInteger() {
@@ -60,11 +60,17 @@ public class Rational extends Number implements Comparable<Rational> {
     	return new Rational(q, p);
     }
     
+    public static Rational of(BigInteger l) {
+    	return of(l, BigInteger.ONE);
+    }
+    public static Rational of(BigInteger p, BigInteger q) {
+    	return new Rational(p, q);
+    }
     public static Rational of(long l) {
-    	return new Rational(BigInteger.valueOf(l), BigInteger.ONE);
+    	return of(l, 1);
     }
     public static Rational of(long p, long q) {
-    	return new Rational(BigInteger.valueOf(p), BigInteger.valueOf(q));
+    	return of(BigInteger.valueOf(p), BigInteger.valueOf(q));
     }
     
 	@Override
@@ -91,8 +97,8 @@ public class Rational extends Number implements Comparable<Rational> {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((p == null) ? 0 : p.hashCode());
-		result = prime * result + ((q == null) ? 0 : q.hashCode());
+		result = prime * result + p.hashCode();
+		result = prime * result + q.hashCode();
 		return result;
 	}
 
@@ -112,15 +118,9 @@ public class Rational extends Number implements Comparable<Rational> {
 		if (getClass() != obj.getClass())
 			return false;
 		Rational other = (Rational) obj;
-		if (p == null) {
-			if (other.p != null)
-				return false;
-		} else if (!p.equals(other.p))
+		if (!p.equals(other.p))
 			return false;
-		if (q == null) {
-			if (other.q != null)
-				return false;
-		} else if (!q.equals(other.q))
+		if (!q.equals(other.q))
 			return false;
 		return true;
 	}

@@ -1,7 +1,5 @@
 package org.pubinv.numberspectra;
 
-import java.math.BigInteger;
-
 public class Power implements Expr {
 	@Override
 	public int hashCode() {
@@ -59,9 +57,9 @@ public class Power implements Expr {
 			Const rhsConst = (Const) rhs;
 			Rational rl = lhsConst.rational;
 			Rational rr = rhsConst.rational;
-			if (rr.isInteger() && rr.p.compareTo(BigInteger.valueOf(10)) < 0) {
-				int xp = rr.p.intValue();
-				return new Const(new Rational(rl.p.pow(xp), rl.q.pow(xp)));
+			if (rr.isInteger() && rr.compareTo(Rational.of(10)) < 0) {
+				int xp = rr.intValue();
+				return new Const(Rational.of(rl.p.pow(xp), rl.q.pow(xp)));
 			}
 		}
 		

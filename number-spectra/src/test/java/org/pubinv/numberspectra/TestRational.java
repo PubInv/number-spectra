@@ -1,11 +1,35 @@
 package org.pubinv.numberspectra;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
 public class TestRational {
+
+	@Test
+	public void testIsInteger() {
+		assertTrue(Rational.ZERO.isInteger());
+		assertTrue(Rational.ONE.isInteger());
+		assertTrue(Rational.of(-1).isInteger());
+		assertTrue(Rational.of(4,2).isInteger());
+		assertFalse(Rational.of(2, 4).isInteger());
+		assertFalse(Rational.POSITIVE_INFINITY.isInteger());
+		assertFalse(Rational.NEGATIVE_INFINITY.isInteger());
+		assertFalse(Rational.NAN.isInteger());
+	}
+
+	@Test
+	public void testSigNum() {
+		assertTrue(Rational.ZERO.signum() == 0);
+		assertTrue(Rational.ONE.signum() > 0);
+		assertTrue(Rational.of(-1).signum() < 0);
+		assertTrue(Rational.POSITIVE_INFINITY.signum() > 0);
+		assertTrue(Rational.NEGATIVE_INFINITY.signum() < 0);
+		assertTrue(Rational.NAN.signum() == 0);
+	}
 
 	@Test
 	public void testEq() {
