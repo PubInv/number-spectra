@@ -8,6 +8,42 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class TestRational {
+	
+	public boolean areEq(Rational r,double y) {
+		if (r == Rational.NAN) return Double.isNaN(y);
+		if (r == Rational.POSITIVE_INFINITY) return (Double.isInfinite(y) && y > 0);
+		if (r == Rational.NEGATIVE_INFINITY) return (Double.isInfinite(y) && y < 0);
+		return Math.abs(r.doubleValue() - y) < 1e15;
+	}
+
+	public boolean areEq(Rational r,float y) {
+		if (r == Rational.NAN) return Float.isNaN(y);
+		if (r == Rational.POSITIVE_INFINITY) return (Float.isInfinite(y) && y > 0);
+		if (r == Rational.NEGATIVE_INFINITY) return (Float.isInfinite(y) && y < 0);
+		return Math.abs(r.floatValue() - y) < 1e8;
+	}
+
+	@Test
+	public void testToDouble() {
+		assertTrue(areEq(Rational.ZERO, 0.0));
+		assertTrue(areEq(Rational.ONE, 1.0));
+		assertTrue(areEq(Rational.of(1,3), 1.0 / 3));
+		assertTrue(areEq(Rational.of(-1,3), -1.0 / 3));
+		assertTrue(areEq(Rational.NAN, Double.NaN));
+		assertTrue(areEq(Rational.POSITIVE_INFINITY, Double.POSITIVE_INFINITY));
+		assertTrue(areEq(Rational.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY));
+	}
+
+	@Test
+	public void testToFloat() {
+		assertTrue(areEq(Rational.ZERO, 0.0F));
+		assertTrue(areEq(Rational.ONE, 1.0F));
+		assertTrue(areEq(Rational.of(1,3), 1.0F / 3F));
+		assertTrue(areEq(Rational.of(-1,3), -1.0F / 3F));
+		assertTrue(areEq(Rational.NAN, Float.NaN));
+		assertTrue(areEq(Rational.POSITIVE_INFINITY, Float.POSITIVE_INFINITY));
+		assertTrue(areEq(Rational.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY));
+	}
 
 	@Test
 	public void testIsInteger() {
