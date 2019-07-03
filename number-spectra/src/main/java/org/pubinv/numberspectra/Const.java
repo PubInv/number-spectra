@@ -18,7 +18,7 @@ public class Const implements Expr {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((rational == null) ? 0 : rational.hashCode());
+		result = prime * result + rational.hashCode();
 		return result;
 	}
 
@@ -31,10 +31,7 @@ public class Const implements Expr {
 		if (getClass() != obj.getClass())
 			return false;
 		Const other = (Const) obj;
-		if (rational == null) {
-			if (other.rational != null)
-				return false;
-		} else if (!rational.equals(other.rational))
+        if (!rational.equals(other.rational))
 			return false;
 		return true;
 	}
@@ -56,15 +53,6 @@ public class Const implements Expr {
 	
 	@Override
 	public double eval() {
-		if (rational.equals(Rational.NAN)) {
-			return Double.NaN;
-		}
-		if (rational.equals(Rational.POSITIVE_INFINITY)) {
-			return Double.POSITIVE_INFINITY;
-		}
-		if (rational.equals(Rational.NEGATIVE_INFINITY)) {
-			return Double.NEGATIVE_INFINITY;
-		}
 		return rational.doubleValue();
 	}
 }
