@@ -1,0 +1,30 @@
+package org.pubinv.numberspectra;
+
+public abstract class BinaryOp implements Expr {
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + lhs.hashCode();
+		result = prime * result + rhs.hashCode();
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		BinaryOp other = (BinaryOp) obj;
+		return lhs.equals(other.lhs) && rhs.equals(other.rhs);
+	}
+	final Expr lhs;
+	final Expr rhs;
+	protected BinaryOp(Expr lhs, Expr rhs) {
+		super();
+		this.lhs = lhs;
+		this.rhs = rhs;
+	}
+}

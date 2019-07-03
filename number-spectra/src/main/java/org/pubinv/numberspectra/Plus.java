@@ -1,36 +1,8 @@
 package org.pubinv.numberspectra;
 
-public final class Plus implements Expr {
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + lhs.hashCode();
-		result = prime * result + rhs.hashCode();
-		return result;
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Plus other = (Plus) obj;
-		return lhs.equals(other.lhs) && rhs.equals(other.rhs);
-	}
-	final Expr lhs;
-	final Expr rhs;
+public final class Plus extends BinaryOp {
 	private Plus(Expr lhs, Expr rhs) {
-		super();
-		while(rhs instanceof Plus) {
-			Plus rplus = (Plus)rhs;
-			lhs = new Plus(lhs,rplus.lhs);
-			rhs = rplus.rhs;
-		}
-		this.lhs = lhs;
-		this.rhs = rhs;
+		super(lhs, rhs);
 	}
 	
 	public static Expr make(Expr lhs, Expr rhs) {
