@@ -142,9 +142,7 @@ public final class Rational extends Number implements Comparable<Rational> {
 		if (equals(Rational.NEGATIVE_INFINITY)) {
 			return Float.NEGATIVE_INFINITY;
 		}
-		BigDecimal pd = new BigDecimal(p);
-		BigDecimal qd = new BigDecimal(q);
-		return pd.divide(qd, new MathContext(20)).floatValue();
+		return new BigDecimal(p).divide(new BigDecimal(q), new MathContext(7)).floatValue();
 	}
 
 	@Override
@@ -158,8 +156,6 @@ public final class Rational extends Number implements Comparable<Rational> {
 		if (equals(Rational.NEGATIVE_INFINITY)) {
 			return Double.NEGATIVE_INFINITY;
 		}
-		BigDecimal pd = new BigDecimal(p);
-		BigDecimal qd = new BigDecimal(q);
-		return pd.divide(qd, new MathContext(20)).doubleValue();
+		return new BigDecimal(p).divide(new BigDecimal(q), new MathContext(16)).doubleValue();
 	}
 }
