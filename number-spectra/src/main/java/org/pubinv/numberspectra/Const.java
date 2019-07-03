@@ -1,6 +1,6 @@
 package org.pubinv.numberspectra;
 
-public final class Const implements Expr {
+public final class Const extends BaseExpr implements Expr {
 	final Rational rational;
 	
 	public static final Const NAN = new Const(Rational.NAN);
@@ -24,12 +24,9 @@ public final class Const implements Expr {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
+		if(!super.equals(obj)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		Const other = (Const) obj;
         return rational.equals(other.rational);
 	}

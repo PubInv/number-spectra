@@ -1,6 +1,6 @@
 package org.pubinv.numberspectra;
 
-public abstract class UnaryOp implements Expr {
+public abstract class UnaryOp extends BaseExpr implements Expr {
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -11,12 +11,9 @@ public abstract class UnaryOp implements Expr {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
+		if(!super.equals(obj)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		UnaryOp other = (UnaryOp) obj;
 		return operand.equals(other.operand);
 	}
