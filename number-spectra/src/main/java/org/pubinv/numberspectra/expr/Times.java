@@ -52,6 +52,17 @@ public final class Times extends BinaryOp {
 				}
 			}
 		}
+		
+		// (A + B) * C = A * C + B * C
+		if (lhs instanceof Plus) {
+			Plus plusLhs = (Plus) lhs;
+			return Plus.make(Times.make(plusLhs.lhs, rhs), Times.make(plusLhs.rhs, rhs));
+		}
+		// A * (B + C) = A * B + A * C
+		if (rhs instanceof Plus) {
+			Plus plusRhs = (Plus) rhs;
+			return Plus.make(Times.make(lhs, plusRhs.lhs), Times.make(lhs, plusRhs.rhs));
+		}
 		return new Times(lhs, rhs);
 	}
 
