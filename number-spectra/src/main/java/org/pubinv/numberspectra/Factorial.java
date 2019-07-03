@@ -2,32 +2,9 @@ package org.pubinv.numberspectra;
 
 import java.math.BigInteger;
 
-public final class Factorial implements Expr {
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + operand.hashCode();
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Factorial other = (Factorial) obj;
-		return operand.equals(other.operand);
-	}
-
-	final Expr operand;
-
+public final class Factorial extends UnaryOp {
 	private Factorial(Expr operand) {
-		super();
-		this.operand = operand;
+		super(operand);
 	}
 	
 	public static Expr make(Expr e) {

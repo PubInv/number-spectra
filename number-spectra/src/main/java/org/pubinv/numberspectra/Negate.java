@@ -1,31 +1,8 @@
 package org.pubinv.numberspectra;
 
-public final class Negate implements Expr {
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + operand.hashCode();
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Negate other = (Negate) obj;
-		return operand.equals(other.operand);
-	}
-
-	final Expr operand;
-
+public final class Negate extends UnaryOp {
 	private Negate(Expr operand) {
-		super();
-		this.operand = operand;
+		super(operand);
 	}
 	
 	public static Expr make(Expr e) {
