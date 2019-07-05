@@ -18,7 +18,7 @@ public abstract class UnaryOp extends BaseExpr implements Expr {
 		return operand.equals(other.operand);
 	}
 
-	final Expr operand;
+	public final Expr operand;
 
 	protected UnaryOp(Expr operand) {
 		super();

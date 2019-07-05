@@ -63,6 +63,9 @@ public final class Times extends BinaryOp {
 			Plus plusRhs = (Plus) rhs;
 			return Plus.make(Times.make(lhs, plusRhs.lhs), Times.make(lhs, plusRhs.rhs));
 		}
+		if (lhs instanceof Const && !(rhs instanceof Const)) {
+			return new Times(rhs, lhs);
+		}
 		return new Times(lhs, rhs);
 	}
 

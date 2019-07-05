@@ -51,6 +51,19 @@ public final class Power extends BinaryOp {
 			return lhs;
 		}
 		
+		if (lhs instanceof Times) {
+			Times timesLhs = (Times) lhs;
+			return Times.make(make(timesLhs.lhs, rhs), make(timesLhs.rhs, rhs));
+		}
+		if (lhs instanceof Power) {
+			Power powLhs = (Power) lhs;
+			return make(powLhs.lhs, Times.make(powLhs.rhs, rhs));
+		}
+		if (rhs instanceof Plus) {
+			Plus plusRhs = (Plus) rhs;
+			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
+		}
+		
 		return new Power(lhs, rhs);
 	}
 	

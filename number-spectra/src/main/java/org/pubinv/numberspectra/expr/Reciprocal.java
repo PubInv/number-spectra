@@ -14,6 +14,9 @@ public final class Reciprocal extends UnaryOp {
 	    // 1 / -A = -(1 / A)
 		} else if (e.isNegatable()) {
 			return Negate.make(make(e.negate()));
+		// 1 / (A * B) = 1/A * 1/B
+		} else if (e instanceof Times) {
+			return Times.make(Reciprocal.make(((Times) e).lhs),Reciprocal.make(((Times) e).rhs));
 		}
 		return new Reciprocal(e);
 	}
