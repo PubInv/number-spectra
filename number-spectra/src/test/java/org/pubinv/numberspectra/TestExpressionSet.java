@@ -74,7 +74,7 @@ public class TestExpressionSet {
 			System.out.println(history.size());
 		}
 		map.forEach((k, v) -> {
-			System.out.println(v.size()+":"+k + "=" + v);				
+			System.out.println(k + "=" + v);				
 		});
 	}
 }
