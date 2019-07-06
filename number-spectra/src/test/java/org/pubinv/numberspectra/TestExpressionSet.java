@@ -61,6 +61,8 @@ public class TestExpressionSet {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
 			for(Expr e: set.expressions) {
 				double f = e.eval();
+				if (Double.isNaN(f)) continue;
+				if (Double.isInfinite(f)) continue;
 				Set<Expr> l = map.get(f);
 				if (l == null) {
 					l = new HashSet<>();
@@ -71,7 +73,6 @@ public class TestExpressionSet {
 			history.add(set);
 			System.out.println(history.size());
 		}
-		map.remove(Double.NaN);
 		map.forEach((k, v) -> {
 			System.out.println(v.size()+":"+k + "=" + v);				
 		});

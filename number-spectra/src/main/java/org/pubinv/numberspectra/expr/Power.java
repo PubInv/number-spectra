@@ -24,25 +24,10 @@ public final class Power extends BinaryOp {
 		}
 		
 		// 1 ^ B = 1
-		if (lhs.equals(Const.ONE)) return lhs;
+		if (lhs.equals(Const.ONE)) return Const.ONE;
 		
-		if (lhs instanceof Const && rhs instanceof Const) {
-			Const lhsConst = (Const) lhs;
-			Const rhsConst = (Const) rhs;
-			Rational rl = lhsConst.rational;
-			Rational rr = rhsConst.rational;
-			
-			// X ^ (A / 1) = X ^ A
-			// X ^ (A / B) = (X ^ A) ^ (1 / B)
-			{
-				Rational pp = rl.pow(rr.p);
-				if (rr.q.equals(BigInteger.ONE)) {
-					return new Const(pp);
-				} else {
-					return new Power(new Const(pp), new Const(Rational.of(BigInteger.ONE, rr.q)));
-				}
-			}
-		}
+		// B ^ 1 = B
+		if (rhs.equals(Const.ONE)) return lhs;
 		
 		// (A * B) ^ C = (A^C * B^C)
 		if (lhs instanceof Times) {
@@ -60,9 +45,25 @@ public final class Power extends BinaryOp {
 			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
 		}
 		
+		if (rhs instanceof Const) {
+			Const rhsConst = (Const) rhs;
+			Rational rr = rhsConst.rational;
+			
+			// X ^ (A / B) = (X ^ A) ^ (1 / B)
+			if (!rr.isInteger()) {
+				if (!rr.p.equals(BigInteger.ONE) && lhs instanceof Const) {
+					Expr pp = new Const((((Const) lhs).rational).pow(rr.p));
+					return make(pp, new Const(Rational.of(BigInteger.ONE, rr.q)));
+				}
+			} else if (lhs instanceof Const) {
+				return new Const((((Const) lhs).rational).pow(rr.p));
+			}
+		}
+				
 		if (rhs.equals(Const.NEGATIVE_INFINITY) || rhs.equals(Const.PLUS_INFINITY)) {
 			return rhs;
 		}
+		
 		if (lhs.equals(Const.NEGATIVE_INFINITY) || lhs.equals(Const.PLUS_INFINITY)) {
 			return lhs;
 		}
