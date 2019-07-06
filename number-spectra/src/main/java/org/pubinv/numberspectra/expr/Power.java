@@ -45,25 +45,21 @@ public final class Power extends BinaryOp {
 			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
 		}
 		
-		if (rhs instanceof Const) {
-			Const rhsConst = (Const) rhs;
-			Rational rr = rhsConst.rational;
+		if (lhs instanceof Const && rhs instanceof Const) {
+			Rational rl = ((Const) lhs).rational;
+			Rational rr = ((Const) rhs).rational;
 			
 			// X ^ (A / B) = (X ^ A) ^ (1 / B)
 			if (!rr.isInteger()) {
-				if (!rr.p.equals(BigInteger.ONE) && lhs instanceof Const) {
-					Expr pp = new Const((((Const) lhs).rational).pow(rr.p));
+				if (!rr.p.equals(BigInteger.ONE)) {
+					Expr pp = new Const(rl.pow(rr.p));
 					return make(pp, new Const(Rational.of(BigInteger.ONE, rr.q)));
 				}
-			} else if (lhs instanceof Const) {
-				return new Const((((Const) lhs).rational).pow(rr.p));
+			} else {
+				return new Const(rl.pow(rr.p));
 			}
 		}
 				
-		if (rhs.equals(Const.NEGATIVE_INFINITY) || rhs.equals(Const.PLUS_INFINITY)) {
-			return rhs;
-		}
-		
 		if (lhs.equals(Const.NEGATIVE_INFINITY) || lhs.equals(Const.PLUS_INFINITY)) {
 			return lhs;
 		}
