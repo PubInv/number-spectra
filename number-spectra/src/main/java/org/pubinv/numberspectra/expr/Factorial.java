@@ -18,9 +18,12 @@ public final class Factorial extends UnaryOp {
 				return new Const(Rational.NAN);
 			} else if (r.isInteger() && r.signum() < 0 ) {
 				return new Const(Rational.NAN);
-			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(100)) <= 0) {
+			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(10)) <= 0) {
 				return new Const(Rational.of(ifac(r.longValue())));
 			}
+		}
+		if (e instanceof Factorial) {
+			throw new IllegalArgumentException();
 		}
 		return new Factorial(e);
 	}

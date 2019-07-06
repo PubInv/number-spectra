@@ -11,8 +11,12 @@ public final class Negate extends UnaryOp {
 			return e.negate();
 		} else if (e instanceof Const) {
 			return new Const(((Const) e).rational.negate());
+		// -(a + b) = -a - b
 		} else if (e instanceof Plus) {
 			return Plus.make(((Plus) e).lhs.negate(), ((Plus) e).rhs.negate());
+		// -(a * b) = -a * b
+		} else if (e instanceof Times) {
+			return Times.make(((Times) e).lhs.negate(), ((Times) e).rhs);
 		}
 		return new Negate(e);
 	}

@@ -4,7 +4,7 @@ import org.pubinv.numberspectra.Rational;
 
 public final class Plus extends BinaryOp {
 	private Plus(Expr lhs, Expr rhs) {
-		super(lhs, rhs);
+		super(lhs, rhs, false);
 	}
 	
 	public static Expr make(Expr lhs, Expr rhs) {
@@ -38,9 +38,6 @@ public final class Plus extends BinaryOp {
 				}
 			}
 		}
-		if (lhs instanceof Const && !(rhs instanceof Const)) {
-			return new Plus(rhs, lhs);
-		}
 		return new Plus(lhs, rhs);
 	}
 	
@@ -51,12 +48,12 @@ public final class Plus extends BinaryOp {
 	
 	@Override
 	public boolean isNegatable() {
-		return false;
+		return lhs.isNegatable() && rhs.isNegatable();
 	}
 	
 	@Override
 	public Expr negate() {
-		return Negate.make(this);
+		return make(lhs.negate(), rhs.negate());
 	}
 	
 	@Override

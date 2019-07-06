@@ -26,7 +26,8 @@ public class TestExpressionSet {
 
 	@Test
 	public void testE1() {
-		assertEquals(ExpressionSet.generateE1().expressions, new HashSet<Expr>(Arrays.asList(new Const(Rational.ONE))));
+		assertEquals(ExpressionSet.generateE1().expressions, new HashSet<Expr>(Arrays.asList(
+				new Const(Rational.ONE))));
 	}
 
 	@Test
@@ -56,7 +57,7 @@ public class TestExpressionSet {
 		history.add(E0);
 		history.add(E1);
 		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
-		for(int i = 0; i < 10; i++) {
+		for(int i = 0; i < 12; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
 			for(Expr e: set.expressions) {
 				double f = e.eval();
@@ -68,7 +69,9 @@ public class TestExpressionSet {
 				l.add(e);
 			}
 			history.add(set);
+			System.out.println(history.size());
 		}
+		map.remove(Double.NaN);
 		map.forEach((k, v) -> {
 			System.out.println(v.size()+":"+k + "=" + v);				
 		});

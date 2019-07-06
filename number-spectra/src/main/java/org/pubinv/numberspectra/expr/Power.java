@@ -6,7 +6,7 @@ import org.pubinv.numberspectra.Rational;
 
 public final class Power extends BinaryOp {
 	private Power(Expr lhs, Expr rhs) {
-		super(lhs, rhs);
+		super(lhs, rhs, true);
 	}
 	
 	public static Expr make(Expr lhs, Expr rhs) {
@@ -22,6 +22,9 @@ public final class Power extends BinaryOp {
 		if (rhs.isNegatable()) {
 			return Reciprocal.make(make(lhs, rhs.negate()));
 		}
+		
+		// 1 ^ B = 1
+		if (lhs.equals(Const.ONE)) return lhs;
 		
 		if (lhs instanceof Const && rhs instanceof Const) {
 			Const lhsConst = (Const) lhs;
@@ -41,27 +44,27 @@ public final class Power extends BinaryOp {
 			}
 		}
 		
-		// 1 ^ B = 1
-		if (lhs.equals(Const.ONE)) return lhs;
+		// (A * B) ^ C = (A^C * B^C)
+		if (lhs instanceof Times) {
+			Times timesLhs = (Times) lhs;
+			return Times.make(make(timesLhs.lhs, rhs), make(timesLhs.rhs, rhs));
+		}
+		// (A ^ B) ^ C = A ^ (B * C)
+		if (lhs instanceof Power) {
+			Power powLhs = (Power) lhs;
+			return make(powLhs.lhs, Times.make(powLhs.rhs, rhs));
+		}
+		// A ^ (B + C) = A^B * A^C
+		if (rhs instanceof Plus) {
+			Plus plusRhs = (Plus) rhs;
+			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
+		}
 		
 		if (rhs.equals(Const.NEGATIVE_INFINITY) || rhs.equals(Const.PLUS_INFINITY)) {
 			return rhs;
 		}
 		if (lhs.equals(Const.NEGATIVE_INFINITY) || lhs.equals(Const.PLUS_INFINITY)) {
 			return lhs;
-		}
-		
-		if (lhs instanceof Times) {
-			Times timesLhs = (Times) lhs;
-			return Times.make(make(timesLhs.lhs, rhs), make(timesLhs.rhs, rhs));
-		}
-		if (lhs instanceof Power) {
-			Power powLhs = (Power) lhs;
-			return make(powLhs.lhs, Times.make(powLhs.rhs, rhs));
-		}
-		if (rhs instanceof Plus) {
-			Plus plusRhs = (Plus) rhs;
-			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
 		}
 		
 		return new Power(lhs, rhs);

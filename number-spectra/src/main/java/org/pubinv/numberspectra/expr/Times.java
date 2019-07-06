@@ -4,7 +4,7 @@ import org.pubinv.numberspectra.Rational;
 
 public final class Times extends BinaryOp {
 	private Times(Expr lhs, Expr rhs) {
-		super(lhs, rhs);
+		super(lhs, rhs, false);
 	}
 
 	public static Expr make(Expr lhs, Expr rhs) {
@@ -21,13 +21,8 @@ public final class Times extends BinaryOp {
 		// lhs * 1 = 0
 		if (rhs.equals(Const.ONE)) return lhs;
 		
-		// (-A * B) = -(A * B)
-		if (lhs.isNegatable()) {
-			return Negate.make(make(lhs.negate(), rhs));
-		}
-		// (A * -B) = -(A * B)
-		if (rhs.isNegatable()) {
-			return Negate.make(make(lhs, rhs.negate()));
+		if (lhs.isNegatable() && rhs.isNegatable()) {
+			return make(lhs.negate(), rhs.negate());
 		}
 		
 		// A * (B * C) = (A * B) * C
@@ -63,9 +58,6 @@ public final class Times extends BinaryOp {
 			Plus plusRhs = (Plus) rhs;
 			return Plus.make(Times.make(lhs, plusRhs.lhs), Times.make(lhs, plusRhs.rhs));
 		}
-		if (lhs instanceof Const && !(rhs instanceof Const)) {
-			return new Times(rhs, lhs);
-		}
 		return new Times(lhs, rhs);
 	}
 
@@ -76,12 +68,16 @@ public final class Times extends BinaryOp {
 	
 	@Override
 	public boolean isNegatable() {
-		return false;
+		return lhs.isNegatable() || rhs.isNegatable();
 	}
 	
 	@Override
 	public Expr negate() {
-		return Negate.make(this);
+		if (rhs.isNegatable()) {
+			return make(lhs, rhs.negate());
+		} else {
+			return make(lhs.negate(), rhs);			
+		}
 	}
 	
 	@Override
