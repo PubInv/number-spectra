@@ -57,7 +57,7 @@ public class TestExpressionSet {
 		history.add(E0);
 		history.add(E1);
 		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
-		for(int i = 0; i < 12; i++) {
+		for(int i = 0; i < 14; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
 			for(Expr e: set.expressions) {
 				double f = e.eval();

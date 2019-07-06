@@ -15,6 +15,12 @@ public class ExpressionSet {
     	this.expressions = set;
     }
     
+    public void add(Expr e) {
+    	if (Math.abs(e.eval()) < 1e6) {
+    		expressions.add(e);
+    	}
+    }
+    
     public static ExpressionSet generateE0() {
     	Set<Expr> expressions = new HashSet<>();
     	return new ExpressionSet(expressions);
@@ -38,7 +44,7 @@ public class ExpressionSet {
     	if (n == 0) {
     		return generateE1();
     	}
-    	Set<Expr> expressions = new HashSet<>();
+    	ExpressionSet es = new ExpressionSet(new HashSet<>());
     	for(UnaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity1()) {
     		for(Expr e: sets[n - 1].expressions) {
     			Expr apply;
@@ -47,7 +53,7 @@ public class ExpressionSet {
 				} catch (Exception e1) {
 					continue;
 				}
-				expressions.add(apply);
+				es.add(apply);
     		}
     	}
     	for(BinaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity2()) {
@@ -62,12 +68,12 @@ public class ExpressionSet {
 						} catch (Exception e) {
 							continue;
 						}
-						expressions.add(apply);
+						es.add(apply);
             		}
         		}
     		}
     	}
-    	return new ExpressionSet(expressions);
+    	return es;
     }
 
 	@Override
