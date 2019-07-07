@@ -16,7 +16,8 @@ public class ExpressionSet {
     }
     
     public void add(Expr e) {
-    	if (Math.abs(e.eval()) < 1e6) {
+    	double x = Math.abs(e.eval());
+		if (x < 1e6 && x > 1e-20) {
     		expressions.add(e);
     	}
     }
