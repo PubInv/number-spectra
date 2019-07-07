@@ -2,6 +2,8 @@ package org.pubinv.numberspectra;
 
 import static org.junit.Assert.assertEquals;
 
+import java.math.BigInteger;
+
 import org.junit.Test;
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
@@ -9,6 +11,8 @@ import org.pubinv.numberspectra.expr.Negate;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Power;
 import org.pubinv.numberspectra.expr.Reciprocal;
+import org.pubinv.numberspectra.expr.RootAndRemainder;
+import org.pubinv.numberspectra.expr.RootAndRemainderRational;
 import org.pubinv.numberspectra.expr.Times;
 
 public class TestExpressions {
@@ -59,18 +63,43 @@ public class TestExpressions {
 	}
 
 	@Test
-	public void testTimes() {
-		assertEquals(times(neg(i(1)), neg(i(2))), times(i(1), i(2)));
+	public void testTimes() {		
+		assertEquals(times(neg(i(2)), neg(i(3))), times(i(3), i(2)));
 		
-		assertEquals(times(n(0), i(1)), n(0));
-		assertEquals(times(n(1), i(1)), i(1));
+		assertEquals(times(n(0), i(2)), n(0));
+		assertEquals(times(n(1), i(2)), i(2));
 		
-		assertEquals(times(i(1), n(1)), i(1));
-		assertEquals(times(i(1), n(0)), n(0));
+		assertEquals(times(i(2), n(1)), i(2));
+		assertEquals(times(i(2), n(0)), n(0));
 		
-		assertEquals(times(i(1), times(i(2), i(3))), times(times(i(1), i(2)), i(3)));
-		assertEquals(times(i(1), times(i(2), i(3))), times(times(i(1), i(2)), i(3)));
-		assertEquals(times(n(3), times(i(1), n(2))), times(n(6), i(1)));
-		assertEquals(times(i(1), n(3)), times(n(3), i(1)));
+		assertEquals(times(i(4), times(i(2), i(3))), times(times(i(4), i(2)), i(3)));
+		assertEquals(times(n(3), times(i(4), n(2))), times(n(6), i(4)));
+		assertEquals(times(i(4), n(3)), times(n(3), i(4)));
+	}
+	
+	@Test
+	public void testRootAndRemainder() {
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.ZERO, 2), new RootAndRemainder(BigInteger.ZERO));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.ONE, 2), new RootAndRemainder(BigInteger.ONE));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-1), 2), new RootAndRemainder(BigInteger.valueOf(-1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(2), 2), new RootAndRemainder(BigInteger.valueOf(2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-2), 2), new RootAndRemainder(BigInteger.valueOf(-2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(3), 2), new RootAndRemainder(BigInteger.valueOf(3)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(4), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-4), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(-1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(5), 2), new RootAndRemainder(BigInteger.valueOf(5)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(6), 2), new RootAndRemainder(BigInteger.valueOf(6)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), 3), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.ONE));
+	}
+	
+	@Test
+	public void testRootAndRemainderRational() {
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.ZERO, 2), new RootAndRemainderRational(Rational.ZERO));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.ONE, 2), new RootAndRemainderRational(Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4), 2), new RootAndRemainderRational(Rational.of(2), Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,3), 2), new RootAndRemainderRational(Rational.of(2), Rational.of(1,3)));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,9), 2), new RootAndRemainderRational(Rational.of(2, 3), Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(-4,9), 2), new RootAndRemainderRational(Rational.of(2, 3), Rational.of(-1)));
 	}
 }

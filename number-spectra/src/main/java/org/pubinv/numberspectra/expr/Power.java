@@ -23,11 +23,11 @@ public final class Power extends BinaryOp {
 			return Reciprocal.make(make(lhs, rhs.negate()));
 		}
 		
+		// 0 ^ B = 0
+		if (lhs.equals(Const.ZERO)) return Const.ZERO;
+		
 		// 1 ^ B = 1
 		if (lhs.equals(Const.ONE)) return Const.ONE;
-		
-		// B ^ 1 = B
-		if (rhs.equals(Const.ONE)) return lhs;
 		
 		// (A * B) ^ C = (A^C * B^C)
 		if (lhs instanceof Times) {
@@ -54,6 +54,11 @@ public final class Power extends BinaryOp {
 				if (!rr.p.equals(BigInteger.ONE)) {
 					Expr pp = new Const(rl.pow(rr.p));
 					return make(pp, new Const(Rational.of(BigInteger.ONE, rr.q)));
+				} else if (rr.q.compareTo(BigInteger.valueOf(3)) <= 0) {
+					RootAndRemainderRational rootRem = RootAndRemainderRational.extractRoot(rl, rr.q.intValue());
+					if (!rootRem.root.equals(Rational.ONE)) {
+						return Times.make(new Const(rootRem.root), make(new Const(rootRem.rem),rhs));
+					}
 				}
 			} else {
 				return new Const(rl.pow(rr.p));
@@ -66,8 +71,6 @@ public final class Power extends BinaryOp {
 		
 		return new Power(lhs, rhs);
 	}
-	
-
 	
 	@Override
 	public String toString() {
