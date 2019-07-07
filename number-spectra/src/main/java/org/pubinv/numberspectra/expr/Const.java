@@ -3,7 +3,7 @@ package org.pubinv.numberspectra.expr;
 import org.pubinv.numberspectra.Rational;
 
 public final class Const extends BaseExpr implements Expr {
-	final Rational rational;
+	public final Rational rational;
 	
 	public static final Const NAN = new Const(Rational.NAN);
 	public static final Const PLUS_INFINITY = new Const(Rational.POSITIVE_INFINITY);

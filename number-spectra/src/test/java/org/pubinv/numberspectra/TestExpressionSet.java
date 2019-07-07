@@ -57,7 +57,7 @@ public class TestExpressionSet {
 		history.add(E0);
 		history.add(E1);
 		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
-		for(int i = 0; i < 14; i++) {
+		for(int i = 0; i < 16; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
 			for(Expr e: set.expressions) {
 				double f = e.eval();
@@ -74,7 +74,12 @@ public class TestExpressionSet {
 			System.out.println(history.size());
 		}
 		map.forEach((k, v) -> {
-			System.out.println(k + "=" + v);				
+			for(Expr e: v) {
+				if (e instanceof Const && ((Const)e).rational.isInteger()) {
+					continue;
+				}
+				System.out.println(k + "=" + e);								
+			}
 		});
 	}
 }
