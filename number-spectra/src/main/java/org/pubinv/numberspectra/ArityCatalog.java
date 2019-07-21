@@ -22,13 +22,13 @@ public class ArityCatalog {
     }
     public List<UnaryOperator<Expr>> getExpressionsofArity1() {
     	return Arrays.asList(
-    			e -> Negate.make(e),
-    			e -> Reciprocal.make(e));
+    			Negate::make,
+    			Reciprocal::make);
     }
     public List<BinaryOperator<Expr>> getExpressionsofArity2() {
     	return Arrays.asList(
-    			(lhs,rhs) -> Plus.make(lhs, rhs),
-    			(lhs,rhs) -> Power.make(lhs, rhs),
-    			(lhs,rhs) -> Times.make(lhs, rhs));
+    			Plus::make,
+    			Power::make,
+    			Times::make);
     }
 }

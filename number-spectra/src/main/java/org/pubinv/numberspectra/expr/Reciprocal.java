@@ -27,6 +27,16 @@ public final class Reciprocal extends UnaryOp {
 	}
 	
 	@Override
+	public Expr reciprocate() {
+		return operand;
+	}
+	
+	@Override
+	public boolean isReciprocatable() {
+		return true;
+	}
+	
+	@Override
 	public boolean isNegatable() {
 		return operand.isNegatable();
 	}

@@ -67,8 +67,18 @@ public final class Times extends BinaryOp {
 	}
 	
 	@Override
+	public Expr reciprocate() {
+		return make(lhs.reciprocate(), rhs.reciprocate());
+	}
+	
+	@Override
 	public boolean isNegatable() {
 		return lhs.isNegatable() || rhs.isNegatable();
+	}
+	
+	@Override
+	public boolean isReciprocatable() {
+		return lhs.isReciprocatable() && rhs.isReciprocatable();
 	}
 	
 	@Override

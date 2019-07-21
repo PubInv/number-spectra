@@ -37,6 +37,16 @@ public final class Negate extends UnaryOp {
 	}
 	
 	@Override
+	public boolean isReciprocatable() {
+		return operand.isReciprocatable();
+	}
+	
+	@Override
+	public Expr reciprocate() {
+		return make(operand.reciprocate());
+	}
+	
+	@Override
 	public double eval() {
 		return -operand.eval();
 	}

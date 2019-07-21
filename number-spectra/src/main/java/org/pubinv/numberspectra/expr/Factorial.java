@@ -48,8 +48,18 @@ public final class Factorial extends UnaryOp {
 	}
 	
 	@Override
+	public boolean isReciprocatable() {
+		return false;
+	}
+	
+	@Override
 	public Expr negate() {
 		return Negate.make(this);
+	}
+	
+	@Override
+	public Expr reciprocate() {
+		return Reciprocal.make(this);
 	}
 	
 	@Override

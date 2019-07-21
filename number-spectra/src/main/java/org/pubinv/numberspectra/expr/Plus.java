@@ -52,6 +52,16 @@ public final class Plus extends BinaryOp {
 	}
 	
 	@Override
+	public Expr reciprocate() {
+		return Reciprocal.make(this);
+	}
+	
+	@Override
+	public boolean isReciprocatable() {
+		return false;
+	}
+	
+	@Override
 	public Expr negate() {
 		return make(lhs.negate(), rhs.negate());
 	}

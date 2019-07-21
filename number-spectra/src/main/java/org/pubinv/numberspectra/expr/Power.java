@@ -85,6 +85,16 @@ public final class Power extends BinaryOp {
 	}
 	
 	@Override
+	public Expr reciprocate() {
+		return make(lhs,rhs.negate());
+	}
+	
+	@Override
+	public boolean isReciprocatable() {
+		return rhs.isNegatable();
+	}
+	
+	@Override
 	public boolean isNegatable() {
 		return false;
 	}
