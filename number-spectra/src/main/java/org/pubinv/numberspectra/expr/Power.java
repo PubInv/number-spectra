@@ -18,11 +18,6 @@ public final class Power extends BinaryOp {
 		// A ^ 0 = 1
 		if (rhs.equals(Const.ZERO)) return Const.ONE;
 		
-		// A ^ (-B)  = 1 / (A ^ B)
-		if (rhs.isNegatable()) {
-			return Reciprocal.make(make(lhs, rhs.negate()));
-		}
-		
 		// 0 ^ B = 0
 		if (lhs.equals(Const.ZERO)) return Const.ZERO;
 		
