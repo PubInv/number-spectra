@@ -49,12 +49,12 @@ public final class NoExpr extends BaseExpr implements Expr {
 	
 	@Override
 	public Expr negate() {
-		return this;
+		return Negate.make(this);
 	}
 	
 	@Override
 	public Expr reciprocate() {
-		return this;
+		return Reciprocal.make(this);
 	}
 	
 	@Override
