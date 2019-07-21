@@ -8,8 +8,8 @@ import org.junit.Test;
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
 import org.pubinv.numberspectra.expr.Negate;
+import org.pubinv.numberspectra.expr.NoExpr;
 import org.pubinv.numberspectra.expr.Plus;
-import org.pubinv.numberspectra.expr.Power;
 import org.pubinv.numberspectra.expr.Reciprocal;
 import org.pubinv.numberspectra.expr.RootAndRemainder;
 import org.pubinv.numberspectra.expr.RootAndRemainderRational;
@@ -18,7 +18,7 @@ import org.pubinv.numberspectra.expr.Times;
 public class TestExpressions {
 	
 	public Expr i(long n) {
-		return Power.make(new Const(Rational.of(-1)),new Const(Rational.of(1, n)));
+		return new NoExpr("V"+n);
 	}
 	
 	private Expr neg(Expr e) {
@@ -79,27 +79,29 @@ public class TestExpressions {
 	
 	@Test
 	public void testRootAndRemainder() {
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.ZERO, 2), new RootAndRemainder(BigInteger.ZERO));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.ONE, 2), new RootAndRemainder(BigInteger.ONE));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-1), 2), new RootAndRemainder(BigInteger.valueOf(-1)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(2), 2), new RootAndRemainder(BigInteger.valueOf(2)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-2), 2), new RootAndRemainder(BigInteger.valueOf(-2)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(3), 2), new RootAndRemainder(BigInteger.valueOf(3)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(4), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(1)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-4), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(-1)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(5), 2), new RootAndRemainder(BigInteger.valueOf(5)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(6), 2), new RootAndRemainder(BigInteger.valueOf(6)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), 2), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(2)));
-		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), 3), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.ONE));
+		BigInteger two = BigInteger.valueOf(2);
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.ZERO, two), new RootAndRemainder(BigInteger.ZERO));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.ONE, two), new RootAndRemainder(BigInteger.ONE));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-1), two), new RootAndRemainder(BigInteger.valueOf(-1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(2), two), new RootAndRemainder(BigInteger.valueOf(2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-2), two), new RootAndRemainder(BigInteger.valueOf(-2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(3), two), new RootAndRemainder(BigInteger.valueOf(3)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(4), two), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(-4), two), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(-1)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(5), two), new RootAndRemainder(BigInteger.valueOf(5)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(6), two), new RootAndRemainder(BigInteger.valueOf(6)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), two), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.valueOf(2)));
+		assertEquals(RootAndRemainder.extractRoot(BigInteger.valueOf(8), BigInteger.valueOf(3)), new RootAndRemainder(BigInteger.valueOf(2), BigInteger.ONE));
 	}
 	
 	@Test
 	public void testRootAndRemainderRational() {
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.ZERO, 2), new RootAndRemainderRational(Rational.ZERO));
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.ONE, 2), new RootAndRemainderRational(Rational.ONE));
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4), 2), new RootAndRemainderRational(Rational.of(2), Rational.ONE));
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,3), 2), new RootAndRemainderRational(Rational.of(2), Rational.of(1,3)));
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,9), 2), new RootAndRemainderRational(Rational.of(2, 3), Rational.ONE));
-		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(-4,9), 2), new RootAndRemainderRational(Rational.of(2, 3), Rational.of(-1)));
+		BigInteger two = BigInteger.valueOf(2);
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.ZERO, two), new RootAndRemainderRational(Rational.ZERO));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.ONE, two), new RootAndRemainderRational(Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4), two), new RootAndRemainderRational(Rational.of(2), Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,3), two), new RootAndRemainderRational(Rational.of(2), Rational.of(1,3)));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(4,9), two), new RootAndRemainderRational(Rational.of(2, 3), Rational.ONE));
+		assertEquals(RootAndRemainderRational.extractRoot(Rational.of(-4,9), two), new RootAndRemainderRational(Rational.of(2, 3), Rational.of(-1)));
 	}
 }

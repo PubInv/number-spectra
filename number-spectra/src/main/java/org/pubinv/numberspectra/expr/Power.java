@@ -40,26 +40,24 @@ public final class Power extends BinaryOp {
 			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
 		}
 		
-		if (rhs.equals(Const.PLUS_INFINITY)) {
+		if (rhs.equals(Const.PLUS_INFINITY) || rhs.equals(Const.NEGATIVE_INFINITY)) {
 			return new Power(lhs, rhs);
 		}
+
 		if (lhs instanceof Const && rhs instanceof Const) {
 			Rational rl = ((Const) lhs).rational;
 			Rational rr = ((Const) rhs).rational;
 			
 			// X ^ (A / B) = (X ^ A) ^ (1 / B)
+			Rational rl1 = rl.pow(rr.p);
 			if (!rr.isInteger()) {
-				if (!rr.p.equals(BigInteger.ONE)) {
-					Expr pp = new Const(rl.pow(rr.p));
-					return make(pp, new Const(Rational.of(BigInteger.ONE, rr.q)));
-				} else if (rr.q.compareTo(BigInteger.valueOf(3)) <= 0) {
-					RootAndRemainderRational rootRem = RootAndRemainderRational.extractRoot(rl, rr.q.intValue());
-					if (!rootRem.root.equals(Rational.ONE)) {
-						return Times.make(new Const(rootRem.root), make(new Const(rootRem.rem),rhs));
-					}
+				RootAndRemainderRational rootRem = RootAndRemainderRational.extractRoot(rl, rr.q);
+				if (rootRem.root.equals(Rational.ONE)) {
+					return Times.make(new Const(rl1),new Power(lhs, new Const(Rational.of(BigInteger.ONE, rr.q))));
 				}
+				return Times.make(new Const(rootRem.root.multiply(rl1)), make(new Const(rootRem.rem),rhs));
 			} else {
-				return new Const(rl.pow(rr.p));
+				return new Const(rl1);
 			}
 		}
 				
