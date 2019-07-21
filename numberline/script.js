@@ -164,7 +164,8 @@ const numberlineFactory = (mountElem, config = {}) => {
   }
 
   function drawSpecials(specials) {
-    if (paths.labels && paths.labels.length) destroySpecials();
+    if (paths.specials && paths.specials.length) destroySpecials();
+    if (paths.texts && paths.texts.length) destroyTexts();
 
     const { min, labelIncrement, numTicksBetweenLabels } = options;
     const numLabels = getNumLabels();
@@ -175,6 +176,7 @@ const numberlineFactory = (mountElem, config = {}) => {
     const tickYInc = getActionAreaHeight() / (numTicks - 1);
 
     const labelHeight = getActionAreaHeight() / (numLabels - 1);
+    paths.texts = [];
 
     paths.specials = specials.map((s, i) => {
       let radius = tickRadii.small;
@@ -194,6 +196,7 @@ const numberlineFactory = (mountElem, config = {}) => {
       text.size = 14;
       text.alignment = 'left';
       text.baseline = 'middle';
+      paths.texts.push(text);
 
       tickData[i] = {
         y: lineY,
@@ -410,6 +413,12 @@ const numberlineFactory = (mountElem, config = {}) => {
     if (paths.specials) {
       paths.specials.map(p => two.remove(p));
       delete paths.specials;
+    }
+  }
+  function destroyTexts() {
+    if (paths.texts) {
+      paths.texts.map(p => two.remove(p));
+      delete paths.texts;
     }
   }
 
