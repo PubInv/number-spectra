@@ -1,0 +1,168 @@
+<head>
+  <head>
+  <meta charset="UTF-8">
+  <title>Number Spectra - Numberline</title>
+
+</head>
+
+
+  <script src='./samples/spectra2000.js'></script>
+
+    <canvas id="myCanvas" width="800" height="100" style="border:1px solid #000000;">
+</canvas>
+
+  <script>
+
+
+function toNL(vp,A,B,N) {
+  return A + vp * (B-A)/ N;
+}
+
+function toVP(nl,A,B,N) {
+  return Math.round( ((nl - A) / (B - A) * N));
+}
+
+function zoom(vpl,vph,A,B,N) {
+  return [
+    toNL(vpl,A,B,N),
+    toNL(vph,A,B,N)
+  ];
+}
+function unzoom(vpl,vph,A,B,N) {
+  // s is a scaling factor
+  const s = (vph - vpl)/ N;
+  const Ap = s * (vpl/N) + A;
+  const Bp = s * (B - A) + Ap;
+  return [Ap,Bp];
+}
+
+function unzoom_v2(vpl,vph,A,B,N) {
+  return zoom(-vpl,2*N - vph,A,B,N);
+}
+
+function unzoom_old(vpl,vph,A,B,N) {
+  return [
+    toNL(0,A,B,vph-vpl),
+    toNL(vph - vpl,A,B,vph - vpl)
+  ];
+}
+
+
+
+// These are globals that
+// basically represent the window and
+// viewport on the number line we are creating.
+
+var GLOBAL_NL_A = 0;
+var GLOBAL_NL_B = 100;
+var GLOBAL_VP_A = 0;
+var GLOBAL_VP_B = 800;
+
+var GLOBAL_CANVAS = document.getElementById("myCanvas");
+
+var GLOBAL_DOWN_X = 0;
+var GLOBAL_DOWN_Y = 0;
+
+function onMouseDown(e) {
+
+  var rect = e.target.getBoundingClientRect();
+  var x = e.clientX - rect.left; //x position within the element.
+  var y = e.clientY - rect.top;  //y position within the element.
+
+  GLOBAL_DOWN_X = x;
+  GLOBAL_DOWN_Y = y;
+
+  var coords = "DN X coords: " + x + ", Y coords: " + y;
+  console.log(coords);
+
+}
+
+function onMouseUp(e) {
+  var rect = e.target.getBoundingClientRect();
+  var x = e.clientX - rect.left; //x position within the element.
+  var y = e.clientY - rect.top;  //y position within the element.
+
+  var coords = "UP X coords: " + x + ", Y coords: " + y;
+
+  if (x < GLOBAL_DOWN_X) { // count this an unzoom
+    [GLOBAL_NL_A,GLOBAL_NL_B] = unzoom_v2(x,GLOBAL_DOWN_X,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+  } else { // count this as a zoom
+    [GLOBAL_NL_A,GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X,x,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+  }
+  console.log(coords);
+  rerender();
+}
+
+GLOBAL_CANVAS.addEventListener("mouseup", onMouseUp, false);
+GLOBAL_CANVAS.addEventListener("mousedown", onMouseDown, false);
+
+// Okay, trying to do something a little
+// sophisticated here...for each pixel,
+// we want to compute how many points fall in
+// that pixel. Then we will render the height
+// of a line to represent it.
+function computeSpectraHistogram(s,pl,ph) {
+
+  // for each pixel, we want to compute
+  // the number of members of the spectra inside
+  // that pixel. Since the spectra is ordered,
+  // This ought to be easy to compute.
+  // We will consider the pixel boundary to
+  // start at the low edge of pl (so that the
+  // zero pixel contains zero) and go to just below
+  // the next pixel.
+
+  // first, let's find the index in the spectra
+  // which is below the image of the low pixel...
+
+  const LF = toNL(pl,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+  var idx = 0;
+  // now iterate the index in s so long as
+  // we s[idx+1] < LF;
+  while (s[idx+1].value < LF) idx++;
+
+  // now we do the counting...
+  const hist = []; // histogram mapping pixel to count
+  const NUM = s.length;
+  for(var i = pl; i < ph; i++) {
+    const Fence = toNL(i+1,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    var cnt = 0;
+    while(idx+cnt < NUM && s[idx+cnt].value < Fence) cnt++;
+    hist.push(cnt);
+    idx += cnt;
+  }
+  return hist;
+
+}
+function drawLines(hist,canvas,pl,ph) {
+
+  for(var i = pl; i < ph; i++) {
+    const v = hist[i];
+    // Now we want to render a line line of height
+    // v....
+    if (v > 0) {
+      var ctx = canvas.getContext("2d");
+      ctx.beginPath();
+      ctx.moveTo(i,0);
+      ctx.lineTo(i, v);
+      ctx.stroke();
+    }
+  }
+}
+
+function renderSpectra(s,canvas) {
+  const pl = 0;
+  const ph = 800; // really this should be the canvas width
+  const hist = computeSpectraHistogram(s,pl,ph);
+  drawLines(hist,canvas,pl,ph);
+}
+
+function rerender() {
+   var ctx = GLOBAL_CANVAS.getContext("2d");
+  ctx.clearRect(0, 0, GLOBAL_CANVAS.width, GLOBAL_CANVAS.height);
+  renderSpectra(SPECTRA0,GLOBAL_CANVAS);
+}
+
+rerender();
+
+</script>
