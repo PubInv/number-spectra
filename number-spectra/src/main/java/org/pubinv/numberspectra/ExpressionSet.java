@@ -2,14 +2,24 @@ package org.pubinv.numberspectra;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
+import org.pubinv.numberspectra.expr.Expr;
 
 public class ExpressionSet {
     final Set<Expr> expressions;
     
     public ExpressionSet(Set<Expr> set) {
     	this.expressions = set;
+    }
+    
+    public void add(Expr e) {
+    	double x = Math.abs(e.eval());
+		if (x < 1e6 && x > 1e-20) {
+    		expressions.add(e);
+    	}
     }
     
     public static ExpressionSet generateE0() {
@@ -25,15 +35,46 @@ public class ExpressionSet {
     	return new ExpressionSet(expressions);
     }
     
-    public static ExpressionSet generateE2() {
-    	ExpressionSet E1 = generateE1();
-    	Set<Expr> expressions = new HashSet<>();
-    	for(Function<Expr, Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity1()) {
-    		for(Expr e: E1.expressions) {
-    			expressions.add(s.apply(e));
+    /**
+     * Generate En based on E0 E1 E2 ... En-1
+     * @param sets Sets in prder of cardinality.
+     * @return The new set.
+     */
+    public static ExpressionSet generateE(ExpressionSet ...sets) {
+    	int n = sets.length;
+    	if (n == 0) {
+    		return generateE1();
+    	}
+    	ExpressionSet es = new ExpressionSet(new HashSet<>());
+    	for(UnaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity1()) {
+    		for(Expr e: sets[n - 1].expressions) {
+    			Expr apply;
+				try {
+					apply = s.apply(e);
+				} catch (Exception e1) {
+					continue;
+				}
+				es.add(apply);
     		}
     	}
-    	return new ExpressionSet(expressions);
+    	for(BinaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity2()) {
+    		for(int k = 1; k < n - 1; k++) {
+    			Set<Expr> s1 = sets[k].expressions;
+    			Set<Expr> s2 = sets[n - k - 1].expressions;
+        		for(Expr e1: s1) {
+            		for(Expr e2: s2) {
+            			Expr apply;
+						try {
+							apply = s.apply(e1, e2);
+						} catch (Exception e) {
+							continue;
+						}
+						es.add(apply);
+            		}
+        		}
+    		}
+    	}
+    	return es;
     }
 
 	@Override

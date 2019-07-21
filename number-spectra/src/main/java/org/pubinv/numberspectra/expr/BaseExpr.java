@@ -1,11 +1,6 @@
-package org.pubinv.numberspectra;
+package org.pubinv.numberspectra.expr;
 
-public class One implements Expr {
-	@Override
-	public int hashCode() {
-		return 0;
-	}
-
+public abstract class BaseExpr implements Expr {
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -16,5 +11,4 @@ public class One implements Expr {
 			return false;
 		return true;
 	}
-
 }
