@@ -63,7 +63,13 @@ public final class Times extends BinaryOp {
 
 	@Override
 	public String toString() {
-		return "(* " + lhs + " " + rhs + ")";
+		if (rhs.isReciprocatable()) {
+			return "(/ "+lhs+" "+rhs.reciprocate()+")";
+		} else if (lhs.isReciprocatable()) {
+			return "(/ "+rhs+" "+lhs.reciprocate()+")";
+		} else {
+		    return "(* "+lhs+" "+rhs+")";
+		}
 	}
 	
 	@Override

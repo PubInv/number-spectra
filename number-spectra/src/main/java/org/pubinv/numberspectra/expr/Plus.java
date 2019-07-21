@@ -42,8 +42,14 @@ public final class Plus extends BinaryOp {
 	}
 	
 	@Override
-	public String toString() {
-		return "(+ "+lhs+" "+rhs+")";
+	public String toString() {		
+		if (rhs.isNegatable()) {
+			return "(- "+lhs+" "+rhs.negate()+")";
+		} else if (lhs.isNegatable()) {
+			return "(- "+rhs+" "+lhs.negate()+")";
+		} else {
+		    return "(+ "+lhs+" "+rhs+")";
+		}
 	}
 	
 	@Override
