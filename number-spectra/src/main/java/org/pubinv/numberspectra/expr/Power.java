@@ -45,6 +45,9 @@ public final class Power extends BinaryOp {
 			return Times.make(make(lhs,plusRhs.lhs),make(lhs,plusRhs.rhs));
 		}
 		
+		if (rhs.equals(Const.PLUS_INFINITY)) {
+			return new Power(lhs, rhs);
+		}
 		if (lhs instanceof Const && rhs instanceof Const) {
 			Rational rl = ((Const) lhs).rational;
 			Rational rr = ((Const) rhs).rational;

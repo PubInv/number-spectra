@@ -16,10 +16,7 @@ public class ExpressionSet {
     }
     
     public void add(Expr e) {
-    	double x = Math.abs(e.eval());
-		if (x < 1e6 && x > 1e-20) {
-    		expressions.add(e);
-    	}
+    	expressions.add(e);
     }
     
     public static ExpressionSet generateE0() {
@@ -53,6 +50,8 @@ public class ExpressionSet {
 					apply = s.apply(e);
 				} catch (Exception e1) {
 					continue;
+				} catch (Throwable e1) {
+					throw new RuntimeException("Error with "+s+"("+e+")",e1);
 				}
 				es.add(apply);
     		}
@@ -68,6 +67,9 @@ public class ExpressionSet {
 							apply = s.apply(e1, e2);
 						} catch (Exception e) {
 							continue;
+						} catch (Throwable e) {
+							s.apply(e1, e2);
+							throw new RuntimeException("Error with "+s+"("+e1+","+e2+")", e);
 						}
 						es.add(apply);
             		}
