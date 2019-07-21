@@ -8,7 +8,6 @@ import java.util.function.UnaryOperator;
 
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
-import org.pubinv.numberspectra.expr.Factorial;
 import org.pubinv.numberspectra.expr.Negate;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Power;
@@ -24,8 +23,7 @@ public class ArityCatalog {
     public List<UnaryOperator<Expr>> getExpressionsofArity1() {
     	return Arrays.asList(
     			e -> Negate.make(e),
-    			e -> Reciprocal.make(e),
-    			e -> Factorial.make(e));
+    			e -> Reciprocal.make(e));
     }
     public List<BinaryOperator<Expr>> getExpressionsofArity2() {
     	return Arrays.asList(
