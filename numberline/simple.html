@@ -6,10 +6,21 @@
 </head>
 
 
-  <script src='./samples/spectra2000.js'></script>
+  <script src='./samples/spectra2000x.js'></script>
 
-    <canvas id="myCanvas" width="800" height="100" style="border:1px solid #000000;">
-</canvas>
+  <style>
+
+#myCanvas {
+  border:1px solid #000000;
+  width: 100%;
+}
+
+  </style>
+
+<body>
+    <canvas id="myCanvas" style="">
+  </canvas>
+  </body>
 
   <script>
 
@@ -54,12 +65,12 @@ function unzoom_old(vpl,vph,A,B,N) {
 // viewport on the number line we are creating.
 
 var GLOBAL_NL_A = 0;
-var GLOBAL_NL_B = 100;
+var GLOBAL_NL_B = 10;
 var GLOBAL_VP_A = 0;
-var GLOBAL_VP_B = 800;
 
 var GLOBAL_CANVAS = document.getElementById("myCanvas");
 
+var GLOBAL_VP_B = GLOBAL_CANVAS.offsetWidth;
 var GLOBAL_DOWN_X = 0;
 var GLOBAL_DOWN_Y = 0;
 
@@ -152,14 +163,17 @@ function drawLines(hist,canvas,pl,ph) {
 
 function renderSpectra(s,canvas) {
   const pl = 0;
-  const ph = 800; // really this should be the canvas width
+  const ph =  GLOBAL_CANVAS.offsetWidth; // really this should be the canvas width
   const hist = computeSpectraHistogram(s,pl,ph);
   drawLines(hist,canvas,pl,ph);
 }
 
 function rerender() {
+
+  GLOBAL_CANVAS.width  = GLOBAL_CANVAS.offsetWidth;
+  GLOBAL_CANVAS.height = GLOBAL_CANVAS.offsetHeight;
    var ctx = GLOBAL_CANVAS.getContext("2d");
-  ctx.clearRect(0, 0, GLOBAL_CANVAS.width, GLOBAL_CANVAS.height);
+  ctx.clearRect(0, 0,GLOBAL_CANVAS.offsetWidth , GLOBAL_CANVAS.offsetHeight);
   renderSpectra(SPECTRA0,GLOBAL_CANVAS);
 }
 
