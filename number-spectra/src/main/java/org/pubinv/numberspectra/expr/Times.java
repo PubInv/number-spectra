@@ -1,5 +1,9 @@
 package org.pubinv.numberspectra.expr;
 
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.BinaryOperator;
+
 import org.pubinv.numberspectra.Rational;
 
 public final class Times extends BinaryOp {
@@ -58,9 +62,10 @@ public final class Times extends BinaryOp {
 			Plus plusRhs = (Plus) rhs;
 			return Plus.make(Times.make(lhs, plusRhs.lhs), Times.make(lhs, plusRhs.rhs));
 		}
+		
 		return new Times(lhs, rhs);
 	}
-
+	
 	@Override
 	public String toString() {
 		if (rhs.isReciprocatable()) {
@@ -93,6 +98,16 @@ public final class Times extends BinaryOp {
 			return make(lhs, rhs.negate());
 		} else {
 			return make(lhs.negate(), rhs);			
+		}
+	}
+	
+	public static void merge(Map<Expr,Expr> l, Map<Expr,Expr> toadd, BinaryOperator<Expr> o) {
+		for(Entry<Expr,Expr> entry: toadd.entrySet()) {
+			if (!l.containsKey(entry.getKey())) {
+				l.put(entry.getKey(), entry.getValue());
+			} else {
+				l.put(entry.getKey(),o.apply(l.get(entry.getKey()),entry.getValue()));
+			}
 		}
 	}
 	

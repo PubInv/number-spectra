@@ -5,7 +5,7 @@ import java.math.BigInteger;
 import org.pubinv.numberspectra.Rational;
 
 public final class Power extends BinaryOp {
-	private Power(Expr lhs, Expr rhs) {
+	Power(Expr lhs, Expr rhs) {
 		super(lhs, rhs, true);
 	}
 	
