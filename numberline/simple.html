@@ -161,20 +161,67 @@ function drawLines(hist,canvas,pl,ph) {
   }
 }
 
+// This is an attempt to draw a nice set of tick
+// marks in on the canvas
+function drawNumberline(hist,canvas,pl,ph,A,B) {
+
+  const H = canvas.height;
+  var ctx = canvas.getContext("2d");
+  const M = H/2;
+  ctx.beginPath();
+  ctx.moveTo(pl, M);
+  ctx.lineTo(ph, M);
+  ctx.stroke();
+
+  const N = ph;
+
+
+  // First, let us compute the decimal division
+  // needed to make minor tick marks no more
+  // than 30 pixels apart...
+  const MAX_PIXELS_PER_MINOR_TICK = 200;
+
+  // We want at least this many ticks...
+  const MIN_TICKS = (ph - pl) / MAX_PIXELS_PER_MINOR_TICK;
+  const d = B-A;
+  const tick_exp = Math.floor(Math.log10(d/MIN_TICKS));
+  const tick = Math.pow(10,tick_exp);
+  console.log("TICK",tick,tick_exp);
+
+  // Now divide A by the tick, and take the floor...
+  const first_tick = Math.floor(A/tick)*tick;
+  const last_tick = Math.ceil(B/tick)*tick;
+  for(var t = first_tick; t < last_tick; t += tick) {
+    ctx.beginPath();
+    const horiz = toVP(t,A,B,N);
+    ctx.moveTo(horiz, M - M/4);
+    ctx.lineTo(horiz, M + M/4);
+    ctx.strokeStyle = "#FF0000";
+    ctx.stroke();
+    ctx.font = "10px Arial";
+    const string = ""+t.toFixed(Math.max(-tick_exp,0));
+    ctx.fillText(string, horiz, M+M/2);
+  }
+
+
+}
+
 function renderSpectra(s,canvas) {
   const pl = 0;
   const ph =  GLOBAL_CANVAS.offsetWidth; // really this should be the canvas width
   const hist = computeSpectraHistogram(s,pl,ph);
   drawLines(hist,canvas,pl,ph);
+  drawNumberline(hist,canvas,pl,ph,GLOBAL_NL_A,GLOBAL_NL_B);
 }
 
 function rerender() {
 
   GLOBAL_CANVAS.width  = GLOBAL_CANVAS.offsetWidth;
   GLOBAL_CANVAS.height = GLOBAL_CANVAS.offsetHeight;
-   var ctx = GLOBAL_CANVAS.getContext("2d");
+  var ctx = GLOBAL_CANVAS.getContext("2d");
   ctx.clearRect(0, 0,GLOBAL_CANVAS.offsetWidth , GLOBAL_CANVAS.offsetHeight);
   renderSpectra(SPECTRA0,GLOBAL_CANVAS);
+
 }
 
 rerender();
