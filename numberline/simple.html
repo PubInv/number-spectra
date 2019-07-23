@@ -146,16 +146,19 @@ function computeSpectraHistogram(s,pl,ph) {
 
 }
 function drawLines(hist,canvas,pl,ph) {
-
+  const H = canvas.height;
+  const M = H/2;
+  const mv = Math.max(...hist);
   for(var i = pl; i < ph; i++) {
     const v = hist[i];
+    const d = (v/mv)* M/2;
     // Now we want to render a line line of height
     // v....
     if (v > 0) {
       var ctx = canvas.getContext("2d");
       ctx.beginPath();
-      ctx.moveTo(i,0);
-      ctx.lineTo(i, v);
+      ctx.moveTo(i,M);
+      ctx.lineTo(i,M + -d);
       ctx.stroke();
     }
   }
@@ -192,18 +195,28 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
   const first_tick = Math.floor(A/tick)*tick;
   const last_tick = Math.ceil(B/tick)*tick;
   for(var t = first_tick; t < last_tick; t += tick) {
-    ctx.beginPath();
-    const horiz = toVP(t,A,B,N);
-    ctx.moveTo(horiz, M - M/4);
-    ctx.lineTo(horiz, M + M/4);
-    ctx.strokeStyle = "#FF0000";
-    ctx.stroke();
-    ctx.font = "10px Arial";
     const string = ""+t.toFixed(Math.max(-tick_exp,0));
-    ctx.fillText(string, horiz, M+M/2);
+
+    var L;
+    if (string.substr(-1) == '0') {
+      L = M/2;
+      ctx.strokeStyle = "#000000";
+    } else if (string.substr(-1) == '5') {
+      L = M/3;
+      ctx.strokeStyle = "#00aa00";
+    } else {
+      L = M/4;
+      ctx.strokeStyle = "#FF0000";
+    }
+
+    ctx.font = "10px Arial";
+    const horiz = toVP(t,A,B,N);
+    ctx.fillText(string, horiz, M + L+20);
+    ctx.beginPath();
+    ctx.moveTo(horiz, M - L);
+    ctx.lineTo(horiz, M + L);
+    ctx.stroke();
   }
-
-
 }
 
 function renderSpectra(s,canvas) {
