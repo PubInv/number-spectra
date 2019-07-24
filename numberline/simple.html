@@ -8,6 +8,9 @@
 
   <script src='./samples/spectra2000x.js'></script>
 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
   <style>
 
 #myCanvas {
@@ -15,15 +18,29 @@
   width: 100%;
 }
 
+#tip{
+  background-color:white;
+  border:1px solid blue;
+  position:absolute;
+  left:-200px;
+  top:100px;
+}
+
   </style>
 
 <body>
-    <canvas id="myCanvas" style="">
-  </canvas>
+  <canvas id="myCanvas" style="">
+    </canvas>
+
+  <p>
+  <canvas id="tip" width=300 height=100></canvas>
   </body>
 
   <script>
 
+var GLOBAL_TIP_CANVAS;
+var GLOBAL_TIP_CTX;
+var GLOBAL_DOTS = [];
 
 function toNL(vp,A,B,N) {
   return A + vp * (B-A)/ N;
@@ -138,19 +155,72 @@ function computeSpectraHistogram(s,pl,ph) {
   for(var i = pl; i < ph; i++) {
     const Fence = toNL(i+1,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
     var cnt = 0;
-    while(idx+cnt < NUM && s[idx+cnt].value < Fence) cnt++;
-    hist.push(cnt);
+    const numbers = [];
+    while(idx+cnt < NUM && s[idx+cnt].value < Fence) {
+      numbers.push(s[idx+cnt]);
+      cnt++;
+    }
+    hist.push([cnt,numbers]);
     idx += cnt;
   }
   return hist;
 
 }
+
+
+// show tooltip when mouse hovers over dot
+function handleMouseMove(e){
+  var canvasOffset = $("#myCanvas").offset();
+  var offsetX = canvasOffset.left;
+  var offsetY = canvasOffset.top;
+  mouseX=parseInt(e.clientX-offsetX);
+  mouseY=parseInt(e.clientY-offsetY);
+  console.log("pos: ", mouseX, mouseY);
+
+  // Put your mousemove stuff here
+  var hit = false;
+  var strings = [];
+  for (var i = 0; i < GLOBAL_DOTS.length; i++) {
+    var dot = GLOBAL_DOTS[i];
+    var dx = mouseX - dot.x;
+    var dy = mouseY - dot.y;
+    if (dx * dx + dy * dy < dot.rXr) {
+      GLOBAL_TIP_CANVAS.style.left = (dot.x) + "px";
+      GLOBAL_TIP_CANVAS.style.top = (dot.y - 40) + "px";
+      GLOBAL_TIP_CTX.clearRect(0, 0, GLOBAL_TIP_CANVAS.width, GLOBAL_TIP_CANVAS.height);
+      for(var j = 0; j < dot.numbers.length; j++) {
+        var n = dot.numbers[j];
+        strings.push("v: " + n.value + " e: " + n.expression_text);
+      }
+
+//      GLOBAL_TIP_CTX.fillText(
+//        dot.number.value + dot.number.expression_text,
+//        5, 15);
+      hit = true;
+    }
+  }
+  var y = 15;
+  for (var k = 0; k < strings.length; k++) {
+    GLOBAL_TIP_CTX.fillText(
+      strings[k],
+      5, y + k * 15);
+  }
+  if (!hit) { GLOBAL_TIP_CANVAS.style.left = "-600px"; }
+}
+
 function drawLines(hist,canvas,pl,ph) {
+
   const H = canvas.height;
   const M = H/2;
-  const mv = Math.max(...hist);
+//  const mv = Math.max(...hist);
+  const mv = hist.reduce(
+        (accumulator, currentValue) => {
+            return Math.max(currentValue[0], accumulator);
+        },  Number.MIN_VALUE
+  );
+  const dots = [];
   for(var i = pl; i < ph; i++) {
-    const v = hist[i];
+    const v = hist[i][0];
     const d = (v/mv)* M/2;
     // Now we want to render a line line of height
     // v....
@@ -158,10 +228,20 @@ function drawLines(hist,canvas,pl,ph) {
       var ctx = canvas.getContext("2d");
       ctx.beginPath();
       ctx.moveTo(i,M);
+
       ctx.lineTo(i,M + -d);
       ctx.stroke();
+
+      dots.push({
+        x: i,
+        y: M + -d,
+        r: 4,
+        rXr: 16,
+        numbers: hist[i][1]
+      });
     }
   }
+  GLOBAL_DOTS = dots;
 }
 
 // This is an attempt to draw a nice set of tick
@@ -237,6 +317,16 @@ function rerender() {
 
 }
 
-rerender();
+    // request mousemove events
+$(document).ready(function()  {
+
+     GLOBAL_TIP_CANVAS = document.getElementById("tip");
+    GLOBAL_TIP_CTX = GLOBAL_TIP_CANVAS.getContext("2d");
+
+
+  $("#myCanvas").mousemove(function(e){handleMouseMove(e);});
+
+  rerender();
+});
 
 </script>
