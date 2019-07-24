@@ -8,7 +8,6 @@ import org.junit.Test;
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
 import org.pubinv.numberspectra.expr.Negate;
-import org.pubinv.numberspectra.expr.NoExpr;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Reciprocal;
 import org.pubinv.numberspectra.expr.RootAndRemainder;
@@ -16,10 +15,6 @@ import org.pubinv.numberspectra.expr.RootAndRemainderRational;
 import org.pubinv.numberspectra.expr.Times;
 
 public class TestExpressions {
-	
-	public Expr i(long n) {
-		return new NoExpr("V"+n);
-	}
 	
 	private Expr neg(Expr e) {
 		return Negate.make(e);
@@ -39,42 +34,28 @@ public class TestExpressions {
 
 	@Test
 	public void testNeg() {
-		assertEquals(neg(n(0)), n(0));
-		assertEquals(neg(n(1)), n(-1));
-		assertEquals(neg(neg(i(1))), i(1));
-		assertEquals(neg(plus(i(1), i(2))), plus(neg(i(1)), neg(i(2))));
+		assertEquals(neg(n(0)).evalConst(), Rational.ZERO);
+		assertEquals(neg(n(1)).evalConst(), Rational.of(-1));
 	}
 
 	@Test
 	public void testRecip() {
-		assertEquals(recip(new Const(Rational.of(1, 5))), new Const(Rational.of(5)));
-		assertEquals(recip(recip(i(1))), i(1));
-		assertEquals(recip(neg(i(1))), neg(recip(i(1))));
+		assertEquals(recip(new Const(Rational.of(1, 5))).evalConst(), Rational.of(5));
 	}
 
 	@Test
 	public void testPlus() {
-		assertEquals(plus(n(0), i(1)), i(1));
-		assertEquals(plus(i(1), n(0)), i(1));
-		assertEquals(plus(i(1), plus(i(2), i(3))), plus(plus(i(1), i(2)), i(3)));
-		assertEquals(plus(i(1), plus(i(2), i(3))), plus(plus(i(1), i(2)), i(3)));
-		assertEquals(plus(n(1), plus(i(1), n(2))), plus(n(3), i(1)));
-		assertEquals(plus(i(1), n(3)), plus(n(3), i(1)));
+		assertEquals(plus(n(0), n(3)).evalConst(), Rational.of(3));
+		assertEquals(plus(n(2), n(3)).evalConst(), Rational.of(5));
 	}
 
 	@Test
 	public void testTimes() {		
-		assertEquals(times(neg(i(2)), neg(i(3))), times(i(3), i(2)));
-		
-		assertEquals(times(n(0), i(2)), n(0));
-		assertEquals(times(n(1), i(2)), i(2));
-		
-		assertEquals(times(i(2), n(1)), i(2));
-		assertEquals(times(i(2), n(0)), n(0));
-		
-		assertEquals(times(i(4), times(i(2), i(3))), times(times(i(4), i(2)), i(3)));
-		assertEquals(times(n(3), times(i(4), n(2))), times(n(6), i(4)));
-		assertEquals(times(i(4), n(3)), times(n(3), i(4)));
+		assertEquals(times(n(1), n(3)).evalConst(), Rational.of(3));
+		assertEquals(times(n(3), n(1)).evalConst(), Rational.of(3));
+		assertEquals(times(n(0), n(3)).evalConst(), Rational.of(0));
+		assertEquals(times(n(3), n(0)).evalConst(), Rational.of(0));
+		assertEquals(times(n(2), n(3)).evalConst(), Rational.of(6));
 	}
 	
 	@Test

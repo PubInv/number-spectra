@@ -35,30 +35,12 @@ public final class NoExpr extends BaseExpr implements Expr {
 	}
 	
 	@Override
-	public boolean isNegatable() {
-		return false;
-	}
-	
-	/**
-	 * True only if of form 1 / a or -1 / a where a is not 1
-	 */
-	@Override
-	public boolean isReciprocatable() {
-		return false;
-	}
-	
-	@Override
-	public Expr negate() {
-		return Negate.make(this);
-	}
-	
-	@Override
-	public Expr reciprocate() {
-		return Reciprocal.make(this);
-	}
-	
-	@Override
 	public double eval() {
 		return Double.NaN;
+	}
+	
+	@Override
+	public Rational evalConst() {
+		return null;
 	}
 }

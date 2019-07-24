@@ -41,31 +41,12 @@ public final class Const extends BaseExpr implements Expr {
 	}
 	
 	@Override
-	public boolean isNegatable() {
-		return rational.signum() < 0;
-	}
-	
-	/**
-	 * True only if of form 1 / a or -1 / a where a is not 1
-	 */
-	@Override
-	public boolean isReciprocatable() {
-		return (rational.p.equals(BigInteger.ONE) || rational.p.equals(BigInteger.valueOf(-1)))
-				&& !rational.q.equals(BigInteger.ONE);
-	}
-	
-	@Override
-	public Expr negate() {
-		return new Const(rational.negate());
-	}
-	
-	@Override
-	public Expr reciprocate() {
-		return new Const(rational.reciprocal());
-	}
-	
-	@Override
 	public double eval() {
 		return rational.doubleValue();
+	}
+	
+	@Override
+	public Rational evalConst() {
+		return rational;
 	}
 }

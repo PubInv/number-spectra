@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -20,8 +21,8 @@ public class MakeSpectra {
 		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
 		for(int i = 0; i < 15; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
-			for(Expr e: set.expressions) {
-				double f = e.eval();
+			for(Entry<Expr,Set<Expr>> e: set.expressions.entrySet()) {
+				double f = e.getKey().eval();
 				if (Double.isNaN(f)) continue;
 				if (Double.isInfinite(f)) continue;
 				Set<Expr> l = map.get(f);
@@ -29,7 +30,7 @@ public class MakeSpectra {
 					l = new HashSet<>();
 					map.put(f, l);
 				}
-				l.add(e);
+				l.addAll(e.getValue());
 			}
 			history.add(set);
 			System.out.println(history.size());
