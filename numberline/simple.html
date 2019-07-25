@@ -18,11 +18,11 @@
   width: 100%;
 }
 
-#tip{
+#tip,#tooltiptext{
   background-color:white;
   border:1px solid blue;
   position:absolute;
-  left:-200px;
+  left:-600px;
   top:100px;
 }
 
@@ -33,6 +33,8 @@
     </canvas>
 
   <p>
+  <div id="tooltiptext"  width=300 height=100></div>
+
   <canvas id="tip" width=300 height=100></canvas>
   </body>
 
@@ -177,35 +179,52 @@ function handleMouseMove(e){
   mouseY=parseInt(e.clientY-offsetY);
   console.log("pos: ", mouseX, mouseY);
 
+  var tt = $("#tooltiptext");
   // Put your mousemove stuff here
   var hit = false;
   var strings = [];
+  var X,Y;
   for (var i = 0; i < GLOBAL_DOTS.length; i++) {
     var dot = GLOBAL_DOTS[i];
     var dx = mouseX - dot.x;
-    var dy = mouseY - dot.y;
-    if (dx * dx + dy * dy < dot.rXr) {
-      GLOBAL_TIP_CANVAS.style.left = (dot.x) + "px";
-      GLOBAL_TIP_CANVAS.style.top = (dot.y - 40) + "px";
-      GLOBAL_TIP_CTX.clearRect(0, 0, GLOBAL_TIP_CANVAS.width, GLOBAL_TIP_CANVAS.height);
+    var dy = mouseY - dot.ymin
+    console.log("x,y, ymin, ymax",mouseX,mouseY,dot.ymin,dot.ymax);
+    if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
+      // GLOBAL_TIP_CANVAS.style.left = (dot.x) + "px";
+      X = dot.x;
+      Y = dot.ymin - 40;
+//      GLOBAL_TIP_CANVAS.style.top = (dot.ymin - 40) + "px";
       for(var j = 0; j < dot.numbers.length; j++) {
         var n = dot.numbers[j];
         strings.push("v: " + n.value + " e: " + n.expression_text);
       }
-
-//      GLOBAL_TIP_CTX.fillText(
-//        dot.number.value + dot.number.expression_text,
-//        5, 15);
       hit = true;
     }
   }
-  var y = 15;
-  for (var k = 0; k < strings.length; k++) {
-    GLOBAL_TIP_CTX.fillText(
-      strings[k],
-      5, y + k * 15);
+  if (!hit) { tt.css('left',"-600px"); }
+  else {
+    const ns = strings.length;
+    const lh = 15;
+    // GLOBAL_TIP_CANVAS.style.width = 400;
+    // GLOBAL_TIP_CANVAS.style.height = (ns+2) * lh;
+    // GLOBAL_TIP_CTX.clearRect(0,
+    //                          0,
+    //                          GLOBAL_TIP_CANVAS.width,
+    //                          GLOBAL_TIP_CANVAS.height);
+    // GLOBAL_TIP_CTX.font = '15px';
+    // var y = 15;
+    // for (var k = 0; k < ns; k++) {
+    //   GLOBAL_TIP_CTX.fillText(
+    //     strings[k],
+    //     5, y + k * 15);
+    // }
+    tt.css('height',(ns+2) * lh + 'px');
+    tt.css('top',Y);
+    tt.css('left',X);
+    tt.html('<div>'+ strings.join(",<br>\n")+ '<\div>');
+    console.log(tt.text());
   }
-  if (!hit) { GLOBAL_TIP_CANVAS.style.left = "-600px"; }
+
 }
 
 function drawLines(hist,canvas,pl,ph) {
@@ -234,9 +253,8 @@ function drawLines(hist,canvas,pl,ph) {
 
       dots.push({
         x: i,
-        y: M + -d,
-        r: 4,
-        rXr: 16,
+        ymin: M + -d,
+        ymax: M,
         numbers: hist[i][1]
       });
     }
@@ -320,7 +338,7 @@ function rerender() {
     // request mousemove events
 $(document).ready(function()  {
 
-     GLOBAL_TIP_CANVAS = document.getElementById("tip");
+    GLOBAL_TIP_CANVAS = document.getElementById("tip");
     GLOBAL_TIP_CTX = GLOBAL_TIP_CANVAS.getContext("2d");
 
 
