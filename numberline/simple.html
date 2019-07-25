@@ -1,19 +1,18 @@
-<head>
+<!doctype html>
+<html lang="en">
   <head>
   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title>Number Spectra - Numberline</title>
-
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 
   <script src='./samples/spectra2000x.js'></script>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-
-
   <style>
 
-#myCanvas {
+.numberline {
   border:1px solid #000000;
   width: 100%;
 }
@@ -22,76 +21,163 @@
   background-color:white;
   border:1px solid blue;
   position:absolute;
+  font-size:15px;
   left:-600px;
   top:100px;
 }
 
+i {
+  border: solid black;
+  border-width: 0 3px 3px 0;
+  display: inline-block;
+  padding: 3px;
+}
+
+.right {
+  transform: rotate(-45deg);
+  -webkit-transform: rotate(-45deg);
+}
+
+.left {
+  transform: rotate(135deg);
+  -webkit-transform: rotate(135deg);
+}
+
+.up {
+  transform: rotate(-135deg);
+  -webkit-transform: rotate(-135deg);
+}
+
+.down {
+  transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
+
   </style>
 
-<body>
-  <canvas id="myCanvas" style="">
+    <body>
+    <canvas class="numberline" id="lesserCanvas" style="">
+    </canvas>
+    <canvas class="numberline" id="focusCanvas" style="">
+    </canvas>
+    <canvas class="numberline" id="greaterCanvas" style="">
     </canvas>
 
-  <p>
-  <div id="tooltiptext"  width=300 height=100></div>
+    <div id="tooltiptext"  width=300 height=100></div>
+    <div id="buttonbar">
+    <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
+    <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
+    <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
+    <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
+    </div>
 
-  <canvas id="tip" width=300 height=100></canvas>
-  </body>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    </body>
+  </html>
 
-  <script>
+    <script>
 
-var GLOBAL_TIP_CANVAS;
-var GLOBAL_TIP_CTX;
-var GLOBAL_DOTS = [];
+//  var GLOBAL_TIP_CANVAS;
+//  var GLOBAL_TIP_CTX;
 
-function toNL(vp,A,B,N) {
-  return A + vp * (B-A)/ N;
-}
+  function toNL(vp,A,B,N) {
+    return A + vp * (B-A)/ N;
+  }
 
-function toVP(nl,A,B,N) {
-  return Math.round( ((nl - A) / (B - A) * N));
-}
+  function toVP(nl,A,B,N) {
+    return Math.round( ((nl - A) / (B - A) * N));
+  }
 
-function zoom(vpl,vph,A,B,N) {
-  return [
-    toNL(vpl,A,B,N),
-    toNL(vph,A,B,N)
-  ];
-}
-function unzoom(vpl,vph,A,B,N) {
-  // s is a scaling factor
-  const s = (vph - vpl)/ N;
-  const Ap = s * (vpl/N) + A;
-  const Bp = s * (B - A) + Ap;
-  return [Ap,Bp];
-}
+  function zoom(vpl,vph,A,B,N) {
+    return [
+      toNL(vpl,A,B,N),
+      toNL(vph,A,B,N)
+    ];
+  }
+  function unzoom(vpl,vph,A,B,N) {
+    // s is a scaling factor
+    const s = (vph - vpl)/ N;
+    const Ap = s * (vpl/N) + A;
+    const Bp = s * (B - A) + Ap;
+    return [Ap,Bp];
+  }
 
-function unzoom_v2(vpl,vph,A,B,N) {
-  return zoom(-vpl,2*N - vph,A,B,N);
-}
+  function unzoom_v2(vpl,vph,A,B,N) {
+    return zoom(-vpl,2*N - vph,A,B,N);
+  }
 
-function unzoom_old(vpl,vph,A,B,N) {
-  return [
-    toNL(0,A,B,vph-vpl),
-    toNL(vph - vpl,A,B,vph - vpl)
-  ];
-}
-
+  function unzoom_old(vpl,vph,A,B,N) {
+    return [
+      toNL(0,A,B,vph-vpl),
+      toNL(vph - vpl,A,B,vph - vpl)
+    ];
+  }
 
 
-// These are globals that
-// basically represent the window and
-// viewport on the number line we are creating.
 
-var GLOBAL_NL_A = 0;
-var GLOBAL_NL_B = 10;
-var GLOBAL_VP_A = 0;
+  // These are globals that
+  // basically represent the window and
+  // viewport on the number line we are creating.
 
-var GLOBAL_CANVAS = document.getElementById("myCanvas");
+  var GLOBAL_NL_A = 0;
+  var GLOBAL_NL_B = 10;
 
-var GLOBAL_VP_B = GLOBAL_CANVAS.offsetWidth;
-var GLOBAL_DOWN_X = 0;
-var GLOBAL_DOWN_Y = 0;
+  function lesserFence() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d*2;
+    return [GLOBAL_NL_A - dp, GLOBAL_NL_A ];
+  }
+  function greaterFence() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d*2;
+    return [GLOBAL_NL_B, GLOBAL_NL_B + dp ];
+  }
+
+
+  var GLOBAL_VP_A = 0;
+
+  var FOCUS_CANVAS = document.getElementById("focusCanvas");
+  var LESSER_CANVAS = document.getElementById("lesserCanvas");
+  var GREATER_CANVAS = document.getElementById("greaterCanvas");
+
+  var FOCUS_REGIONS = [];
+  var LESSER_REGIONS = [];
+  var GREATER_REGIONS = [];
+
+  var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
+  var GLOBAL_DOWN_X = 0;
+  var GLOBAL_DOWN_Y = 0;
+
+  function left_click() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d * (3/4);
+    GLOBAL_NL_B -= dp;
+    GLOBAL_NL_A -= dp;
+    rerender();
+  }
+  function right_click() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d * (3/4);
+    GLOBAL_NL_B += dp;
+    GLOBAL_NL_A += dp;
+    rerender();
+  }
+  function zoom_click() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d * (1/4);
+    GLOBAL_NL_B -= dp;
+    GLOBAL_NL_A += dp;
+    rerender();
+  }
+  function unzoom_click() {
+    const d = GLOBAL_NL_B - GLOBAL_NL_A;
+    const dp = d * (1/2);
+    GLOBAL_NL_B += dp;
+    GLOBAL_NL_A -= dp;
+    rerender();
+  }
+
 
 function onMouseDown(e) {
 
@@ -123,15 +209,15 @@ function onMouseUp(e) {
   rerender();
 }
 
-GLOBAL_CANVAS.addEventListener("mouseup", onMouseUp, false);
-GLOBAL_CANVAS.addEventListener("mousedown", onMouseDown, false);
+FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
+FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
 
 // Okay, trying to do something a little
 // sophisticated here...for each pixel,
 // we want to compute how many points fall in
 // that pixel. Then we will render the height
 // of a line to represent it.
-function computeSpectraHistogram(s,pl,ph) {
+  function computeSpectraHistogram(s,pl,ph,a,b) {
 
   // for each pixel, we want to compute
   // the number of members of the spectra inside
@@ -145,7 +231,7 @@ function computeSpectraHistogram(s,pl,ph) {
   // first, let's find the index in the spectra
   // which is below the image of the low pixel...
 
-  const LF = toNL(pl,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    const LF = toNL(pl,a,b,GLOBAL_VP_B);
   var idx = 0;
   // now iterate the index in s so long as
   // we s[idx+1] < LF;
@@ -155,7 +241,7 @@ function computeSpectraHistogram(s,pl,ph) {
   const hist = []; // histogram mapping pixel to count
   const NUM = s.length;
   for(var i = pl; i < ph; i++) {
-    const Fence = toNL(i+1,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    const Fence = toNL(i+1,a,b,GLOBAL_VP_B);
     var cnt = 0;
     const numbers = [];
     while(idx+cnt < NUM && s[idx+cnt].value < Fence) {
@@ -171,8 +257,8 @@ function computeSpectraHistogram(s,pl,ph) {
 
 
 // show tooltip when mouse hovers over dot
-function handleMouseMove(e){
-  var canvasOffset = $("#myCanvas").offset();
+  function handleMouseMove(e,id,REGIONS){
+  var canvasOffset = $(id).offset();
   var offsetX = canvasOffset.left;
   var offsetY = canvasOffset.top;
   mouseX=parseInt(e.clientX-offsetX);
@@ -184,16 +270,13 @@ function handleMouseMove(e){
   var hit = false;
   var strings = [];
   var X,Y;
-  for (var i = 0; i < GLOBAL_DOTS.length; i++) {
-    var dot = GLOBAL_DOTS[i];
+  for (var i = 0; i < REGIONS.length; i++) {
+    var dot = REGIONS[i];
     var dx = mouseX - dot.x;
     var dy = mouseY - dot.ymin
-    console.log("x,y, ymin, ymax",mouseX,mouseY,dot.ymin,dot.ymax);
     if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
-      // GLOBAL_TIP_CANVAS.style.left = (dot.x) + "px";
       X = dot.x;
       Y = dot.ymin - 40;
-//      GLOBAL_TIP_CANVAS.style.top = (dot.ymin - 40) + "px";
       for(var j = 0; j < dot.numbers.length; j++) {
         var n = dot.numbers[j];
         strings.push("v: " + n.value + " e: " + n.expression_text);
@@ -201,24 +284,13 @@ function handleMouseMove(e){
       hit = true;
     }
   }
-  if (!hit) { tt.css('left',"-600px"); }
-  else {
+  if (!hit) {
+    tt.css('left',"-600px");
+  } else {
     const ns = strings.length;
-    const lh = 15;
-    // GLOBAL_TIP_CANVAS.style.width = 400;
-    // GLOBAL_TIP_CANVAS.style.height = (ns+2) * lh;
-    // GLOBAL_TIP_CTX.clearRect(0,
-    //                          0,
-    //                          GLOBAL_TIP_CANVAS.width,
-    //                          GLOBAL_TIP_CANVAS.height);
-    // GLOBAL_TIP_CTX.font = '15px';
-    // var y = 15;
-    // for (var k = 0; k < ns; k++) {
-    //   GLOBAL_TIP_CTX.fillText(
-    //     strings[k],
-    //     5, y + k * 15);
-    // }
-    tt.css('height',(ns+2) * lh + 'px');
+    const lh = 21;
+
+    tt.css('height',(ns+1) * lh + 'px');
     tt.css('top',Y);
     tt.css('left',X);
     tt.html('<div>'+ strings.join(",<br>\n")+ '<\div>');
@@ -227,7 +299,7 @@ function handleMouseMove(e){
 
 }
 
-function drawLines(hist,canvas,pl,ph) {
+  function drawLines(hist,canvas,pl,ph) {
 
   const H = canvas.height;
   const M = H/2;
@@ -237,7 +309,7 @@ function drawLines(hist,canvas,pl,ph) {
             return Math.max(currentValue[0], accumulator);
         },  Number.MIN_VALUE
   );
-  const dots = [];
+  const regions = [];
   for(var i = pl; i < ph; i++) {
     const v = hist[i][0];
     const d = (v/mv)* M/2;
@@ -251,7 +323,7 @@ function drawLines(hist,canvas,pl,ph) {
       ctx.lineTo(i,M + -d);
       ctx.stroke();
 
-      dots.push({
+      regions.push({
         x: i,
         ymin: M + -d,
         ymax: M,
@@ -259,7 +331,7 @@ function drawLines(hist,canvas,pl,ph) {
       });
     }
   }
-  GLOBAL_DOTS = dots;
+    return regions;
 }
 
 // This is an attempt to draw a nice set of tick
@@ -317,32 +389,47 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
   }
 }
 
-function renderSpectra(s,canvas) {
-  const pl = 0;
-  const ph =  GLOBAL_CANVAS.offsetWidth; // really this should be the canvas width
-  const hist = computeSpectraHistogram(s,pl,ph);
-  drawLines(hist,canvas,pl,ph);
-  drawNumberline(hist,canvas,pl,ph,GLOBAL_NL_A,GLOBAL_NL_B);
-}
+  function renderSpectra(s,canvas,a,b) {
+    const pl = 0;
+    const ph =  canvas.offsetWidth; // really this should be the canvas width
+    const hist = computeSpectraHistogram(s,pl,ph,a,b);
+    var det_regions =
+        drawLines(hist,canvas,pl,ph);
+    drawNumberline(hist,canvas,pl,ph,a,b);
+    return det_regions;
+  }
 
-function rerender() {
+  function clearCanvas(canvas) {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
+  }
 
-  GLOBAL_CANVAS.width  = GLOBAL_CANVAS.offsetWidth;
-  GLOBAL_CANVAS.height = GLOBAL_CANVAS.offsetHeight;
-  var ctx = GLOBAL_CANVAS.getContext("2d");
-  ctx.clearRect(0, 0,GLOBAL_CANVAS.offsetWidth , GLOBAL_CANVAS.offsetHeight);
-  renderSpectra(SPECTRA0,GLOBAL_CANVAS);
+  function rerender() {
+    clearCanvas(FOCUS_CANVAS);
+    FOCUS_REGIONS = renderSpectra(SPECTRA0,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
 
-}
+    clearCanvas(LESSER_CANVAS);
+    const lf = lesserFence();
+    LESSER_REGIONS = renderSpectra(SPECTRA0,LESSER_CANVAS,lf[0],lf[1]);
+
+    clearCanvas(GREATER_CANVAS);
+    const gf = greaterFence();
+    GREATER_REGIONS = renderSpectra(SPECTRA0,GREATER_CANVAS,gf[0],gf[1]);
+  }
 
     // request mousemove events
 $(document).ready(function()  {
 
-    GLOBAL_TIP_CANVAS = document.getElementById("tip");
-    GLOBAL_TIP_CTX = GLOBAL_TIP_CANVAS.getContext("2d");
+  $("#focusCanvas").mousemove(function(e){handleMouseMove(e,"#focusCanvas",FOCUS_REGIONS);});
+  $("#lesserCanvas").mousemove(function(e){handleMouseMove(e,"#lesserCanvas",LESSER_REGIONS);});
+  $("#greaterCanvas").mousemove(function(e){handleMouseMove(e,"#greaterCanvas",GREATER_REGIONS);});
 
-
-  $("#myCanvas").mousemove(function(e){handleMouseMove(e);});
+  $("#left_button").click(left_click);
+  $("#right_button").click(right_click);
+  $("#zoom_button").click(zoom_click);
+  $("#unzoom_button").click(unzoom_click);
 
   rerender();
 });
