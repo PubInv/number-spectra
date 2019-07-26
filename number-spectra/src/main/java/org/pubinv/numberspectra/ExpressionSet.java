@@ -23,14 +23,7 @@ public class ExpressionSet {
     }
     
     public void add(Expr e) {
-    	Rational l = e.evalConst();
-    	Expr k;
-    	if (l != null) {
-    		k = new Const(l);
-    	} else {
-    		k = e;
-    	}
-    	add(k, Collections.singleton(e));
+    	add(e.reduce(), Collections.singleton(e));
     }
     
     public void add(Expr k, Set<Expr> l) {

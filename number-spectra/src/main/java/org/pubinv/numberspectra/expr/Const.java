@@ -46,7 +46,19 @@ public final class Const extends BaseExpr implements Expr {
 	}
 	
 	@Override
-	public Rational evalConst() {
-		return rational;
+	public Expr reduce() {
+		return this;
+	}
+	
+	public static Const of(Rational r) {
+		return new Const(r);
+	}
+	
+	public static Const of(long r) {
+		return new Const(Rational.of(r));
+	}
+	
+	public static Const of(BigInteger r) {
+		return new Const(Rational.of(r));
 	}
 }

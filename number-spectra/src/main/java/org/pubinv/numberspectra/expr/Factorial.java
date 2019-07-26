@@ -11,20 +11,21 @@ public final class Factorial extends UnaryOp {
 	
 	
 	@Override
-	public Rational evalConst() {
-		Rational r = operand.evalConst();
-		if (r != null) {
+	public Expr reduce() {
+		Expr rop = operand.reduce();
+		if (rop instanceof Const) {
+			Rational r = ((Const) rop).rational;
 			if (r.equals(Rational.POSITIVE_INFINITY)) {
-				return r;
+				return rop;
 			} else if (r.equals(Rational.NEGATIVE_INFINITY) || r.equals(Rational.NAN)) {
-				return Rational.NAN;
+				return Const.NAN;
 			} else if (r.isInteger() && r.signum() < 0 ) {
-				return Rational.NAN;
+				return Const.NAN;
 			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(10)) <= 0) {
-				return Rational.of(ifac(r.longValue()));
+				return new Const(Rational.of(ifac(r.longValue())));
 			}	
 		}
-		return null;
+		return rop;
 	}
 	
 	public static Expr make(Expr e) {

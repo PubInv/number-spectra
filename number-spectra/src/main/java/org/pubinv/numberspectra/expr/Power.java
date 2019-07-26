@@ -8,29 +8,33 @@ public final class Power extends BinaryOp {
 	}
 	
 	@Override
-	public Rational evalConst() {
-		Rational l = lhs.evalConst();
-		Rational r = rhs.evalConst();
+	public Expr reduce() {
+		Expr l = lhs.reduce();
+		Expr r = rhs.reduce();
 		
-		if (Rational.NAN.equals(l)) return l;
-		if (Rational.NAN.equals(r)) return r;
+		if (Const.NAN.equals(l)) return l;
+		if (Const.NAN.equals(r)) return r;
 		
 		// A ^ 1 = A
-		if (Rational.ONE.equals(r)) return l;
+		if (Const.ONE.equals(r)) return l;
 		// A ^ 0 = 1
-		if (Rational.ZERO.equals(r)) return Rational.ONE;
+		if (Const.ZERO.equals(r)) return Const.ONE;
 		
 		// 0 ^ B = 0
-		if (Rational.ZERO.equals(l)) return Rational.ZERO;
+		if (Const.ZERO.equals(l)) return Const.ZERO;
 		
 		// 1 ^ B = 1
-		if (Rational.ONE.equals(l)) return Rational.ONE;
+		if (Const.ONE.equals(l)) return Const.ONE;
 		
-		if (l != null && r != null && r.isInteger()) {
-			return l.pow(r.p);
+		if (l instanceof Const && r instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)r).rational;
+			if (rr.isInteger()) {
+			    return new Const(rl.pow(rr.p));
+			}
 		}
 				
-		return null;
+		return this;
 	}
 	
 	public static Expr make(Expr lhs, Expr rhs) {				

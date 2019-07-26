@@ -34,28 +34,28 @@ public class TestExpressions {
 
 	@Test
 	public void testNeg() {
-		assertEquals(neg(n(0)).evalConst(), Rational.ZERO);
-		assertEquals(neg(n(1)).evalConst(), Rational.of(-1));
+		assertEquals(neg(n(0)).reduce(), Const.ZERO);
+		assertEquals(neg(n(1)).reduce(), Const.of(-1));
 	}
 
 	@Test
 	public void testRecip() {
-		assertEquals(recip(new Const(Rational.of(1, 5))).evalConst(), Rational.of(5));
+		assertEquals(recip(new Const(Rational.of(1, 5))).reduce(), Const.of(5));
 	}
 
 	@Test
 	public void testPlus() {
-		assertEquals(plus(n(0), n(3)).evalConst(), Rational.of(3));
-		assertEquals(plus(n(2), n(3)).evalConst(), Rational.of(5));
+		assertEquals(plus(n(0), n(3)).reduce(), Const.of(3));
+		assertEquals(plus(n(2), n(3)).reduce(), Const.of(5));
 	}
 
 	@Test
 	public void testTimes() {		
-		assertEquals(times(n(1), n(3)).evalConst(), Rational.of(3));
-		assertEquals(times(n(3), n(1)).evalConst(), Rational.of(3));
-		assertEquals(times(n(0), n(3)).evalConst(), Rational.of(0));
-		assertEquals(times(n(3), n(0)).evalConst(), Rational.of(0));
-		assertEquals(times(n(2), n(3)).evalConst(), Rational.of(6));
+		assertEquals(times(n(1), n(3)).reduce(), Const.of(3));
+		assertEquals(times(n(3), n(1)).reduce(), Const.of(3));
+		assertEquals(times(n(0), n(3)).reduce(), Const.of(0));
+		assertEquals(times(n(3), n(0)).reduce(), Const.of(0));
+		assertEquals(times(n(2), n(3)).reduce(), Const.of(6));
 	}
 	
 	@Test

@@ -40,7 +40,7 @@ public final class NoExpr extends BaseExpr implements Expr {
 	}
 	
 	@Override
-	public Rational evalConst() {
-		return null;
+	public Expr reduce() {
+		return this;
 	}
 }

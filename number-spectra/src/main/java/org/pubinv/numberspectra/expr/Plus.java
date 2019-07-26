@@ -46,23 +46,25 @@ public final class Plus extends BinaryOp {
 	}
 	
 	@Override
-	public Rational evalConst() {
-		Rational l = lhs.evalConst();
-		Rational r = rhs.evalConst();
-		if (Rational.NAN.equals(l)) return l;
-		if (Rational.NAN.equals(r)) return r;
+	public Expr reduce() {
+		Expr l = lhs.reduce();
+		Expr r = rhs.reduce();
+		if (Const.NAN.equals(l)) return l;
+		if (Const.NAN.equals(r)) return r;
 		
 		// 0 + rhs = rhs
-		if (Rational.ZERO.equals(l)) return r;
+		if (Const.ZERO.equals(l)) return r;
 		
 		// lhs + 0 = lhs
-		if (Rational.ZERO.equals(r)) return l;
+		if (Const.ZERO.equals(r)) return l;
 		
-		if (l != null && r != null) {
-			return l.add(r);
+		if (l instanceof Const && r instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)r).rational;
+			return new Const(rl.add(rr));
 		}
 		
-		return null;
+		return this;
 	}
 	
 	public static Expr make(Expr lhs, Expr rhs) {

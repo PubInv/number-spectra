@@ -1,7 +1,5 @@
 package org.pubinv.numberspectra.expr;
 
-import org.pubinv.numberspectra.Rational;
-
 /**
  * Base for all expressions.
  */
@@ -24,5 +22,5 @@ public interface Expr {
 	 * Evaluates rational form of expression of it exists.
 	 * @return The double representation
 	 */
-	Rational evalConst();
+	Expr reduce();
 }
