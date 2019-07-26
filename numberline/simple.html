@@ -13,9 +13,17 @@
   <style>
 
 .numberline {
-  border:1px solid #000000;
-  width: 100%;
+  width: 80%;
+  margin-left: 10%;
+  margin-right: 10%;
+  height: 20vh;
 }
+
+#focusCanvas {
+      height: 40vh;
+      background: lightGray;
+  }
+
 
 #tip,#tooltiptext{
   background-color:white;
@@ -24,6 +32,15 @@
   font-size:15px;
   left:-600px;
   top:100px;
+}
+
+  .buttonbarclass {
+    display: flex;
+    justify-content: center;
+  }
+#left_button,#right_button,#zoom_button,#unzoom_button {
+  margin-left: 1%;
+  margin-right: 1%;
 }
 
 i {
@@ -55,15 +72,15 @@ i {
   </style>
 
     <body>
-    <canvas class="numberline" id="lesserCanvas" style="">
+    <canvas class="numberline" id="lesserCanvas">
     </canvas>
-    <canvas class="numberline" id="focusCanvas" style="">
+    <canvas class="numberline" id="focusCanvas">
     </canvas>
-    <canvas class="numberline" id="greaterCanvas" style="">
+    <canvas class="numberline" id="greaterCanvas">
     </canvas>
 
     <div id="tooltiptext"  width=300 height=100></div>
-    <div id="buttonbar">
+    <div class="buttonbarclass" id="buttonbar">
     <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
     <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
     <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
@@ -120,8 +137,8 @@ i {
   // basically represent the window and
   // viewport on the number line we are creating.
 
-  var GLOBAL_NL_A = 0;
-  var GLOBAL_NL_B = 10;
+  var GLOBAL_NL_A = -5;
+  var GLOBAL_NL_B = 5;
 
   function lesserFence() {
     const d = GLOBAL_NL_B - GLOBAL_NL_A;
@@ -380,6 +397,7 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     }
 
     ctx.font = "10px Arial";
+    ctx.fillStyle = "black";
     const horiz = toVP(t,A,B,N);
     ctx.fillText(string, horiz, M + L+20);
     ctx.beginPath();
@@ -403,18 +421,50 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     canvas.width  = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
     var ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
+    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/2, 0);
+    grd.addColorStop(0, "silver");
+    grd.addColorStop(1, "white");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, canvas.offsetWidth/2 , canvas.offsetHeight);
+
+    var grd = ctx.createLinearGradient(canvas.offsetWidth/2, 0, canvas.offsetWidth, 0);
+    grd.addColorStop(0, "white");
+    grd.addColorStop(1, "silver");
+    ctx.fillStyle = grd;
+    ctx.fillRect(canvas.offsetWidth/2, 0, canvas.offsetWidth, canvas.offsetHeight);
+  }
+
+  function clearLesserCanvas(canvas) {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    var ctx = canvas.getContext("2d");
+    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
+    grd.addColorStop(0, "gray");
+    grd.addColorStop(1, "silver");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
+  }
+
+  function clearGreaterCanvas(canvas) {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    var ctx = canvas.getContext("2d");
+    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
+    grd.addColorStop(0, "silver");
+    grd.addColorStop(1, "gray");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
   }
 
   function rerender() {
     clearCanvas(FOCUS_CANVAS);
     FOCUS_REGIONS = renderSpectra(SPECTRA0,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
 
-    clearCanvas(LESSER_CANVAS);
+    clearLesserCanvas(LESSER_CANVAS);
     const lf = lesserFence();
     LESSER_REGIONS = renderSpectra(SPECTRA0,LESSER_CANVAS,lf[0],lf[1]);
 
-    clearCanvas(GREATER_CANVAS);
+    clearGreaterCanvas(GREATER_CANVAS);
     const gf = greaterFence();
     GREATER_REGIONS = renderSpectra(SPECTRA0,GREATER_CANVAS,gf[0],gf[1]);
   }
