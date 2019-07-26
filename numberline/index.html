@@ -25,6 +25,10 @@
   }
 
 
+#report {
+  width: 80%;
+  background: silver;
+}
 #tip,#tooltiptext{
   background-color:white;
   border:1px solid blue;
@@ -86,6 +90,9 @@ i {
     <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
     <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
     </div>
+
+  <h1>Report</h1>
+    <div id="report" ></div>
 
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
@@ -280,7 +287,6 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
   var offsetY = canvasOffset.top;
   mouseX=parseInt(e.clientX-offsetX);
   mouseY=parseInt(e.clientY-offsetY);
-  console.log("pos: ", mouseX, mouseY);
 
   var tt = $("#tooltiptext");
   // Put your mousemove stuff here
@@ -296,7 +302,7 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
       Y = dot.ymin - 40;
       for(var j = 0; j < dot.numbers.length; j++) {
         var n = dot.numbers[j];
-        strings.push("v: " + n.value + " e: " + n.expression_text);
+        strings.push("<span style='color: "+COLORS[j % COLORS.length] +"'>" + "v: " + n.value + " e: " + n.expression_text + "</span>");
       }
       hit = true;
     }
@@ -307,15 +313,20 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
     const ns = strings.length;
     const lh = 21;
 
-    tt.css('height',(ns+1) * lh + 'px');
-    tt.css('top',Y);
-    tt.css('left',X);
-    tt.html('<div>'+ strings.join(",<br>\n")+ '<\div>');
-    console.log(tt.text());
+    // tt.css('height',(ns+1) * lh + 'px');
+    // tt.css('top',Y);
+    // tt.css('left',X);
+    // TODO: Figure out how to do color matching later...
+    const html = '<div>'+ strings.join(",<br>\n")+ '<\div>';
+//    tt.html();
+//    console.log(tt.text());
+    var report = $("#report");
+    report.html(html);
   }
 
 }
 
+  const COLORS = ["red","blue","green"];
   function drawLines(hist,canvas,pl,ph) {
 
   const H = canvas.height;
@@ -326,26 +337,41 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
             return Math.max(currentValue[0], accumulator);
         },  Number.MIN_VALUE
   );
-  const regions = [];
-  for(var i = pl; i < ph; i++) {
-    const v = hist[i][0];
-    const d = (v/mv)* M/2;
-    // Now we want to render a line line of height
-    // v....
-    if (v > 0) {
-      var ctx = canvas.getContext("2d");
+    const regions = [];
+    const interval = ((3*H)/4)/mv;
+    console.log("interval ",interval);
+
+    var ctx = canvas.getContext("2d");
+    for(var i = pl; i < ph; i++) {
+      const v = hist[i][0];
+      const d = (v/mv)* M/2;
+      // Now we want to render a line line of height
+      // v....
+      if (v > 0) {
+
+        // ctx.beginPath();
+        // ctx.moveTo(i,M);
+
+        // ctx.lineTo(i,M + -d);
+        // ctx.stroke();
+
+        regions.push({
+          x: i,
+          ymin: 3*H/4 + -v*interval,
+          ymax: 3*H/4,
+          numbers: hist[i][1]
+        });
+    }
+;
+      var cur = (3*H)/4;
+    for(var j = 0; j < hist[i][1].length; j++) {
       ctx.beginPath();
-      ctx.moveTo(i,M);
-
-      ctx.lineTo(i,M + -d);
+      ctx.moveTo(i,cur);
+      ctx.strokeStyle = COLORS[j % COLORS.length];
+      ctx.lineTo(i,cur + -interval);
       ctx.stroke();
-
-      regions.push({
-        x: i,
-        ymin: M + -d,
-        ymax: M,
-        numbers: hist[i][1]
-      });
+      ctx.closePath();
+      cur = cur - interval;
     }
   }
     return regions;
@@ -359,8 +385,9 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
   var ctx = canvas.getContext("2d");
   const M = H/2;
   ctx.beginPath();
-  ctx.moveTo(pl, M);
-  ctx.lineTo(ph, M);
+   ctx.strokeStyle = "#0000aa";
+  ctx.moveTo(pl, (3*H)/4);
+  ctx.lineTo(ph, (3*H)/4);
   ctx.stroke();
 
   const N = ph;
@@ -390,19 +417,19 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
       ctx.strokeStyle = "#000000";
     } else if (string.substr(-1) == '5') {
       L = M/3;
-      ctx.strokeStyle = "#00aa00";
+      ctx.strokeStyle = "#333333";
     } else {
       L = M/4;
-      ctx.strokeStyle = "#FF0000";
+      ctx.strokeStyle = "#666666";
     }
 
-    ctx.font = "10px Arial";
+    ctx.font = "15px Arial";
     ctx.fillStyle = "black";
     const horiz = toVP(t,A,B,N);
-    ctx.fillText(string, horiz, M + L+20);
+    ctx.fillText(string, horiz + 5, (3*H)/4 + L);
     ctx.beginPath();
-    ctx.moveTo(horiz, M - L);
-    ctx.lineTo(horiz, M + L);
+    ctx.moveTo(horiz, (3*H)/4);
+    ctx.lineTo(horiz, (3*H)/4 + L);
     ctx.stroke();
   }
 }
