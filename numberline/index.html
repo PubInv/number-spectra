@@ -417,21 +417,26 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     return det_regions;
   }
 
-  function clearCanvas(canvas) {
+  const LIGHT_GRAY = "#eeeeee";
+  function clearFocusCanvas(canvas) {
     canvas.width  = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+
     var ctx = canvas.getContext("2d");
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/2, 0);
-    grd.addColorStop(0, "silver");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+
+    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/4, 0);
+    grd.addColorStop(0, LIGHT_GRAY);
     grd.addColorStop(1, "white");
     ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth/2 , canvas.offsetHeight);
+    ctx.fillRect(0, 0, canvas.offsetWidth/4 , canvas.offsetHeight);
 
-    var grd = ctx.createLinearGradient(canvas.offsetWidth/2, 0, canvas.offsetWidth, 0);
+    var grd = ctx.createLinearGradient(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, 0);
     grd.addColorStop(0, "white");
-    grd.addColorStop(1, "silver");
+    grd.addColorStop(1, LIGHT_GRAY);
     ctx.fillStyle = grd;
-    ctx.fillRect(canvas.offsetWidth/2, 0, canvas.offsetWidth, canvas.offsetHeight);
+    ctx.fillRect(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, canvas.offsetHeight);
   }
 
   function clearLesserCanvas(canvas) {
@@ -440,7 +445,7 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     var ctx = canvas.getContext("2d");
     var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
     grd.addColorStop(0, "gray");
-    grd.addColorStop(1, "silver");
+    grd.addColorStop(1, LIGHT_GRAY);
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
   }
@@ -450,14 +455,14 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     canvas.height = canvas.offsetHeight;
     var ctx = canvas.getContext("2d");
     var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "silver");
+    grd.addColorStop(0, LIGHT_GRAY);
     grd.addColorStop(1, "gray");
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
   }
 
   function rerender() {
-    clearCanvas(FOCUS_CANVAS);
+    clearFocusCanvas(FOCUS_CANVAS);
     FOCUS_REGIONS = renderSpectra(SPECTRA0,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
 
     clearLesserCanvas(LESSER_CANVAS);
