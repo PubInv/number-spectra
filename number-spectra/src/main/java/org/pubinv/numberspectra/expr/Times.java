@@ -70,9 +70,24 @@ public final class Times extends BinaryOp {
 			return new Const(rl.multiply(rr));
 		}
 		
+		if (r instanceof Const) {
+			return new Times(r, l).reduce();
+		}
+
+		if (l instanceof Const && r instanceof Times && ((Times)r).lhs instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)((Times)r).lhs).rational;
+			return new Times(new Const(rl.multiply(rr)), ((Times)r).rhs);
+		}
+		
+		if (r instanceof Times && ((Times)r).lhs instanceof Const && l instanceof Times && ((Times)l).lhs instanceof Const) {
+			Rational rl = ((Const)((Times)l).lhs).rational;
+			Rational rr = ((Const)((Times)r).lhs).rational;
+			return new Times(new Const(rl.multiply(rr)), new Times(((Times)l).rhs, ((Times)r).rhs));
+		}
+		
 		return this;
 	}
-	
 	
 	public static Expr make(Expr lhs, Expr rhs) {
 		return new Times(lhs,rhs);

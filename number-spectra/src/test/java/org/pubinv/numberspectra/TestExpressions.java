@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
 import org.pubinv.numberspectra.expr.Negate;
+import org.pubinv.numberspectra.expr.NoExpr;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Reciprocal;
 import org.pubinv.numberspectra.expr.RootAndRemainder;
@@ -31,6 +32,9 @@ public class TestExpressions {
 	private Expr n(long a) {
 		return new Const(Rational.of(a));
 	}
+	private Expr v(String a) {
+		return new NoExpr(a);
+	}
 
 	@Test
 	public void testNeg() {
@@ -47,6 +51,9 @@ public class TestExpressions {
 	public void testPlus() {
 		assertEquals(plus(n(0), n(3)).reduce(), Const.of(3));
 		assertEquals(plus(n(2), n(3)).reduce(), Const.of(5));
+		assertEquals(plus(n(1), v("x")).reduce(), plus(v("x"), n(1)).reduce());
+		assertEquals(plus(plus(n(2), v("x")),n(3)).reduce(), plus(v("x"), n(5)).reduce());
+		assertEquals(plus(plus(n(2), v("x")),plus(n(3), v("y"))).reduce(), plus(plus(v("x"), v("y")), n(5)).reduce());
 	}
 
 	@Test
@@ -56,6 +63,9 @@ public class TestExpressions {
 		assertEquals(times(n(0), n(3)).reduce(), Const.of(0));
 		assertEquals(times(n(3), n(0)).reduce(), Const.of(0));
 		assertEquals(times(n(2), n(3)).reduce(), Const.of(6));
+		assertEquals(times(n(1), v("x")).reduce(), times(v("x"), n(1)).reduce());
+		assertEquals(times(times(n(2), v("x")),n(3)).reduce(), times(v("x"), n(6)).reduce());
+		assertEquals(times(times(n(2), v("x")),times(n(3), v("y"))).reduce(), times(times(v("x"), v("y")), n(6)).reduce());
 	}
 	
 	@Test

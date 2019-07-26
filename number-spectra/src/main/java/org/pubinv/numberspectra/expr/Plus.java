@@ -64,6 +64,22 @@ public final class Plus extends BinaryOp {
 			return new Const(rl.add(rr));
 		}
 		
+		if (r instanceof Const) {
+			return new Plus(r, l).reduce();
+		}
+
+		if (l instanceof Const && r instanceof Plus && ((Plus)r).lhs instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)((Plus)r).lhs).rational;
+			return new Plus(new Const(rl.add(rr)), ((Plus)r).rhs);
+		}
+		
+		if (r instanceof Plus && ((Plus)r).lhs instanceof Const && l instanceof Plus && ((Plus)l).lhs instanceof Const) {
+			Rational rl = ((Const)((Plus)l).lhs).rational;
+			Rational rr = ((Const)((Plus)r).lhs).rational;
+			return new Plus(new Const(rl.add(rr)), new Plus(((Plus)l).rhs, ((Plus)r).rhs));
+		}
+		
 		return this;
 	}
 	
