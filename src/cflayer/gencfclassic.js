@@ -15,7 +15,7 @@ function genall(curr,max) {
     if (max.length == 0) {
         var k = curr[0];
         var arr = curr.slice(1,curr.length);
-        process.stdout.write('{value: '+continuedFractionClassic(curr)+' ,expression_text:\'['+k+';'+arr.toString()+']\',\n');
+        process.stdout.write('{value: '+continuedFractionClassic(curr)+' ,expression_text:\'['+k+';'+arr.toString()+']\'},\n');
     } else {
         var n = max[0];
         var next = max.slice(1,max.length);
@@ -29,7 +29,9 @@ function genall(curr,max) {
 }
 
 function genallCF(max) {
+    process.stdout.write('const SPECTRA0 = [\n');
     genall([],max);
+    process.stdout.write('];\n');
 }
 
 function toContinuedFraction(p, q) {
@@ -46,4 +48,4 @@ function toContinuedFraction(p, q) {
 }
 
 /* process.stdout.write(toContinuedFraction(314,100)+'\n'); */
-genallCF([10,10,10,10,10,10]);
+genallCF([4]);
