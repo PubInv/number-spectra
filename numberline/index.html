@@ -7,9 +7,6 @@
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-
-  <script src='./samples/spectracf.js'></script>
-
   <style>
 
 .numberline {
@@ -38,10 +35,16 @@
   top:100px;
 }
 
-  .buttonbarclass {
+.buttonbarclass {
     display: flex;
     justify-content: center;
-  }
+}
+#layers {
+  display: flex;
+  flex-direction: column;
+    justify-content: space-around;
+}
+
 #left_button,#right_button,#zoom_button,#unzoom_button {
   margin-left: 1%;
   margin-right: 1%;
@@ -91,16 +94,33 @@ i {
     <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
     </div>
 
+<div id="layers">
+</div>
+
+
+
   <h1>Report</h1>
     <div id="report" ></div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     </body>
   </html>
 
     <script>
+
+  var files = [ "spectracf-4-1.js",
+                "spectracf-4-2.js",
+                "spectracf-4-3.js",
+                "spectracf-4-4.js",
+                "spectracf-4-5.js"];
+
+  var LAYERS = {};
+  // I will map keys here
+  var LAYER_SETTINGS = {};
+
+    var SPECTRA1; // this is a sort
 
 //  var GLOBAL_TIP_CANVAS;
 //  var GLOBAL_TIP_CTX;
@@ -181,28 +201,28 @@ i {
     const dp = d * (3/4);
     GLOBAL_NL_B -= dp;
     GLOBAL_NL_A -= dp;
-    rerender();
+    rerender_all();
   }
   function right_click() {
     const d = GLOBAL_NL_B - GLOBAL_NL_A;
     const dp = d * (3/4);
     GLOBAL_NL_B += dp;
     GLOBAL_NL_A += dp;
-    rerender();
+    rerender_all();
   }
   function zoom_click() {
     const d = GLOBAL_NL_B - GLOBAL_NL_A;
     const dp = d * (1/4);
     GLOBAL_NL_B -= dp;
     GLOBAL_NL_A += dp;
-    rerender();
+    rerender_all();
   }
   function unzoom_click() {
     const d = GLOBAL_NL_B - GLOBAL_NL_A;
     const dp = d * (1/2);
     GLOBAL_NL_B += dp;
     GLOBAL_NL_A -= dp;
-    rerender();
+    rerender_all();
   }
 
 
@@ -236,7 +256,7 @@ function onMouseDown(e) {
     }
   }
   console.log(coords);
-  rerender();
+  rerender_all();
 }
 
 FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
@@ -264,8 +284,15 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
     const LF = toNL(pl,a,b,GLOBAL_VP_B);
   var idx = 0;
   // now iterate the index in s so long as
-  // we s[idx+1] < LF;
-  while (s[idx+1].value < LF) idx++;
+    // we s[idx+1] < LF;
+    try {
+      while ((idx + 1) < s.length && s[idx+1].value < LF ) idx++;
+    } catch(e) {
+      console.log("s",s);
+      console.log("idx",idx);
+      console.log("LF",LF);
+      console.log(e);
+    }
 
   // now we do the counting...
   const hist = []; // histogram mapping pixel to count
@@ -345,7 +372,6 @@ FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
   );
     const regions = [];
     const interval = ((3*H)/4)/mv;
-    console.log("interval ",interval);
 
     var ctx = canvas.getContext("2d");
     for(var i = pl; i < ph; i++) {
@@ -409,7 +435,6 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
   const d = B-A;
   const tick_exp = Math.floor(Math.log10(d/MIN_TICKS));
   const tick = Math.pow(10,tick_exp);
-  console.log("TICK",tick,tick_exp);
 
   // Now divide A by the tick, and take the floor...
   const first_tick = Math.floor(A/tick)*tick;
@@ -494,17 +519,41 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
     ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
   }
 
-  function rerender() {
-    clearFocusCanvas(FOCUS_CANVAS);
-    FOCUS_REGIONS = renderSpectra(SPECTRA0,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
+  function rerender(s) {
+    FOCUS_REGIONS = renderSpectra(s,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
 
-    clearLesserCanvas(LESSER_CANVAS);
     const lf = lesserFence();
-    LESSER_REGIONS = renderSpectra(SPECTRA0,LESSER_CANVAS,lf[0],lf[1]);
+    LESSER_REGIONS = renderSpectra(s,LESSER_CANVAS,lf[0],lf[1]);
 
-    clearGreaterCanvas(GREATER_CANVAS);
     const gf = greaterFence();
-    GREATER_REGIONS = renderSpectra(SPECTRA0,GREATER_CANVAS,gf[0],gf[1]);
+    GREATER_REGIONS = renderSpectra(s,GREATER_CANVAS,gf[0],gf[1]);
+  }
+  function rerender_all() {
+    clearFocusCanvas(FOCUS_CANVAS);
+    clearLesserCanvas(LESSER_CANVAS);
+    clearGreaterCanvas(GREATER_CANVAS);
+    Object.keys(LAYERS).forEach(function(key,index) {
+    // key: the name of the object key
+      // index: the ordinal position of the key within the object
+      if (LAYER_SETTINGS[key].render)
+        rerender(LAYERS[key]);
+});
+
+  }
+
+  function add_button_layer(key) {
+      $("#layers").append(
+        `<label class="checkbox-inline">
+  <input type="checkbox" checked
+     data-toggle="toggle"
+     id="checkbox-${key}">${key}
+</label>`
+      );
+      $(`#checkbox-${key}`).change( function(eventData,handler) {
+        console.log("key",key);
+        LAYER_SETTINGS[key].render = ! LAYER_SETTINGS[key].render;
+        rerender_all();
+      });
   }
 
     // request mousemove events
@@ -518,8 +567,31 @@ $(document).ready(function()  {
   $("#right_button").click(right_click);
   $("#zoom_button").click(zoom_click);
   $("#unzoom_button").click(unzoom_click);
+  $.ajaxSetup({ cache: false });
 
-  rerender();
+  files.forEach( file => {
+    console.log("file",file);
+    $.ajax({
+      url: "./samples/"+file,
+      dataType: "json",
+      success: function(item) {
+        console.log("item",item);
+        Object.keys(item).forEach(function(key,index) {
+          LAYERS[key] = item[key];
+          LAYERS[key].sort((a,b) => a.value - b.value);
+          LAYER_SETTINGS[key] = { render: true };
+          add_button_layer(key);
+        });
+
+        rerender_all();
+      },
+      error: function (xhr, ajaxOptions, thrownError) {
+        alert(xhr.status);
+        alert(thrownError);
+      },
+    });
+  });
+
 });
 
 </script>

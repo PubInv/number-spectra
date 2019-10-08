@@ -1,0 +1,10 @@
+node gencfclassic.js 4 1 > ../../numberline/samples/spectracf-4-1.js
+node gencfclassic.js 4 2 > ../../numberline/samples/spectracf-4-2.js
+node gencfclassic.js 4 3 > ../../numberline/samples/spectracf-4-3.js
+node gencfclassic.js 4 4 > ../../numberline/samples/spectracf-4-4.js
+node gencfclassic.js 4 5 > ../../numberline/samples/spectracf-4-5.js
+node gencfclassic.js 4 6 > ../../numberline/samples/spectracf-4-6.js
+node gencfclassic.js 4 7 > ../../numberline/samples/spectracf-4-7.js
+node gencfclassic.js 4 8 > ../../numberline/samples/spectracf-4-8.js
+node gencfclassic.js 4 9 > ../../numberline/samples/spectracf-4-9.js
+node gencfclassic.js 4 10 > ../../numberline/samples/spectracf-4-10.js

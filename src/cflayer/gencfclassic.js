@@ -21,7 +21,7 @@ function genall(curr,max) {
       var arr = curr.slice(1,curr.length);
       var fraction = {
         value: continuedFractionClassic(curr),
-        expression_text: '\'['+k+';'+arr.toString()+']\''
+        expression_text: '['+k+';'+arr.toString()+']'
       };
       fractions.push(fraction);
 //        process.stdout.write('{value: '+continuedFractionClassic(curr)+' ,expression_text:\'['+k+';'+arr.toString()+']\'},\n');
@@ -39,12 +39,11 @@ function genall(curr,max) {
   return fractions;
 }
 
-function genallCF(max) {
-//    process.stdout.write('const SPECTRA0 = [\n');
-  const fractions = genall([],max);
-  process.stdout.write(JSON.stringify(fractions,null,'  '));
-      process.stdout.write('\n');
-//    process.stdout.write('];\n');
+function genallCF(arr,max,n) {
+  const layers = {};
+  const fractions = genall([],arr);
+  layers["spectracf-"+max+"-"+n] = fractions;
+  return layers;
 }
 
 function toContinuedFraction(p, q) {
@@ -58,7 +57,6 @@ function toContinuedFraction(p, q) {
     return curr;
 }
 
-/* process.stdout.write(toContinuedFraction(31415926536,10000000000)+'\n'); */
 var max = parseInt(process.argv[2]);
 var n = parseInt(process.argv[3]);
 
@@ -66,4 +64,6 @@ var arr = [];
 for(var i = 0; i < n; i++) {
     arr.push(max);
 }
-genallCF(arr);
+var layers = genallCF(arr,max,n);
+process.stdout.write(JSON.stringify(layers,null,'  '));
+process.stdout.write('\n');
