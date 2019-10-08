@@ -36,16 +36,21 @@ function genallCF(max) {
 
 function toContinuedFraction(p, q) {
     var curr = [];
-    while(q != 1) {
-        process.stdout.write(p+'/'+q);
+    while(q != 0) {
         curr.push(Math.floor(p / q));
         var nq = p % q;
         p = q;
         q = nq;
     }
-    curr.push(p);
     return curr;
 }
 
-/* process.stdout.write(toContinuedFraction(314,100)+'\n'); */
-genallCF([4]);
+/* process.stdout.write(toContinuedFraction(31415926536,10000000000)+'\n'); */
+var max = parseInt(process.argv[2]);
+var n = parseInt(process.argv[3]);
+
+var arr = [];
+for(var i = 0; i < n; i++) {
+    arr.push(max);
+}
+genallCF(arr);
