@@ -11,27 +11,40 @@ function continuedFractionClassic(arr) {
    return continuedFractionGeneral(i => arr[i],i => 1.0,0,arr.length);
 }
 
+// I'm modifying this to return objects so we can use JSON
+// directly to make layers easier to incorporate into the
+// browser.
 function genall(curr,max) {
+  var fractions = [];
     if (max.length == 0) {
         var k = curr[0];
-        var arr = curr.slice(1,curr.length);
-        process.stdout.write('{value: '+continuedFractionClassic(curr)+' ,expression_text:\'['+k+';'+arr.toString()+']\'},\n');
+      var arr = curr.slice(1,curr.length);
+      var fraction = {
+        value: continuedFractionClassic(curr),
+        expression_text: '\'['+k+';'+arr.toString()+']\''
+      };
+      fractions.push(fraction);
+//        process.stdout.write('{value: '+continuedFractionClassic(curr)+' ,expression_text:\'['+k+';'+arr.toString()+']\'},\n');
     } else {
         var n = max[0];
         var next = max.slice(1,max.length);
         var i;
         for(i = 1; i <= n; i++) {
             curr.push(i);
-            genall(curr,next);
+          var nextgen = genall(curr,next);
+          fractions = fractions.concat(nextgen);
             curr.pop();
         }
     }
+  return fractions;
 }
 
 function genallCF(max) {
-    process.stdout.write('const SPECTRA0 = [\n');
-    genall([],max);
-    process.stdout.write('];\n');
+//    process.stdout.write('const SPECTRA0 = [\n');
+  const fractions = genall([],max);
+  process.stdout.write(JSON.stringify(fractions,null,'  '));
+      process.stdout.write('\n');
+//    process.stdout.write('];\n');
 }
 
 function toContinuedFraction(p, q) {
