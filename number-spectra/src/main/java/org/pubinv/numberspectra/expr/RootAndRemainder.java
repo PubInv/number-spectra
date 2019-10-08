@@ -2,6 +2,8 @@ package org.pubinv.numberspectra.expr;
 
 import java.math.BigInteger;
 
+import org.pubinv.numberspectra.Rational;
+
 public class RootAndRemainder {
 	public final BigInteger rem;
 	public final BigInteger root;
@@ -42,10 +44,23 @@ public class RootAndRemainder {
 	public String toString() {
 		return "RootAndRemainder [rem=" + rem + ", root=" + root + "]";
 	}
+	
+    public static BigInteger pow(BigInteger x, BigInteger n) {
+    	if (n.equals(BigInteger.ZERO)) {
+    		return BigInteger.valueOf(1);
+    	}
+    	BigInteger[] divrem = n.divideAndRemainder(BigInteger.valueOf(2));
+    	BigInteger r = pow(x, divrem[0]);
+    	r = r.multiply(r);
+    	if (divrem[1].equals(BigInteger.ONE)) {
+    		r = r.multiply(x);
+    	}
+    	return r;
+    }
 
-	public static RootAndRemainder extractRoot(BigInteger x, int n) {
+	public static RootAndRemainder extractRoot(BigInteger x, BigInteger n) {
 		for(BigInteger i = BigInteger.valueOf(2); ; i = i.add(BigInteger.ONE)) {
-			BigInteger pn = i.pow(n);
+			BigInteger pn = pow(i,n);
 			if (pn.compareTo(x.abs()) > 0) {
 				break;
 			}

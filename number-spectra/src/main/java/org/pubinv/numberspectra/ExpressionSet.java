@@ -1,35 +1,49 @@
 package org.pubinv.numberspectra;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
 
 public class ExpressionSet {
-    final Set<Expr> expressions;
+    final Map<Expr,Set<Expr>> expressions;
     
-    public ExpressionSet(Set<Expr> set) {
+    public ExpressionSet(Map<Expr,Set<Expr>> set) {
     	this.expressions = set;
     }
     
     public void add(Expr e) {
-    	expressions.add(e);
+    	add(e.reduce(), Collections.singleton(e));
     }
     
+    public void add(Expr k, Set<Expr> l) {
+     	Set<Expr> list = expressions.get(k);
+    	if (list == null) {
+    		expressions.put(k, list = new HashSet<>());
+    	}
+    	list.addAll(l);
+    }
+   
     public static ExpressionSet generateE0() {
-    	Set<Expr> expressions = new HashSet<>();
-    	return new ExpressionSet(expressions);
+    	return new ExpressionSet(new HashMap<>());
     }
     
     public static ExpressionSet generateE1() {
-    	Set<Expr> expressions = new HashSet<>();
+    	ExpressionSet es = new ExpressionSet(new HashMap<>());
     	for(Supplier<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity0()) {
-    		expressions.add(s.get());
+    		es.add(s.get());
     	}
-    	return new ExpressionSet(expressions);
+    	return es;
     }
     
     /**
@@ -42,34 +56,33 @@ public class ExpressionSet {
     	if (n == 0) {
     		return generateE1();
     	}
-    	ExpressionSet es = new ExpressionSet(new HashSet<>());
+    	ExpressionSet es = new ExpressionSet(new HashMap<>());
     	for(UnaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity1()) {
-    		for(Expr e: sets[n - 1].expressions) {
+    		for(Entry<Expr,Set<Expr>> entry: sets[n - 1].expressions.entrySet()) {
     			Expr apply;
 				try {
-					apply = s.apply(e);
+					apply = s.apply(entry.getKey());
 				} catch (Exception e1) {
 					continue;
 				} catch (Throwable e1) {
-					throw new RuntimeException("Error with "+s+"("+e+")",e1);
+					throw new RuntimeException("Error with "+s+"("+entry.getKey()+")",e1);
 				}
 				es.add(apply);
     		}
     	}
     	for(BinaryOperator<Expr> s: ArityCatalog.INSTANCE.getExpressionsofArity2()) {
     		for(int k = 1; k < n - 1; k++) {
-    			Set<Expr> s1 = sets[k].expressions;
-    			Set<Expr> s2 = sets[n - k - 1].expressions;
-        		for(Expr e1: s1) {
-            		for(Expr e2: s2) {
+    			Map<Expr,Set<Expr>> s1 = sets[k].expressions;
+    			Map<Expr,Set<Expr>> s2 = sets[n - k - 1].expressions;
+        		for(Entry<Expr,Set<Expr>> e1: s1.entrySet()) {
+            		for(Entry<Expr,Set<Expr>> e2: s2.entrySet()) {
             			Expr apply;
 						try {
-							apply = s.apply(e1, e2);
+							apply = s.apply(e1.getKey(), e2.getKey());
 						} catch (Exception e) {
 							continue;
 						} catch (Throwable e) {
-							s.apply(e1, e2);
-							throw new RuntimeException("Error with "+s+"("+e1+","+e2+")", e);
+							throw new RuntimeException("Error with "+s+"("+e1.getKey()+","+e2.getKey()+")", e);
 						}
 						es.add(apply);
             		}

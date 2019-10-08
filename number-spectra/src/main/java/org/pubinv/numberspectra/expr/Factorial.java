@@ -9,22 +9,26 @@ public final class Factorial extends UnaryOp {
 		super(operand);
 	}
 	
-	public static Expr make(Expr e) {
-		if (e instanceof Const) {
-			Rational r = ((Const)e).rational;
+	
+	@Override
+	public Expr reduce() {
+		Expr rop = operand.reduce();
+		if (rop instanceof Const) {
+			Rational r = ((Const) rop).rational;
 			if (r.equals(Rational.POSITIVE_INFINITY)) {
-				return new Const(r);
+				return rop;
 			} else if (r.equals(Rational.NEGATIVE_INFINITY) || r.equals(Rational.NAN)) {
-				return new Const(Rational.NAN);
+				return Const.NAN;
 			} else if (r.isInteger() && r.signum() < 0 ) {
-				return new Const(Rational.NAN);
+				return Const.NAN;
 			} else if (r.isInteger() && r.signum() >= 0 && r.compareTo(Rational.of(10)) <= 0) {
 				return new Const(Rational.of(ifac(r.longValue())));
-			}
+			}	
 		}
-		if (e instanceof Factorial) {
-			throw new IllegalArgumentException();
-		}
+		return rop;
+	}
+	
+	public static Expr make(Expr e) {
 		return new Factorial(e);
 	}
 
@@ -40,16 +44,6 @@ public final class Factorial extends UnaryOp {
 	@Override
 	public String toString() {
 		return "(! " + operand + ")";
-	}
-	
-	@Override
-	public boolean isNegatable() {
-		return false;
-	}
-	
-	@Override
-	public Expr negate() {
-		return Negate.make(this);
 	}
 	
 	@Override

@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import java.math.BigInteger;
+
 import org.pubinv.numberspectra.Rational;
 
 public final class Const extends BaseExpr implements Expr {
@@ -39,17 +41,24 @@ public final class Const extends BaseExpr implements Expr {
 	}
 	
 	@Override
-	public boolean isNegatable() {
-		return rational.signum() < 0;
-	}
-	
-	@Override
-	public Expr negate() {
-		return new Const(rational.negate());
-	}
-	
-	@Override
 	public double eval() {
 		return rational.doubleValue();
+	}
+	
+	@Override
+	public Expr reduce() {
+		return this;
+	}
+	
+	public static Const of(Rational r) {
+		return new Const(r);
+	}
+	
+	public static Const of(long r) {
+		return new Const(Rational.of(r));
+	}
+	
+	public static Const of(BigInteger r) {
+		return new Const(Rational.of(r));
 	}
 }

@@ -12,20 +12,15 @@ public interface Expr {
 	String toString();
 	
 	/**
-	 * Determines negateability.
-	 * @return True if the expression can be negated.
-	 */
-	boolean isNegatable();
-	
-	/**
-	 * Negate the expression.
-	 * @return An expression representing the negation of this expression
-	 */
-	Expr negate();
-	
-	/**
 	 * Evaluates the expression.
 	 * @return The double representation
 	 */
 	double eval();
+	
+	
+	/**
+	 * Evaluates rational form of expression of it exists.
+	 * @return The double representation
+	 */
+	Expr reduce();
 }

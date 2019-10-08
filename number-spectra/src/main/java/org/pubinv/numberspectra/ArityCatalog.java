@@ -8,27 +8,23 @@ import java.util.function.UnaryOperator;
 
 import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
-import org.pubinv.numberspectra.expr.Negate;
 import org.pubinv.numberspectra.expr.Plus;
 import org.pubinv.numberspectra.expr.Power;
-import org.pubinv.numberspectra.expr.Reciprocal;
 import org.pubinv.numberspectra.expr.Times;
 
 public class ArityCatalog {
 	public static ArityCatalog INSTANCE = new ArityCatalog();
 	
     public List<Supplier<Expr>> getExpressionsofArity0() {
-    	return Arrays.asList(() -> new Const(Rational.ONE));
+    	return Arrays.asList(() -> new Const(Rational.ONE),() -> new Const(Rational.of(-1)));
     }
     public List<UnaryOperator<Expr>> getExpressionsofArity1() {
-    	return Arrays.asList(
-    			e -> Negate.make(e),
-    			e -> Reciprocal.make(e));
+    	return Arrays.asList();
     }
     public List<BinaryOperator<Expr>> getExpressionsofArity2() {
     	return Arrays.asList(
-    			(lhs,rhs) -> Plus.make(lhs, rhs),
-    			(lhs,rhs) -> Power.make(lhs, rhs),
-    			(lhs,rhs) -> Times.make(lhs, rhs));
+    			Plus::make,
+    			Power::make,
+    			Times::make);
     }
 }

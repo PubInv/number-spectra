@@ -1,83 +1,107 @@
 package org.pubinv.numberspectra.expr;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.pubinv.numberspectra.Rational;
 
 public final class Times extends BinaryOp {
 	private Times(Expr lhs, Expr rhs) {
 		super(lhs, rhs, false);
 	}
-
-	public static Expr make(Expr lhs, Expr rhs) {
-		if (lhs.equals(Const.NAN)) return lhs;
-		if (rhs.equals(Const.NAN)) return rhs;
+	
+	public static void getTerms(List<Expr> l, Expr e) {
+		if (e instanceof Times) {
+			getTerms(l, ((Times) e).lhs);
+			getTerms(l, ((Times) e).rhs);
+		} else {
+			l.add(e);
+		}
+	}
+	
+	public List<Expr> getTerms() {
+		List<Expr> l = new ArrayList<>();
+		getTerms(l, this);
+		Collections.sort(l, (a,b) -> {
+			if (a.getClass() != b.getClass()) {
+				return Integer.compare(a.getClass().hashCode(), b.getClass().hashCode());
+			}
+			return Integer.compare(a.hashCode(), b.hashCode());
+		});
+		return l;
+	}
+	
+	@Override
+	public int hashCode() {
+		return getTerms().hashCode();
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null || obj.getClass() != this.getClass()) {
+			return false;
+		}
+		return getTerms().equals(((Times)obj).getTerms());
+	}
+	
+	@Override
+	public Expr reduce() {
+		Expr l = lhs.reduce();
+		Expr r = rhs.reduce();
+		if (Const.NAN.equals(l)) return l;
+		if (Const.NAN.equals(r)) return r;
+		
+		// 1 * rhs = rhs
+		if (Const.ONE.equals(l)) return r;
+		
+		// lhs * 1 = lhs
+		if (Const.ONE.equals(r)) return l;
 		
 		// 0 * rhs = 0
-		if (lhs.equals(Const.ZERO)) return Const.ZERO;
-		// 1 * rhs = rhs
-		if (lhs.equals(Const.ONE)) return rhs;
+		if (Const.ZERO.equals(l)) return l;
 		
 		// lhs * 0 = 0
-		if (rhs.equals(Const.ZERO)) return Const.ZERO;
-		// lhs * 1 = 0
-		if (rhs.equals(Const.ONE)) return lhs;
+		if (Const.ZERO.equals(r)) return r;
 		
-		if (lhs.isNegatable() && rhs.isNegatable()) {
-			return make(lhs.negate(), rhs.negate());
+		if (l instanceof Const && r instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)r).rational;
+			return new Const(rl.multiply(rr));
 		}
 		
-		// A * (B * C) = (A * B) * C
-		if (rhs instanceof Times) {
-			Times rtimes = (Times) rhs;
-			return make(make(lhs, rtimes.lhs), rtimes.rhs);
-		} else if (rhs instanceof Const) {
-			Rational rr = ((Const) rhs).rational;
+		if (r instanceof Const) {
+			return new Times(r, l).reduce();
+		}
 
-			// K * K
-			if (lhs instanceof Const) {
-				return new Const(((Const) lhs).rational.multiply(rr));
-			} else if (lhs instanceof Times) {
-				Times timesLhs = (Times) lhs;
-				// (K * e) * K
-				if (timesLhs.lhs instanceof Const) {
-					return make(timesLhs.rhs, new Const(((Const) (timesLhs.lhs)).rational.multiply(rr)));
-				}
-				// (e * K) * K
-				if (timesLhs.rhs instanceof Const) {
-					return make(timesLhs.lhs, new Const(((Const) (timesLhs.rhs)).rational.multiply(rr)));
-				}
-			}
+		if (l instanceof Const && r instanceof Times && ((Times)r).lhs instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)((Times)r).lhs).rational;
+			return new Times(new Const(rl.multiply(rr)), ((Times)r).rhs);
 		}
 		
-		// (A + B) * C = A * C + B * C
-		if (lhs instanceof Plus) {
-			Plus plusLhs = (Plus) lhs;
-			return Plus.make(Times.make(plusLhs.lhs, rhs), Times.make(plusLhs.rhs, rhs));
+		if (l instanceof Const && r instanceof Plus && ((Plus)r).lhs instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)((Plus)r).lhs).rational;
+			return Plus.make(new Const(rl.multiply(rr)), Times.make(l,((Plus)r).rhs));
 		}
-		// A * (B + C) = A * B + A * C
-		if (rhs instanceof Plus) {
-			Plus plusRhs = (Plus) rhs;
-			return Plus.make(Times.make(lhs, plusRhs.lhs), Times.make(lhs, plusRhs.rhs));
+		
+		if (r instanceof Times && ((Times)r).lhs instanceof Const && l instanceof Times && ((Times)l).lhs instanceof Const) {
+			Rational rl = ((Const)((Times)l).lhs).rational;
+			Rational rr = ((Const)((Times)r).lhs).rational;
+			return new Times(new Const(rl.multiply(rr)), new Times(((Times)l).rhs, ((Times)r).rhs));
 		}
-		return new Times(lhs, rhs);
+		
+		return this;
 	}
-
+	
+	public static Expr make(Expr lhs, Expr rhs) {
+		return new Times(lhs,rhs);
+	}
+	
 	@Override
 	public String toString() {
-		return "(* " + lhs + " " + rhs + ")";
-	}
-	
-	@Override
-	public boolean isNegatable() {
-		return lhs.isNegatable() || rhs.isNegatable();
-	}
-	
-	@Override
-	public Expr negate() {
-		if (rhs.isNegatable()) {
-			return make(lhs, rhs.negate());
-		} else {
-			return make(lhs.negate(), rhs);			
-		}
+		return "(* "+lhs+" "+rhs+")";
 	}
 	
 	@Override

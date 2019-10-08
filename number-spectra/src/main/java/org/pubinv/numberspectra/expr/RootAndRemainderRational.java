@@ -1,5 +1,7 @@
 package org.pubinv.numberspectra.expr;
 
+import java.math.BigInteger;
+
 import org.pubinv.numberspectra.Rational;
 
 public class RootAndRemainderRational {
@@ -43,7 +45,7 @@ public class RootAndRemainderRational {
 		return "RootAndRemainderRational [rem=" + rem + ", root=" + root + "]";
 	}
 
-	public static RootAndRemainderRational extractRoot(Rational x, int n) {
+	public static RootAndRemainderRational extractRoot(Rational x, BigInteger n) {
 		RootAndRemainder rp = RootAndRemainder.extractRoot(x.p, n);
 		RootAndRemainder rq = RootAndRemainder.extractRoot(x.q, n);
 		return new RootAndRemainderRational(Rational.of(rp.root, rq.root), Rational.of(rp.rem, rq.rem));

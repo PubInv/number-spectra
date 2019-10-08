@@ -1,43 +1,16 @@
 package org.pubinv.numberspectra;
 
-import static org.junit.Assert.assertEquals;
-
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.junit.Test;
-import org.pubinv.numberspectra.expr.Const;
 import org.pubinv.numberspectra.expr.Expr;
-import org.pubinv.numberspectra.expr.Factorial;
-import org.pubinv.numberspectra.expr.Negate;
-import org.pubinv.numberspectra.expr.Reciprocal;
 
 public class TestExpressionSet {
-
-	@Test
-	public void testE0() {
-		assertEquals(ExpressionSet.generateE0().expressions, Collections.emptySet());
-	}
-
-	@Test
-	public void testE1() {
-		assertEquals(ExpressionSet.generateE1().expressions, new HashSet<Expr>(Arrays.asList(
-				new Const(Rational.ONE))));
-	}
-
-	@Test
-	public void testE2() {
-		assertEquals(ExpressionSet.generateE(ExpressionSet.generateE1()).expressions, new HashSet<Expr>(Arrays.asList(
-				Factorial.make(new Const(Rational.ONE)),
-				Reciprocal.make(new Const(Rational.ONE)),
-				Negate.make(new Const(Rational.ONE))
-				)));
-	}
 
 	@Test
 	public void testE3() {
@@ -57,10 +30,10 @@ public class TestExpressionSet {
 		history.add(E0);
 		history.add(E1);
 		TreeMap<Double, Set<Expr>> map = new TreeMap<>();
-		for(int i = 0; i < 15; i++) {
+		for(int i = 0; i < 16; i++) {
 			ExpressionSet set = ExpressionSet.generateE(history.toArray(new ExpressionSet[0]));
-			for(Expr e: set.expressions) {
-				double f = e.eval();
+			for(Entry<Expr, Set<Expr>> e: set.expressions.entrySet()) {
+				double f = e.getKey().eval();
 				if (Double.isNaN(f)) continue;
 				if (Double.isInfinite(f)) continue;
 				Set<Expr> l = map.get(f);
@@ -68,7 +41,7 @@ public class TestExpressionSet {
 					l = new HashSet<>();
 					map.put(f, l);
 				}
-				l.add(e);
+				l.addAll(e.getValue());
 			}
 			history.add(set);
 			System.out.println(history.size());
