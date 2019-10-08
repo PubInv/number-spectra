@@ -32,11 +32,7 @@ public class Viewer {
     	return new Viewer(toNL(vpl, A, B, N),toNL(vph, A, B, N), N);
     }
     
-    /**
-     * Given vpl and vph, calculate new A',B' such that
-     * A => vpl and B => vph
-     */
     public Viewer unzoom(int vpl,int vph) {
-    	return new Viewer(toNL(0, A, B, vph - vpl),toNL(vph - vpl, A, B, vph - vpl), N);
+        return zoom(-vpl, N + (N - vph));
     }
 }

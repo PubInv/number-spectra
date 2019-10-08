@@ -80,6 +80,12 @@ public final class Times extends BinaryOp {
 			return new Times(new Const(rl.multiply(rr)), ((Times)r).rhs);
 		}
 		
+		if (l instanceof Const && r instanceof Plus && ((Plus)r).lhs instanceof Const) {
+			Rational rl = ((Const)l).rational;
+			Rational rr = ((Const)((Plus)r).lhs).rational;
+			return Plus.make(new Const(rl.multiply(rr)), Times.make(l,((Plus)r).rhs));
+		}
+		
 		if (r instanceof Times && ((Times)r).lhs instanceof Const && l instanceof Times && ((Times)l).lhs instanceof Const) {
 			Rational rl = ((Const)((Times)l).lhs).rational;
 			Rational rr = ((Const)((Times)r).lhs).rational;
