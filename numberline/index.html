@@ -128,7 +128,10 @@ i {
   }
 
   function unzoom_v2(vpl,vph,A,B,N) {
-    return zoom(-vpl,2*N - vph,A,B,N);
+    const y = unzoom(vpl,vph,A,B,N)
+    const x = zoom(-vpl,2*N - vph,A,B,N);
+    console.log("unzoom",x,y);
+    return x;
   }
 
   function unzoom_old(vpl,vph,A,B,N) {
@@ -217,17 +220,20 @@ function onMouseDown(e) {
 
 }
 
-function onMouseUp(e) {
-  var rect = e.target.getBoundingClientRect();
-  var x = e.clientX - rect.left; //x position within the element.
-  var y = e.clientY - rect.top;  //y position within the element.
+  function onMouseUp(e) {
+    var rect = e.target.getBoundingClientRect();
+    var x = e.clientX - rect.left; //x position within the element.
+    var y = e.clientY - rect.top;  //y position within the element.
 
-  var coords = "UP X coords: " + x + ", Y coords: " + y;
+    var coords = "UP X coords: " + x + ", Y coords: " + y;
 
-  if (x < GLOBAL_DOWN_X) { // count this an unzoom
-    [GLOBAL_NL_A,GLOBAL_NL_B] = unzoom_v2(x,GLOBAL_DOWN_X,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
-  } else { // count this as a zoom
-    [GLOBAL_NL_A,GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X,x,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    if (Math.abs(x - GLOBAL_DOWN_X) >= 10) {
+
+    if (x < GLOBAL_DOWN_X) { // count this an unzoom
+      [GLOBAL_NL_A,GLOBAL_NL_B] = unzoom_v2(x,GLOBAL_DOWN_X,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    } else { // count this as a zoom
+      [GLOBAL_NL_A,GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X,x,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
+    }
   }
   console.log(coords);
   rerender();
@@ -455,12 +461,12 @@ function drawNumberline(hist,canvas,pl,ph,A,B) {
 
     var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/4, 0);
     grd.addColorStop(0, LIGHT_GRAY);
-    grd.addColorStop(1, "white");
+    grd.addColorStop(1, "#fafafa");
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, canvas.offsetWidth/4 , canvas.offsetHeight);
 
     var grd = ctx.createLinearGradient(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "white");
+    grd.addColorStop(0, "#fafafa");
     grd.addColorStop(1, LIGHT_GRAY);
     ctx.fillStyle = grd;
     ctx.fillRect(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, canvas.offsetHeight);
