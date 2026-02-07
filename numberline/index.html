@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <title>Number Spectra - Numberline</title>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 
   <style>
@@ -108,7 +109,24 @@ i {
     </body>
   </html>
 
-    <script>
+        <script>
+
+
+    $.getJSON("/jquery/getjsondata", function(data) {
+  // data is a JavaScript object, e.g., { "firstName": "Steve" }
+        // $("p").append(data.firstName);
+        console.log(data);
+})
+.done(function() {
+  // Optional: code to run when the request is done
+  console.log("Request done!");
+})
+.fail(function(jqxhr, settings, ex) {
+  // Optional: code to run if the request fails
+  console.log("failed, " + ex);
+});
+
+
 
   var files = [ "spectracf-4-1.js",
                 "spectracf-4-2.js",
