@@ -112,9 +112,10 @@ i {
         <script>
 
 
-    $.getJSON("/jquery/getjsondata", function(data) {
+    $.get("http://oeis.org/A000040?fmt=json", function(data) {
   // data is a JavaScript object, e.g., { "firstName": "Steve" }
         // $("p").append(data.firstName);
+         alert("Data loaded successfully! Status: " + status);
         console.log(data);
 })
 .done(function() {
