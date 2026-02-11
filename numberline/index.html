@@ -111,12 +111,9 @@ i {
 
         <script>
 
-
-    $.get("https://oeis.org/A000040?fmt=json", function(data) {
-  // data is a JavaScript object, e.g., { "firstName": "Steve" }
-        // $("p").append(data.firstName);
-         alert("Data loaded successfully! Status: " + status);
-        console.log(data);
+<!--npm run dev to start -->
+$.getJSON("http://localhost:3000/oeis/A000040", data => {
+  console.log(data);
 })
 .done(function() {
   // Optional: code to run when the request is done
