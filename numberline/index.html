@@ -88,6 +88,9 @@ i {
     </canvas>
 
     <div id="tooltiptext"  width=300 height=100></div>
+    <textarea id="oeisInput" class="form-control" rows="3"
+  placeholder="Enter OEIS ids: 40, A000040, 52 (comma/space/newline separated)"></textarea>
+<button id="oeisSubmit" class="btn btn-success mt-2">Load</button>
     <div class="buttonbarclass" id="buttonbar">
     <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
     <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
@@ -112,7 +115,7 @@ i {
         <script>
 
 <!--npm run dev to start -->
-$.getJSON("http://localhost:3000/oeis/A000040", data => {
+/*$.getJSON("http://localhost:3000/oeis/A000040", data => {
   console.log(data);
 })
 .done(function() {
@@ -122,6 +125,60 @@ $.getJSON("http://localhost:3000/oeis/A000040", data => {
 .fail(function(jqxhr, settings, ex) {
   // Optional: code to run if the request fails
   console.log("failed, " + ex);
+});
+*/
+
+function parseOeisIds(raw) {
+  // Split on commas, whitespace, newlines
+  return String(raw || "")
+    .toUpperCase()
+    .split(/[\s,]+/)
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map(x => x.replace(/^A/, ""))     // keep digits only
+    .filter(x => /^\d+$/.test(x));     // digits only
+}
+
+function fetchOeisDigits(digits) {
+  return $.getJSON(`http://localhost:3000/oeis/${digits}`);
+}
+
+$("#oeisSubmit").on("click", async function () {
+  const ids = parseOeisIds($("#oeisInput").val());
+
+  if (ids.length === 0) {
+    console.log("No valid OEIS ids entered.");
+    return;
+  }
+
+  console.log("Loading OEIS ids (digits):", ids);
+
+  // Fire them in parallel and wait
+  const requests = ids.map(d => fetchOeisDigits(d));
+  const results = await Promise.allSettled(requests);
+
+  results.forEach((r, idx) => {
+    const digits = ids[idx];
+
+    if (r.status !== "fulfilled") {
+      console.error(`Failed OEIS ${digits}:`, r.reason);
+      return;
+    }
+
+    const resp = r.value; // { id, numbers, count }
+    console.log(`OEIS ${resp.id} numbers:`, resp.numbers);
+
+    // Turn numbers into your layer objects
+    const key = `OEIS ${resp.id}`;
+    const layer = resp.numbers.map(n => ({ value: n, expression_text: resp.id }));
+    layer.sort((a, b) => a.value - b.value);
+
+    LAYERS[key] = layer;
+    LAYER_SETTINGS[key] = { render: true };
+    add_button_layer(key);
+  });
+
+  rerender_all();
 });
 
 
