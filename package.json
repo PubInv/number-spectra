@@ -1,0 +1,31 @@
+{
+  "name": "number-spectra",
+  "version": "1.0.0",
+  "description": "Experimental study of finding simple closed-form expressions matching decimal expansions",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "live-server --port=8000 --open=/numberline/index.html",
+    "serve": "npx http-server -p 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PubInv/number-spectra.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/PubInv/number-spectra/issues"
+  },
+  "homepage": "https://github.com/PubInv/number-spectra#readme",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
