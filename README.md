@@ -4,6 +4,21 @@ Experimental study of finding simple closed-form expressions matching decimal ex
 cd mnumber-spectra
 mvn clean install test
 
+# How to run
+
+First install express
+```npm install express```
+
+to run the server go to /numberline folder on your terminal
+```cd ~/number-spectra/numberline```
+Then run ```node server.js```
+
+to view the page on root folder
+/number-spectra
+run the command ```npm run dev```
+
+
+
 # Status
 
 This project is very early in its lifetime; at the time of this writing it is the first weekend.
