@@ -1,670 +1,620 @@
 <!doctype html>
 <html lang="en">
-  <head>
-  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <title>Number Spectra - Numberline</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
+
+  <link rel="stylesheet"
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+        crossorigin="anonymous">
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   <style>
+    .numberline {
+      width: 80%;
+      margin-left: 10%;
+      margin-right: 10%;
+      height: 20vh;
+    }
 
-.numberline {
-  width: 80%;
-  margin-left: 10%;
-  margin-right: 10%;
-  height: 20vh;
-}
-
-#focusCanvas {
+    #focusCanvas {
       height: 40vh;
       background: lightGray;
-  }
+    }
 
+    #report {
+      width: 80%;
+      background: silver;
+      margin-left: 10%;
+      padding: 10px;
+      min-height: 60px;
+    }
 
-#report {
-  width: 80%;
-  background: silver;
-}
-#tip,#tooltiptext{
-  background-color:white;
-  border:1px solid blue;
-  position:absolute;
-  font-size:15px;
-  left:-600px;
-  top:100px;
-}
+    #tooltiptext {
+      background-color: white;
+      border: 1px solid blue;
+      position: absolute;
+      font-size: 15px;
+      left: -600px;
+      top: 100px;
+    }
 
-.buttonbarclass {
-    display: flex;
-    justify-content: center;
-}
-#layers {
-  display: flex;
-  flex-direction: column;
-    justify-content: space-around;
-}
+    .buttonbarclass {
+      display: flex;
+      justify-content: center;
+    }
 
-#left_button,#right_button,#zoom_button,#unzoom_button {
-  margin-left: 1%;
-  margin-right: 1%;
-}
+    #layers {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 80%;
+      margin-left: 10%;
+      margin-right: 10%;
+      margin-top: 10px;
+      gap: 4px;
+    }
 
-i {
-  border: solid black;
-  border-width: 0 3px 3px 0;
-  display: inline-block;
-  padding: 3px;
-}
+    #left_button, #right_button, #zoom_button, #unzoom_button {
+      margin-left: 1%;
+      margin-right: 1%;
+    }
 
-.right {
-  transform: rotate(-45deg);
-  -webkit-transform: rotate(-45deg);
-}
+    i {
+      border: solid black;
+      border-width: 0 3px 3px 0;
+      display: inline-block;
+      padding: 3px;
+    }
 
-.left {
-  transform: rotate(135deg);
-  -webkit-transform: rotate(135deg);
-}
-
-.up {
-  transform: rotate(-135deg);
-  -webkit-transform: rotate(-135deg);
-}
-
-.down {
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
-
+    .right { transform: rotate(-45deg); -webkit-transform: rotate(-45deg); }
+    .left  { transform: rotate(135deg); -webkit-transform: rotate(135deg); }
+    .up    { transform: rotate(-135deg); -webkit-transform: rotate(-135deg); }
+    .down  { transform: rotate(45deg); -webkit-transform: rotate(45deg); }
   </style>
+</head>
 
-    <body>
-    <canvas class="numberline" id="lesserCanvas">
-    </canvas>
-    <canvas class="numberline" id="focusCanvas">
-    </canvas>
-    <canvas class="numberline" id="greaterCanvas">
-    </canvas>
+<body>
 
-    <div id="tooltiptext"  width=300 height=100></div>
-    <textarea id="oeisInput" class="form-control" rows="3"
-  placeholder="Enter OEIS ids: 40, A000040, 52 (comma/space/newline separated)"></textarea>
-<button id="oeisSubmit" class="btn btn-success mt-2">Load</button>
-    <div class="buttonbarclass" id="buttonbar">
+  <!-- OEIS Loader UI -->
+  <div class="container" style="margin-top: 12px; margin-bottom: 12px;">
+    <div class="row">
+      <div class="col-12">
+        <label for="oeisInput"><b>OEIS A-numbers (multiple allowed):</b></label>
+        <textarea id="oeisInput" class="form-control" rows="2"
+          placeholder="Examples: 40, 52, A000045 (separate with commas/spaces/newlines)"></textarea>
+
+        <div class="mt-2 d-flex align-items-center gap-2" style="gap:10px;">
+          <button id="oeisLoadBtn" class="btn btn-success">Load</button>
+          <button id="oeisClearBtn" class="btn btn-outline-danger">Clear</button>
+          <small id="oeisStatus"></small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <canvas class="numberline" id="lesserCanvas"></canvas>
+  <canvas class="numberline" id="focusCanvas"></canvas>
+  <canvas class="numberline" id="greaterCanvas"></canvas>
+
+  <div id="tooltiptext" width="300" height="100"></div>
+
+  <div class="buttonbarclass" id="buttonbar" style="margin-top:10px;">
     <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
     <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
     <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
     <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
-    </div>
+  </div>
 
-<div id="layers">
-</div>
+  <div id="layers"></div>
 
+  <h1 style="width:80%;margin-left:10%;margin-top:15px;">Report</h1>
+  <div id="report"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+          integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+          crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+          integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+          crossorigin="anonymous"></script>
 
-  <h1>Report</h1>
-    <div id="report" ></div>
+  <script>
+    // ---------------------------
+    // Globals
+    // ---------------------------
+    var LAYERS = {};
+    var LAYER_SETTINGS = {};
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    </body>
-  </html>
+    function toNL(vp, A, B, N) { return A + vp * (B - A) / N; }
+    function toVP(nl, A, B, N) { return Math.round(((nl - A) / (B - A) * N)); }
 
-        <script>
-
-<!--npm run dev to start -->
-/*$.getJSON("http://localhost:3000/oeis/A000040", data => {
-  console.log(data);
-})
-.done(function() {
-  // Optional: code to run when the request is done
-  console.log("Request done!");
-})
-.fail(function(jqxhr, settings, ex) {
-  // Optional: code to run if the request fails
-  console.log("failed, " + ex);
-});
-*/
-
-function parseOeisIds(raw) {
-  // Split on commas, whitespace, newlines
-  return String(raw || "")
-    .toUpperCase()
-    .split(/[\s,]+/)
-    .map(x => x.trim())
-    .filter(Boolean)
-    .map(x => x.replace(/^A/, ""))     // keep digits only
-    .filter(x => /^\d+$/.test(x));     // digits only
-}
-
-function fetchOeisDigits(digits) {
-  return $.getJSON(`http://localhost:3000/oeis/${digits}`);
-}
-
-$("#oeisSubmit").on("click", async function () {
-  const ids = parseOeisIds($("#oeisInput").val());
-
-  if (ids.length === 0) {
-    console.log("No valid OEIS ids entered.");
-    return;
-  }
-
-  console.log("Loading OEIS ids (digits):", ids);
-
-  // Fire them in parallel and wait
-  const requests = ids.map(d => fetchOeisDigits(d));
-  const results = await Promise.allSettled(requests);
-
-  results.forEach((r, idx) => {
-    const digits = ids[idx];
-
-    if (r.status !== "fulfilled") {
-      console.error(`Failed OEIS ${digits}:`, r.reason);
-      return;
+    function zoom(vpl, vph, A, B, N) {
+      return [toNL(vpl, A, B, N), toNL(vph, A, B, N)];
     }
 
-    const resp = r.value; // { id, numbers, count }
-    console.log(`OEIS ${resp.id} numbers:`, resp.numbers);
-
-    // Turn numbers into your layer objects
-    const key = `OEIS ${resp.id}`;
-    const layer = resp.numbers.map(n => ({ value: n, expression_text: resp.id }));
-    layer.sort((a, b) => a.value - b.value);
-
-    LAYERS[key] = layer;
-    LAYER_SETTINGS[key] = { render: true };
-    add_button_layer(key);
-  });
-
-  rerender_all();
-});
-
-
-
-  var files = [ "spectracf-4-1.js",
-                "spectracf-4-2.js",
-                "spectracf-4-3.js",
-                "spectracf-4-4.js",
-                "spectracf-4-5.js"];
-
-  var LAYERS = {};
-  // I will map keys here
-  var LAYER_SETTINGS = {};
-
-    var SPECTRA1; // this is a sort
-
-//  var GLOBAL_TIP_CANVAS;
-//  var GLOBAL_TIP_CTX;
-
-  function toNL(vp,A,B,N) {
-    return A + vp * (B-A)/ N;
-  }
-
-  function toVP(nl,A,B,N) {
-    return Math.round( ((nl - A) / (B - A) * N));
-  }
-
-  function zoom(vpl,vph,A,B,N) {
-    return [
-      toNL(vpl,A,B,N),
-      toNL(vph,A,B,N)
-    ];
-  }
-  function unzoom(vpl,vph,A,B,N) {
-    // s is a scaling factor
-    const s = (vph - vpl)/ N;
-    const Ap = s * (vpl/N) + A;
-    const Bp = s * (B - A) + Ap;
-    return [Ap,Bp];
-  }
-
-  function unzoom_v2(vpl,vph,A,B,N) {
-    const y = unzoom(vpl,vph,A,B,N)
-    const x = zoom(-vpl,2*N - vph,A,B,N);
-    console.log("unzoom",x,y);
-    return x;
-  }
-
-  function unzoom_old(vpl,vph,A,B,N) {
-    return [
-      toNL(0,A,B,vph-vpl),
-      toNL(vph - vpl,A,B,vph - vpl)
-    ];
-  }
-
-
-
-  // These are globals that
-  // basically represent the window and
-  // viewport on the number line we are creating.
-
-  var GLOBAL_NL_A = -5;
-  var GLOBAL_NL_B = 5;
-
-  function lesserFence() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d*2;
-    return [GLOBAL_NL_A - dp, GLOBAL_NL_A ];
-  }
-  function greaterFence() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d*2;
-    return [GLOBAL_NL_B, GLOBAL_NL_B + dp ];
-  }
-
-
-  var GLOBAL_VP_A = 0;
-
-  var FOCUS_CANVAS = document.getElementById("focusCanvas");
-  var LESSER_CANVAS = document.getElementById("lesserCanvas");
-  var GREATER_CANVAS = document.getElementById("greaterCanvas");
-
-  var FOCUS_REGIONS = [];
-  var LESSER_REGIONS = [];
-  var GREATER_REGIONS = [];
-
-  var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
-  var GLOBAL_DOWN_X = 0;
-  var GLOBAL_DOWN_Y = 0;
-
-  function left_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (3/4);
-    GLOBAL_NL_B -= dp;
-    GLOBAL_NL_A -= dp;
-    rerender_all();
-  }
-  function right_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (3/4);
-    GLOBAL_NL_B += dp;
-    GLOBAL_NL_A += dp;
-    rerender_all();
-  }
-  function zoom_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (1/4);
-    GLOBAL_NL_B -= dp;
-    GLOBAL_NL_A += dp;
-    rerender_all();
-  }
-  function unzoom_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (1/2);
-    GLOBAL_NL_B += dp;
-    GLOBAL_NL_A -= dp;
-    rerender_all();
-  }
-
-
-function onMouseDown(e) {
-
-  var rect = e.target.getBoundingClientRect();
-  var x = e.clientX - rect.left; //x position within the element.
-  var y = e.clientY - rect.top;  //y position within the element.
-
-  GLOBAL_DOWN_X = x;
-  GLOBAL_DOWN_Y = y;
-
-  var coords = "DN X coords: " + x + ", Y coords: " + y;
-  console.log(coords);
-
-}
-
-  function onMouseUp(e) {
-    var rect = e.target.getBoundingClientRect();
-    var x = e.clientX - rect.left; //x position within the element.
-    var y = e.clientY - rect.top;  //y position within the element.
-
-    var coords = "UP X coords: " + x + ", Y coords: " + y;
-
-    if (Math.abs(x - GLOBAL_DOWN_X) >= 10) {
-
-    if (x < GLOBAL_DOWN_X) { // count this an unzoom
-      [GLOBAL_NL_A,GLOBAL_NL_B] = unzoom_v2(x,GLOBAL_DOWN_X,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
-    } else { // count this as a zoom
-      [GLOBAL_NL_A,GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X,x,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
-    }
-  }
-  console.log(coords);
-  rerender_all();
-}
-
-FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
-FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
-
-// Okay, trying to do something a little
-// sophisticated here...for each pixel,
-// we want to compute how many points fall in
-// that pixel. Then we will render the height
-// of a line to represent it.
-  function computeSpectraHistogram(s,pl,ph,a,b) {
-
-  // for each pixel, we want to compute
-  // the number of members of the spectra inside
-  // that pixel. Since the spectra is ordered,
-  // This ought to be easy to compute.
-  // We will consider the pixel boundary to
-  // start at the low edge of pl (so that the
-  // zero pixel contains zero) and go to just below
-  // the next pixel.
-
-  // first, let's find the index in the spectra
-  // which is below the image of the low pixel...
-
-    const LF = toNL(pl,a,b,GLOBAL_VP_B);
-  var idx = 0;
-  // now iterate the index in s so long as
-    // we s[idx+1] < LF;
-    try {
-      while ((idx + 1) < s.length && s[idx+1].value < LF ) idx++;
-    } catch(e) {
-      console.log("s",s);
-      console.log("idx",idx);
-      console.log("LF",LF);
-      console.log(e);
+    function unzoom(vpl, vph, A, B, N) {
+      const s = (vph - vpl) / N;
+      const Ap = s * (vpl / N) + A;
+      const Bp = s * (B - A) + Ap;
+      return [Ap, Bp];
     }
 
-  // now we do the counting...
-  const hist = []; // histogram mapping pixel to count
-  const NUM = s.length;
-  for(var i = pl; i < ph; i++) {
-    const Fence = toNL(i+1,a,b,GLOBAL_VP_B);
-    var cnt = 0;
-    const numbers = [];
-    while(idx+cnt < NUM && s[idx+cnt].value < Fence) {
-      numbers.push(s[idx+cnt]);
-      cnt++;
+    function unzoom_v2(vpl, vph, A, B, N) {
+      const y = unzoom(vpl, vph, A, B, N);
+      const x = zoom(-vpl, 2 * N - vph, A, B, N);
+      console.log("unzoom", x, y);
+      return x;
     }
-    hist.push([cnt,numbers]);
-    idx += cnt;
-  }
-  return hist;
 
-}
+    // Number line window
+    var GLOBAL_NL_A = -5;
+    var GLOBAL_NL_B = 5;
 
+    function lesserFence() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * 2;
+      return [GLOBAL_NL_A - dp, GLOBAL_NL_A];
+    }
 
-// show tooltip when mouse hovers over dot
-  function handleMouseMove(e,id,REGIONS){
-  var canvasOffset = $(id).offset();
-  var offsetX = canvasOffset.left;
-  var offsetY = canvasOffset.top;
-  mouseX=parseInt(e.clientX-offsetX);
-  mouseY=parseInt(e.clientY-offsetY);
+    function greaterFence() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * 2;
+      return [GLOBAL_NL_B, GLOBAL_NL_B + dp];
+    }
 
-  var tt = $("#tooltiptext");
-  // Put your mousemove stuff here
-  var hit = false;
-  var strings = [];
-  var X,Y;
-  for (var i = 0; i < REGIONS.length; i++) {
-    var dot = REGIONS[i];
-    var dx = mouseX - dot.x;
-    var dy = mouseY - dot.ymin
-    if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
-      X = dot.x;
-      Y = dot.ymin - 40;
-      for(var j = 0; j < dot.numbers.length; j++) {
-        var n = dot.numbers[j];
-        strings.push("<span style='color: "+COLORS[j % COLORS.length] +"'>" + "v: " + n.value + " e: " + n.expression_text + "</span>");
+    var FOCUS_CANVAS = document.getElementById("focusCanvas");
+    var LESSER_CANVAS = document.getElementById("lesserCanvas");
+    var GREATER_CANVAS = document.getElementById("greaterCanvas");
+
+    var FOCUS_REGIONS = [];
+    var LESSER_REGIONS = [];
+    var GREATER_REGIONS = [];
+
+    var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
+    var GLOBAL_DOWN_X = 0;
+    var GLOBAL_DOWN_Y = 0;
+
+    // ---------------------------
+    // Navigation buttons
+    // ---------------------------
+    function left_click() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * (3 / 4);
+      GLOBAL_NL_B -= dp;
+      GLOBAL_NL_A -= dp;
+      rerender_all();
+    }
+
+    function right_click() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * (3 / 4);
+      GLOBAL_NL_B += dp;
+      GLOBAL_NL_A += dp;
+      rerender_all();
+    }
+
+    function zoom_click() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * (1 / 4);
+      GLOBAL_NL_B -= dp;
+      GLOBAL_NL_A += dp;
+      rerender_all();
+    }
+
+    function unzoom_click() {
+      const d = GLOBAL_NL_B - GLOBAL_NL_A;
+      const dp = d * (1 / 2);
+      GLOBAL_NL_B += dp;
+      GLOBAL_NL_A -= dp;
+      rerender_all();
+    }
+
+    function onMouseDown(e) {
+      var rect = e.target.getBoundingClientRect();
+      GLOBAL_DOWN_X = e.clientX - rect.left;
+      GLOBAL_DOWN_Y = e.clientY - rect.top;
+    }
+
+    function onMouseUp(e) {
+      var rect = e.target.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+
+      if (Math.abs(x - GLOBAL_DOWN_X) >= 10) {
+        if (x < GLOBAL_DOWN_X) {
+          [GLOBAL_NL_A, GLOBAL_NL_B] = unzoom_v2(x, GLOBAL_DOWN_X, GLOBAL_NL_A, GLOBAL_NL_B, GLOBAL_VP_B);
+        } else {
+          [GLOBAL_NL_A, GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X, x, GLOBAL_NL_A, GLOBAL_NL_B, GLOBAL_VP_B);
+        }
       }
-      hit = true;
+      rerender_all();
     }
-  }
-  if (!hit) {
-    tt.css('left',"-600px");
-  } else {
-    const ns = strings.length;
-    const lh = 21;
 
-    // tt.css('height',(ns+1) * lh + 'px');
-    // tt.css('top',Y);
-    // tt.css('left',X);
-    // TODO: Figure out how to do color matching later...
-    const html = '<div>'+ strings.join(",<br>\n")+ '<\div>';
-//    tt.html();
-//    console.log(tt.text());
-    var report = $("#report");
-    report.html(html);
-  }
+    FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
+    FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
 
-}
+    // ---------------------------
+    // Rendering
+    // ---------------------------
+    function computeSpectraHistogram(s, pl, ph, a, b) {
+      const LF = toNL(pl, a, b, GLOBAL_VP_B);
+      var idx = 0;
+      while ((idx + 1) < s.length && s[idx + 1].value < LF) idx++;
 
-  const COLORS = ["red","blue","green"];
-  function drawLines(hist,canvas,pl,ph) {
+      const hist = [];
+      const NUM = s.length;
 
-  const H = canvas.height;
-  const M = H/2;
-//  const mv = Math.max(...hist);
-  const mv = hist.reduce(
-        (accumulator, currentValue) => {
-            return Math.max(currentValue[0], accumulator);
-        },  Number.MIN_VALUE
-  );
-    const regions = [];
-    const interval = ((3*H)/4)/mv;
+      for (var i = pl; i < ph; i++) {
+        const Fence = toNL(i + 1, a, b, GLOBAL_VP_B);
+        var cnt = 0;
+        const numbers = [];
 
-    var ctx = canvas.getContext("2d");
-    for(var i = pl; i < ph; i++) {
-      const v = hist[i][0];
-      const d = (v/mv)* M/2;
-      // Now we want to render a line line of height
-      // v....
-      if (v > 0) {
+        while (idx + cnt < NUM && s[idx + cnt].value < Fence) {
+          numbers.push(s[idx + cnt]);
+          cnt++;
+        }
 
-        // ctx.beginPath();
-        // ctx.moveTo(i,M);
+        hist.push([cnt, numbers]);
+        idx += cnt;
+      }
 
-        // ctx.lineTo(i,M + -d);
-        // ctx.stroke();
-
-        regions.push({
-          x: i,
-          ymin: 3*H/4 + -v*interval,
-          ymax: 3*H/4,
-          numbers: hist[i][1]
-        });
+      return hist;
     }
-;
-      var cur = (3*H)/4;
-    for(var j = 0; j < hist[i][1].length; j++) {
+
+    const COLORS = ["red", "blue", "green"];
+
+    function drawLines(hist, canvas, pl, ph) {
+      const H = canvas.height;
+      const mv = hist.reduce((acc, cur) => Math.max(cur[0], acc), Number.MIN_VALUE);
+      const regions = [];
+      const interval = ((3 * H) / 4) / (mv || 1);
+
+      var ctx = canvas.getContext("2d");
+
+      for (var i = pl; i < ph; i++) {
+        const v = hist[i][0];
+
+        if (v > 0) {
+          regions.push({
+            x: i,
+            ymin: 3 * H / 4 + -v * interval,
+            ymax: 3 * H / 4,
+            numbers: hist[i][1]
+          });
+        }
+
+        var curY = (3 * H) / 4;
+        for (var j = 0; j < hist[i][1].length; j++) {
+          ctx.beginPath();
+          ctx.moveTo(i, curY);
+          ctx.strokeStyle = COLORS[j % COLORS.length];
+          ctx.lineTo(i, curY + -interval);
+          ctx.stroke();
+          ctx.closePath();
+          curY = curY - interval;
+        }
+      }
+
+      return regions;
+    }
+
+    function drawNumberline(hist, canvas, pl, ph, A, B) {
+      const H = canvas.height;
+      var ctx = canvas.getContext("2d");
+
       ctx.beginPath();
-      ctx.moveTo(i,cur);
-      ctx.strokeStyle = COLORS[j % COLORS.length];
-      ctx.lineTo(i,cur + -interval);
+      ctx.strokeStyle = "#0000aa";
+      ctx.moveTo(pl, (3 * H) / 4);
+      ctx.lineTo(ph, (3 * H) / 4);
       ctx.stroke();
-      ctx.closePath();
-      cur = cur - interval;
-    }
-  }
-    return regions;
-}
 
-// This is an attempt to draw a nice set of tick
-// marks in on the canvas
-function drawNumberline(hist,canvas,pl,ph,A,B) {
+      const N = ph;
+      const MAX_PIXELS_PER_MINOR_TICK = 200;
+      const MIN_TICKS = (ph - pl) / MAX_PIXELS_PER_MINOR_TICK;
+      const d = B - A;
 
-  const H = canvas.height;
-  var ctx = canvas.getContext("2d");
-  const M = H/2;
-  ctx.beginPath();
-   ctx.strokeStyle = "#0000aa";
-  ctx.moveTo(pl, (3*H)/4);
-  ctx.lineTo(ph, (3*H)/4);
-  ctx.stroke();
+      const tick_exp = Math.floor(Math.log10(d / MIN_TICKS));
+      const tick = Math.pow(10, tick_exp);
 
-  const N = ph;
+      const first_tick = Math.floor(A / tick) * tick;
+      const last_tick = Math.ceil(B / tick) * tick;
 
+      for (var t = first_tick; t < last_tick; t += tick) {
+        const string = "" + t.toFixed(Math.max(-tick_exp, 0));
 
-  // First, let us compute the decimal division
-  // needed to make minor tick marks no more
-  // than 30 pixels apart...
-  const MAX_PIXELS_PER_MINOR_TICK = 200;
+        var L;
+        if (string.substr(-1) == '0') {
+          L = H / 4;
+          ctx.strokeStyle = "#000000";
+        } else if (string.substr(-1) == '5') {
+          L = H / 6;
+          ctx.strokeStyle = "#333333";
+        } else {
+          L = H / 8;
+          ctx.strokeStyle = "#666666";
+        }
 
-  // We want at least this many ticks...
-  const MIN_TICKS = (ph - pl) / MAX_PIXELS_PER_MINOR_TICK;
-  const d = B-A;
-  const tick_exp = Math.floor(Math.log10(d/MIN_TICKS));
-  const tick = Math.pow(10,tick_exp);
+        ctx.font = "15px Arial";
+        ctx.fillStyle = "black";
 
-  // Now divide A by the tick, and take the floor...
-  const first_tick = Math.floor(A/tick)*tick;
-  const last_tick = Math.ceil(B/tick)*tick;
-  for(var t = first_tick; t < last_tick; t += tick) {
-    const string = ""+t.toFixed(Math.max(-tick_exp,0));
+        const horiz = toVP(t, A, B, N);
+        ctx.fillText(string, horiz + 5, (3 * H) / 4 + L);
 
-    var L;
-    if (string.substr(-1) == '0') {
-      L = M/2;
-      ctx.strokeStyle = "#000000";
-    } else if (string.substr(-1) == '5') {
-      L = M/3;
-      ctx.strokeStyle = "#333333";
-    } else {
-      L = M/4;
-      ctx.strokeStyle = "#666666";
+        ctx.beginPath();
+        ctx.moveTo(horiz, (3 * H) / 4);
+        ctx.lineTo(horiz, (3 * H) / 4 + L);
+        ctx.stroke();
+      }
     }
 
-    ctx.font = "15px Arial";
-    ctx.fillStyle = "black";
-    const horiz = toVP(t,A,B,N);
-    ctx.fillText(string, horiz + 5, (3*H)/4 + L);
-    ctx.beginPath();
-    ctx.moveTo(horiz, (3*H)/4);
-    ctx.lineTo(horiz, (3*H)/4 + L);
-    ctx.stroke();
-  }
-}
+    function renderSpectra(s, canvas, a, b) {
+      const pl = 0;
+      const ph = canvas.offsetWidth;
+      const hist = computeSpectraHistogram(s, pl, ph, a, b);
+      var det_regions = drawLines(hist, canvas, pl, ph);
+      drawNumberline(hist, canvas, pl, ph, a, b);
+      return det_regions;
+    }
 
-  function renderSpectra(s,canvas,a,b) {
-    const pl = 0;
-    const ph =  canvas.offsetWidth; // really this should be the canvas width
-    const hist = computeSpectraHistogram(s,pl,ph,a,b);
-    var det_regions =
-        drawLines(hist,canvas,pl,ph);
-    drawNumberline(hist,canvas,pl,ph,a,b);
-    return det_regions;
-  }
+    const LIGHT_GRAY = "#eeeeee";
 
-  const LIGHT_GRAY = "#eeeeee";
-  function clearFocusCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    function clearFocusCanvas(canvas) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
 
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
 
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/4, 0);
-    grd.addColorStop(0, LIGHT_GRAY);
-    grd.addColorStop(1, "#fafafa");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth/4 , canvas.offsetHeight);
+      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth / 4, 0);
+      grd.addColorStop(0, LIGHT_GRAY);
+      grd.addColorStop(1, "#fafafa");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.offsetWidth / 4, canvas.offsetHeight);
 
-    var grd = ctx.createLinearGradient(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "#fafafa");
-    grd.addColorStop(1, LIGHT_GRAY);
-    ctx.fillStyle = grd;
-    ctx.fillRect(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, canvas.offsetHeight);
-  }
+      grd = ctx.createLinearGradient(3 * canvas.offsetWidth / 4, 0, canvas.offsetWidth, 0);
+      grd.addColorStop(0, "#fafafa");
+      grd.addColorStop(1, LIGHT_GRAY);
+      ctx.fillStyle = grd;
+      ctx.fillRect(3 * canvas.offsetWidth / 4, 0, canvas.offsetWidth, canvas.offsetHeight);
+    }
 
-  function clearLesserCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    var ctx = canvas.getContext("2d");
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "gray");
-    grd.addColorStop(1, LIGHT_GRAY);
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
-  }
+    function clearLesserCanvas(canvas) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      var ctx = canvas.getContext("2d");
+      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
+      grd.addColorStop(0, "gray");
+      grd.addColorStop(1, LIGHT_GRAY);
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    }
 
-  function clearGreaterCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    var ctx = canvas.getContext("2d");
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, LIGHT_GRAY);
-    grd.addColorStop(1, "gray");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
-  }
+    function clearGreaterCanvas(canvas) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      var ctx = canvas.getContext("2d");
+      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
+      grd.addColorStop(0, LIGHT_GRAY);
+      grd.addColorStop(1, "gray");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    }
 
-  function rerender(s) {
-    FOCUS_REGIONS = renderSpectra(s,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
+    function rerender(s) {
+      FOCUS_REGIONS = renderSpectra(s, FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
 
-    const lf = lesserFence();
-    LESSER_REGIONS = renderSpectra(s,LESSER_CANVAS,lf[0],lf[1]);
+      const lf = lesserFence();
+      LESSER_REGIONS = renderSpectra(s, LESSER_CANVAS, lf[0], lf[1]);
 
-    const gf = greaterFence();
-    GREATER_REGIONS = renderSpectra(s,GREATER_CANVAS,gf[0],gf[1]);
-  }
-  function rerender_all() {
-    clearFocusCanvas(FOCUS_CANVAS);
-    clearLesserCanvas(LESSER_CANVAS);
-    clearGreaterCanvas(GREATER_CANVAS);
-    Object.keys(LAYERS).forEach(function(key,index) {
-    // key: the name of the object key
-      // index: the ordinal position of the key within the object
-      if (LAYER_SETTINGS[key].render)
-        rerender(LAYERS[key]);
-});
+      const gf = greaterFence();
+      GREATER_REGIONS = renderSpectra(s, GREATER_CANVAS, gf[0], gf[1]);
+    }
 
-  }
+    function rerender_all() {
+      clearFocusCanvas(FOCUS_CANVAS);
+      clearLesserCanvas(LESSER_CANVAS);
+      clearGreaterCanvas(GREATER_CANVAS);
 
-  function add_button_layer(key) {
+      Object.keys(LAYERS).forEach(function (key) {
+        if (LAYER_SETTINGS[key] && LAYER_SETTINGS[key].render) {
+          rerender(LAYERS[key]);
+        }
+      });
+    }
+
+    // Tooltip/hover report
+    function handleMouseMove(e, id, REGIONS) {
+      var canvasOffset = $(id).offset();
+      var offsetX = canvasOffset.left;
+      var offsetY = canvasOffset.top;
+      var mouseX = parseInt(e.clientX - offsetX);
+      var mouseY = parseInt(e.clientY - offsetY);
+
+      var hit = false;
+      var strings = [];
+
+      for (var i = 0; i < REGIONS.length; i++) {
+        var dot = REGIONS[i];
+        if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
+          for (var j = 0; j < dot.numbers.length; j++) {
+            var n = dot.numbers[j];
+            strings.push("<span style='color: " + COLORS[j % COLORS.length] + "'>" +
+              "v: " + n.value + " e: " + (n.expression_text || "") + "</span>");
+          }
+          hit = true;
+        }
+      }
+
+      if (hit) {
+        $("#report").html('<div>' + strings.join(",<br>\n") + '</div>');
+      }
+    }
+
+    // ---------------------------
+    // Layer checkbox UI
+    // ---------------------------
+    function add_button_layer(key) {
+      const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+      if (document.getElementById(safeId)) return;
+
       $("#layers").append(
-        `<label class="checkbox-inline">
-  <input type="checkbox" checked
-     data-toggle="toggle"
-     id="checkbox-${key}">${key}
-</label>`
+        `<label class="checkbox-inline" data-layer-key="${key}">
+          <input type="checkbox" checked id="${safeId}"> ${key}
+        </label>`
       );
-      $(`#checkbox-${key}`).change( function(eventData,handler) {
-        console.log("key",key);
-        LAYER_SETTINGS[key].render = ! LAYER_SETTINGS[key].render;
+
+      $(`#${safeId}`).change(function () {
+        LAYER_SETTINGS[key].render = !LAYER_SETTINGS[key].render;
         rerender_all();
       });
-  }
+    }
 
-    // request mousemove events
-$(document).ready(function()  {
+    function clearAllLayers() {
+      LAYERS = {};
+      LAYER_SETTINGS = {};
+      $("#layers").empty();
+      $("#report").html("");
+    }
 
-  $("#focusCanvas").mousemove(function(e){handleMouseMove(e,"#focusCanvas",FOCUS_REGIONS);});
-  $("#lesserCanvas").mousemove(function(e){handleMouseMove(e,"#lesserCanvas",LESSER_REGIONS);});
-  $("#greaterCanvas").mousemove(function(e){handleMouseMove(e,"#greaterCanvas",GREATER_REGIONS);});
+    // ---------------------------
+    // OEIS multi-load + auto-zoom
+    // ---------------------------
+    function parseOeisIds(raw) {
+      // Accept: commas, spaces, newlines
+      return String(raw || "")
+        .toUpperCase()
+        .split(/[\s,]+/)
+        .map(x => x.trim())
+        .filter(Boolean)
+        .map(x => x.replace(/^A/, ""))
+        .filter(x => /^\d+$/.test(x));
+    }
 
-  $("#left_button").click(left_click);
-  $("#right_button").click(right_click);
-  $("#zoom_button").click(zoom_click);
-  $("#unzoom_button").click(unzoom_click);
-  $.ajaxSetup({ cache: false });
+    function fetchOeisDigits(digits) {
+      return $.getJSON(`http://localhost:3000/oeis/${digits}`);
+    }
 
-  files.forEach( file => {
-    console.log("file",file);
-    $.ajax({
-      url: "./samples/"+file,
-      dataType: "json",
-      success: function(item) {
-        console.log("item",item);
-        Object.keys(item).forEach(function(key,index) {
-          LAYERS[key] = item[key];
-          LAYERS[key].sort((a,b) => a.value - b.value);
-          LAYER_SETTINGS[key] = { render: true };
-          add_button_layer(key);
-        });
+    function numbersToLayer(numbers, label) {
+      const layer = numbers.map(n => ({ value: n, expression_text: label }));
+      layer.sort((a, b) => a.value - b.value);
+      return layer;
+    }
 
+    function computeCombinedMinMax(layersObj) {
+      let min = Infinity;
+      let max = -Infinity;
+
+      Object.keys(layersObj).forEach((k) => {
+        const arr = layersObj[k];
+        if (!arr || arr.length === 0) return;
+        const localMin = arr[0].value;
+        const localMax = arr[arr.length - 1].value;
+        if (localMin < min) min = localMin;
+        if (localMax > max) max = localMax;
+      });
+
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+      return { min, max };
+    }
+
+    async function loadMultipleOeis() {
+      const status = $("#oeisStatus");
+      const raw = $("#oeisInput").val();
+      const ids = parseOeisIds(raw);
+
+      if (ids.length === 0) {
+        status.text("Enter one or more OEIS IDs (e.g. 40, A000045).");
+        return;
+      }
+
+      $("#oeisLoadBtn").prop("disabled", true);
+      status.text("Loading OEIS...");
+
+      // Replace current display with the new set
+      clearAllLayers();
+
+      const requests = ids.map(d => fetchOeisDigits(d));
+      const results = await Promise.allSettled(requests);
+
+      let loadedCount = 0;
+
+      results.forEach((r, idx) => {
+        const digits = ids[idx];
+
+        if (r.status !== "fulfilled") {
+          console.error(`Failed OEIS ${digits}:`, r.reason);
+          return;
+        }
+
+        const resp = r.value; // { id, numbers, count }
+        const key = `OEIS ${resp.id}`;
+        const layer = numbersToLayer(resp.numbers, resp.id);
+
+        LAYERS[key] = layer;
+        LAYER_SETTINGS[key] = { render: true };
+        add_button_layer(key);
+
+        loadedCount++;
+        console.log(`OEIS ${resp.id} numbers:`, resp.numbers);
+      });
+
+      // Auto-zoom/reset window to fit all loaded layers
+      const mm = computeCombinedMinMax(LAYERS);
+      if (mm) {
+        const range = mm.max - mm.min;
+        const pad = range * 0.10 || 10; // if range is 0, pad with 10
+        GLOBAL_NL_A = mm.min - pad;
+        GLOBAL_NL_B = mm.max + pad;
+      } else {
+        // fallback
+        GLOBAL_NL_A = -5;
+        GLOBAL_NL_B = 5;
+      }
+
+      rerender_all();
+
+      status.text(`Loaded ${loadedCount}/${ids.length} OEIS sequence(s).`);
+      $("#oeisLoadBtn").prop("disabled", false);
+    }
+
+    // ---------------------------
+    // Startup
+    // ---------------------------
+    $(document).ready(function () {
+      $("#focusCanvas").mousemove(function (e) { handleMouseMove(e, "#focusCanvas", FOCUS_REGIONS); });
+      $("#lesserCanvas").mousemove(function (e) { handleMouseMove(e, "#lesserCanvas", LESSER_REGIONS); });
+      $("#greaterCanvas").mousemove(function (e) { handleMouseMove(e, "#greaterCanvas", GREATER_REGIONS); });
+
+      $("#left_button").click(left_click);
+      $("#right_button").click(right_click);
+      $("#zoom_button").click(zoom_click);
+      $("#unzoom_button").click(unzoom_click);
+
+      $("#oeisLoadBtn").click(loadMultipleOeis);
+      $("#oeisClearBtn").click(function () {
+        clearAllLayers();
+        $("#oeisStatus").text("Cleared.");
+        // Reset viewport too
+        GLOBAL_NL_A = -5;
+        GLOBAL_NL_B = 5;
         rerender_all();
-      },
-      error: function (xhr, ajaxOptions, thrownError) {
-        alert(xhr.status);
-        alert(thrownError);
-      },
+      });
+
+      // Enter key triggers load
+      $("#oeisInput").on("keydown", function (e) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+          // Ctrl+Enter / Cmd+Enter loads (since textarea Enter normally adds newline)
+          loadMultipleOeis();
+        }
+      });
+
+      // Start with empty canvases
+      rerender_all();
     });
-  });
-
-});
-
-</script>
+  </script>
+</body>
+</html>
