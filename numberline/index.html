@@ -1,620 +1,1080 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <title>Number Spectra - Numberline</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Number Spectra - Numberline</title>
 
-  <link rel="stylesheet"
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-        crossorigin="anonymous">
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-  <style>
-    .numberline {
-      width: 80%;
-      margin-left: 10%;
-      margin-right: 10%;
-      height: 20vh;
-    }
+    <style>
+      :root {
+        --sidebar-w: 340px;
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --line: #e5e7eb;
+        --text: #111827;
+        --muted: #6b7280;
+      }
 
-    #focusCanvas {
-      height: 40vh;
-      background: lightGray;
-    }
+      body {
+        background: var(--bg);
+        color: var(--text);
+      }
 
-    #report {
-      width: 80%;
-      background: silver;
-      margin-left: 10%;
-      padding: 10px;
-      min-height: 60px;
-    }
+      .app {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
 
-    #tooltiptext {
-      background-color: white;
-      border: 1px solid blue;
-      position: absolute;
-      font-size: 15px;
-      left: -600px;
-      top: 100px;
-    }
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--card);
+        border-right: 1px solid var(--line);
+        padding: 14px;
+        overflow: auto;
+      }
 
-    .buttonbarclass {
-      display: flex;
-      justify-content: center;
-    }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-    #layers {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-around;
-      width: 80%;
-      margin-left: 10%;
-      margin-right: 10%;
-      margin-top: 10px;
-      gap: 4px;
-    }
+      .topbar {
+        background: var(--card);
+        border-bottom: 1px solid var(--line);
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
 
-    #left_button, #right_button, #zoom_button, #unzoom_button {
-      margin-left: 1%;
-      margin-right: 1%;
-    }
+      .plotWrap {
+        flex: 1;
+        overflow: auto;
+        padding: 12px 0;
+      }
 
-    i {
-      border: solid black;
-      border-width: 0 3px 3px 0;
-      display: inline-block;
-      padding: 3px;
-    }
+      .canvasBlock {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+      }
 
-    .right { transform: rotate(-45deg); -webkit-transform: rotate(-45deg); }
-    .left  { transform: rotate(135deg); -webkit-transform: rotate(135deg); }
-    .up    { transform: rotate(-135deg); -webkit-transform: rotate(-135deg); }
-    .down  { transform: rotate(45deg); -webkit-transform: rotate(45deg); }
-  </style>
-</head>
+      canvas.numberline {
+        width: 92%;
+        height: 46vh;
+        background: #f3f4f6;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
 
-<body>
+      canvas#overviewCanvas {
+        width: 92%;
+        height: 10vh;
+        background: #fafafa;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
 
-  <!-- OEIS Loader UI -->
-  <div class="container" style="margin-top: 12px; margin-bottom: 12px;">
-    <div class="row">
-      <div class="col-12">
-        <label for="oeisInput"><b>OEIS A-numbers (multiple allowed):</b></label>
-        <textarea id="oeisInput" class="form-control" rows="2"
-          placeholder="Examples: 40, 52, A000045 (separate with commas/spaces/newlines)"></textarea>
+      .btnRow {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
 
-        <div class="mt-2 d-flex align-items-center gap-2" style="gap:10px;">
-          <button id="oeisLoadBtn" class="btn btn-success">Load</button>
-          <button id="oeisClearBtn" class="btn btn-outline-danger">Clear</button>
-          <small id="oeisStatus"></small>
+      .panelTitle {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+
+      #layers {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .layerRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fbfbfc;
+      }
+
+      .chip {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: #999;
+        flex: 0 0 auto;
+      }
+
+      .layerName {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      #report {
+        background: var(--card);
+        border-top: 1px solid var(--line);
+        padding: 12px 14px;
+        height: 26vh;
+        overflow: auto;
+      }
+
+      .reportBox {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fbfbfc;
+      }
+
+      .reportList {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 1px 6px;
+        color: #111827;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="panelTitle">OEIS</div>
+        <div class="muted">
+          Enter multiple IDs separated by commas/spaces/newlines. Example:
+          <span class="kbd">40, 45</span> <span class="kbd">A000052</span>
+        </div>
+
+        <textarea
+          id="oeisInput"
+          class="form-control mt-2"
+          rows="3"
+          placeholder="40, 45, A000052"
+        ></textarea>
+
+        <div class="mt-2 d-flex align-items-center" style="gap: 10px">
+          <button id="oeisLoadBtn" class="btn btn-success btn-sm">Load</button>
+          <button id="oeisClearBtn" class="btn btn-outline-danger btn-sm">
+            Clear
+          </button>
+          <span id="oeisStatus" class="muted"></span>
+        </div>
+
+        <div class="panelTitle mt-3">Sequences</div>
+        <div id="layers"></div>
+
+        <div class="muted mt-3">
+          Controls:
+          <ul class="mb-0">
+            <li>Drag on the plot to pan</li>
+            <li>Mouse wheel to zoom (smooth)</li>
+            <li>Click on plot or number buttons to jump</li>
+            <li>Search uses exact match only</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- MAIN -->
+      <div class="main">
+        <div class="topbar">
+          <div>
+            <b>Numberline</b>
+            <span class="muted ml-2">Drag to pan, wheel to zoom</span>
+          </div>
+          <div class="btnRow">
+            <button
+              id="left_button"
+              type="button"
+              class="btn btn-primary btn-sm"
+            >
+              ←
+            </button>
+            <button
+              id="right_button"
+              type="button"
+              class="btn btn-primary btn-sm"
+            >
+              →
+            </button>
+            <button
+              id="zoom_button"
+              type="button"
+              class="btn btn-primary btn-sm"
+            >
+              Zoom In
+            </button>
+            <button
+              id="unzoom_button"
+              type="button"
+              class="btn btn-primary btn-sm"
+            >
+              Zoom Out
+            </button>
+            <button
+              id="reset_button"
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+            >
+              Reset View
+            </button>
+          </div>
+        </div>
+
+        <div class="plotWrap">
+          <div class="canvasBlock">
+            <canvas class="numberline" id="focusCanvas"></canvas>
+            <canvas class="numberline" id="overviewCanvas"></canvas>
+          </div>
+        </div>
+
+        <div id="report">
+          <div class="panelTitle">Details</div>
+          <div class="reportBox" id="reportBox">No sequences loaded.</div>
         </div>
       </div>
     </div>
-  </div>
 
-  <canvas class="numberline" id="lesserCanvas"></canvas>
-  <canvas class="numberline" id="focusCanvas"></canvas>
-  <canvas class="numberline" id="greaterCanvas"></canvas>
+    <script>
+      // ---------------------------
+      // Data structures
+      // ---------------------------
+      var LAYERS = {}; // key -> [{value, oeis_id, layer_key}, ...] sorted by value
+      var LAYER_SETTINGS = {}; // key -> { render: bool, color: string }
+      var LAYER_VALUE_SETS = {}; // key -> Set(value)
+      var VALUE_TO_LAYERS = new Map(); // value -> array of layer keys (exact overlap index)
+      var OVERVIEW_POINTS = []; // [{value}] merged from all layers, sorted by value
 
-  <div id="tooltiptext" width="300" height="100"></div>
+      // NEW: bottom panel metadata
+      let SELECTED_VALUE = null;
+      const SEQ_META = {}; // layerKey -> { id, name, numbers, shown }
+      const INITIAL_SHOW = 200;
+      const SHOW_STEP = 200;
+      let GLOBAL_SEARCH_LAST = "";
 
-  <div class="buttonbarclass" id="buttonbar" style="margin-top:10px;">
-    <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
-    <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
-    <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
-    <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
-  </div>
+      // Colors per layer
+      const PALETTE = [
+        "#ef4444",
+        "#3b82f6",
+        "#22c55e",
+        "#a855f7",
+        "#f59e0b",
+        "#06b6d4",
+        "#f97316",
+        "#84cc16",
+      ];
 
-  <div id="layers"></div>
+      // ---------------------------
+      // Numberline window
+      // ---------------------------
+      var GLOBAL_NL_A = -5;
+      var GLOBAL_NL_B = 5;
 
-  <h1 style="width:80%;margin-left:10%;margin-top:15px;">Report</h1>
-  <div id="report"></div>
+      const MIN_RANGE = 1e-6;
+      const MAX_RANGE = 1e15;
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-          integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-          crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-          integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-          crossorigin="anonymous"></script>
+      var FOCUS_CANVAS = document.getElementById("focusCanvas");
+      var OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
+      var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
 
-  <script>
-    // ---------------------------
-    // Globals
-    // ---------------------------
-    var LAYERS = {};
-    var LAYER_SETTINGS = {};
-
-    function toNL(vp, A, B, N) { return A + vp * (B - A) / N; }
-    function toVP(nl, A, B, N) { return Math.round(((nl - A) / (B - A) * N)); }
-
-    function zoom(vpl, vph, A, B, N) {
-      return [toNL(vpl, A, B, N), toNL(vph, A, B, N)];
-    }
-
-    function unzoom(vpl, vph, A, B, N) {
-      const s = (vph - vpl) / N;
-      const Ap = s * (vpl / N) + A;
-      const Bp = s * (B - A) + Ap;
-      return [Ap, Bp];
-    }
-
-    function unzoom_v2(vpl, vph, A, B, N) {
-      const y = unzoom(vpl, vph, A, B, N);
-      const x = zoom(-vpl, 2 * N - vph, A, B, N);
-      console.log("unzoom", x, y);
-      return x;
-    }
-
-    // Number line window
-    var GLOBAL_NL_A = -5;
-    var GLOBAL_NL_B = 5;
-
-    function lesserFence() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * 2;
-      return [GLOBAL_NL_A - dp, GLOBAL_NL_A];
-    }
-
-    function greaterFence() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * 2;
-      return [GLOBAL_NL_B, GLOBAL_NL_B + dp];
-    }
-
-    var FOCUS_CANVAS = document.getElementById("focusCanvas");
-    var LESSER_CANVAS = document.getElementById("lesserCanvas");
-    var GREATER_CANVAS = document.getElementById("greaterCanvas");
-
-    var FOCUS_REGIONS = [];
-    var LESSER_REGIONS = [];
-    var GREATER_REGIONS = [];
-
-    var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
-    var GLOBAL_DOWN_X = 0;
-    var GLOBAL_DOWN_Y = 0;
-
-    // ---------------------------
-    // Navigation buttons
-    // ---------------------------
-    function left_click() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * (3 / 4);
-      GLOBAL_NL_B -= dp;
-      GLOBAL_NL_A -= dp;
-      rerender_all();
-    }
-
-    function right_click() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * (3 / 4);
-      GLOBAL_NL_B += dp;
-      GLOBAL_NL_A += dp;
-      rerender_all();
-    }
-
-    function zoom_click() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * (1 / 4);
-      GLOBAL_NL_B -= dp;
-      GLOBAL_NL_A += dp;
-      rerender_all();
-    }
-
-    function unzoom_click() {
-      const d = GLOBAL_NL_B - GLOBAL_NL_A;
-      const dp = d * (1 / 2);
-      GLOBAL_NL_B += dp;
-      GLOBAL_NL_A -= dp;
-      rerender_all();
-    }
-
-    function onMouseDown(e) {
-      var rect = e.target.getBoundingClientRect();
-      GLOBAL_DOWN_X = e.clientX - rect.left;
-      GLOBAL_DOWN_Y = e.clientY - rect.top;
-    }
-
-    function onMouseUp(e) {
-      var rect = e.target.getBoundingClientRect();
-      var x = e.clientX - rect.left;
-      var y = e.clientY - rect.top;
-
-      if (Math.abs(x - GLOBAL_DOWN_X) >= 10) {
-        if (x < GLOBAL_DOWN_X) {
-          [GLOBAL_NL_A, GLOBAL_NL_B] = unzoom_v2(x, GLOBAL_DOWN_X, GLOBAL_NL_A, GLOBAL_NL_B, GLOBAL_VP_B);
-        } else {
-          [GLOBAL_NL_A, GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X, x, GLOBAL_NL_A, GLOBAL_NL_B, GLOBAL_VP_B);
-        }
+      function toNL(vp, A, B, N) {
+        return A + (vp * (B - A)) / N;
       }
-      rerender_all();
-    }
-
-    FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
-    FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
-
-    // ---------------------------
-    // Rendering
-    // ---------------------------
-    function computeSpectraHistogram(s, pl, ph, a, b) {
-      const LF = toNL(pl, a, b, GLOBAL_VP_B);
-      var idx = 0;
-      while ((idx + 1) < s.length && s[idx + 1].value < LF) idx++;
-
-      const hist = [];
-      const NUM = s.length;
-
-      for (var i = pl; i < ph; i++) {
-        const Fence = toNL(i + 1, a, b, GLOBAL_VP_B);
-        var cnt = 0;
-        const numbers = [];
-
-        while (idx + cnt < NUM && s[idx + cnt].value < Fence) {
-          numbers.push(s[idx + cnt]);
-          cnt++;
-        }
-
-        hist.push([cnt, numbers]);
-        idx += cnt;
+      function toVP(nl, A, B, N) {
+        return Math.round(((nl - A) / (B - A)) * N);
       }
 
-      return hist;
-    }
+      function clampWindow(A, B) {
+        let range = B - A;
+        if (!Number.isFinite(range) || range <= 0) return [-5, 5];
 
-    const COLORS = ["red", "blue", "green"];
-
-    function drawLines(hist, canvas, pl, ph) {
-      const H = canvas.height;
-      const mv = hist.reduce((acc, cur) => Math.max(cur[0], acc), Number.MIN_VALUE);
-      const regions = [];
-      const interval = ((3 * H) / 4) / (mv || 1);
-
-      var ctx = canvas.getContext("2d");
-
-      for (var i = pl; i < ph; i++) {
-        const v = hist[i][0];
-
-        if (v > 0) {
-          regions.push({
-            x: i,
-            ymin: 3 * H / 4 + -v * interval,
-            ymax: 3 * H / 4,
-            numbers: hist[i][1]
-          });
+        if (range < MIN_RANGE) {
+          const mid = (A + B) / 2;
+          A = mid - MIN_RANGE / 2;
+          B = mid + MIN_RANGE / 2;
         }
-
-        var curY = (3 * H) / 4;
-        for (var j = 0; j < hist[i][1].length; j++) {
-          ctx.beginPath();
-          ctx.moveTo(i, curY);
-          ctx.strokeStyle = COLORS[j % COLORS.length];
-          ctx.lineTo(i, curY + -interval);
-          ctx.stroke();
-          ctx.closePath();
-          curY = curY - interval;
+        if (range > MAX_RANGE) {
+          const mid = (A + B) / 2;
+          A = mid - MAX_RANGE / 2;
+          B = mid + MAX_RANGE / 2;
         }
+        return [A, B];
       }
 
-      return regions;
-    }
+      // Jump helpers (buttons/search)
+      function jumpToValue(v) {
+        // tighter jump feels better than keeping huge range
+        const range = Math.max((GLOBAL_NL_B - GLOBAL_NL_A) * 0.35, 50);
+        GLOBAL_NL_A = v - range / 2;
+        GLOBAL_NL_B = v + range / 2;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        SELECTED_VALUE = v;
+        requestRerender();
+      }
 
-    function drawNumberline(hist, canvas, pl, ph, A, B) {
-      const H = canvas.height;
-      var ctx = canvas.getContext("2d");
+      // ---------------------------
+      // Rendering (density-style)
+      // ---------------------------
+      const LIGHT_GRAY = "#eeeeee";
 
-      ctx.beginPath();
-      ctx.strokeStyle = "#0000aa";
-      ctx.moveTo(pl, (3 * H) / 4);
-      ctx.lineTo(ph, (3 * H) / 4);
-      ctx.stroke();
+      function clearCanvas(canvas, fillStyle) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = fillStyle;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
-      const N = ph;
-      const MAX_PIXELS_PER_MINOR_TICK = 200;
-      const MIN_TICKS = (ph - pl) / MAX_PIXELS_PER_MINOR_TICK;
-      const d = B - A;
+      function clearFocusCanvas() {
+        clearCanvas(FOCUS_CANVAS, "#ffffff");
 
-      const tick_exp = Math.floor(Math.log10(d / MIN_TICKS));
-      const tick = Math.pow(10, tick_exp);
+        var ctx = FOCUS_CANVAS.getContext("2d");
+        var grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
+        grd.addColorStop(0, LIGHT_GRAY);
+        grd.addColorStop(1, "#ffffff");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
 
-      const first_tick = Math.floor(A / tick) * tick;
-      const last_tick = Math.ceil(B / tick) * tick;
+        grd = ctx.createLinearGradient(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width,
+          0
+        );
+        grd.addColorStop(0, "#ffffff");
+        grd.addColorStop(1, LIGHT_GRAY);
+        ctx.fillStyle = grd;
+        ctx.fillRect(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width / 5,
+          FOCUS_CANVAS.height
+        );
+      }
 
-      for (var t = first_tick; t < last_tick; t += tick) {
-        const string = "" + t.toFixed(Math.max(-tick_exp, 0));
+      function clearOverviewCanvas() {
+        clearCanvas(OVERVIEW_CANVAS, "#fafafa");
+      }
 
-        var L;
-        if (string.substr(-1) == '0') {
-          L = H / 4;
-          ctx.strokeStyle = "#000000";
-        } else if (string.substr(-1) == '5') {
-          L = H / 6;
-          ctx.strokeStyle = "#333333";
-        } else {
-          L = H / 8;
-          ctx.strokeStyle = "#666666";
+      function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
+        const N = canvasWidth;
+        const LF = toNL(pl, a, b, N);
+
+        var idx = 0;
+        while (idx + 1 < layerArr.length && layerArr[idx + 1].value < LF) idx++;
+
+        const hist = [];
+        const NUM = layerArr.length;
+
+        for (var i = pl; i < ph; i++) {
+          const Fence = toNL(i + 1, a, b, N);
+          var cnt = 0;
+
+          while (idx + cnt < NUM && layerArr[idx + cnt].value < Fence) cnt++;
+          hist.push(cnt);
+          idx += cnt;
         }
 
-        ctx.font = "15px Arial";
-        ctx.fillStyle = "black";
+        return hist;
+      }
 
-        const horiz = toVP(t, A, B, N);
-        ctx.fillText(string, horiz + 5, (3 * H) / 4 + L);
+      function drawAxes(canvas, A, B) {
+        const H = canvas.height;
+        const W = canvas.width;
+        var ctx = canvas.getContext("2d");
 
+        // baseline
         ctx.beginPath();
-        ctx.moveTo(horiz, (3 * H) / 4);
-        ctx.lineTo(horiz, (3 * H) / 4 + L);
+        ctx.strokeStyle = "#1f3a8a";
+        ctx.moveTo(0, (3 * H) / 4);
+        ctx.lineTo(W, (3 * H) / 4);
         ctx.stroke();
-      }
-    }
 
-    function renderSpectra(s, canvas, a, b) {
-      const pl = 0;
-      const ph = canvas.offsetWidth;
-      const hist = computeSpectraHistogram(s, pl, ph, a, b);
-      var det_regions = drawLines(hist, canvas, pl, ph);
-      drawNumberline(hist, canvas, pl, ph, a, b);
-      return det_regions;
-    }
+        // tick marks
+        const MAX_PIXELS_PER_MINOR_TICK = 200;
+        const MIN_TICKS = W / MAX_PIXELS_PER_MINOR_TICK;
+        const d = B - A;
+        if (d <= 0) return;
 
-    const LIGHT_GRAY = "#eeeeee";
+        const tick_exp = Math.floor(Math.log10(d / MIN_TICKS));
+        const tick = Math.pow(10, tick_exp);
 
-    function clearFocusCanvas(canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+        const first_tick = Math.floor(A / tick) * tick;
+        const last_tick = Math.ceil(B / tick) * tick;
 
-      var ctx = canvas.getContext("2d");
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+        for (let t = first_tick; t <= last_tick; t += tick) {
+          const string = "" + t.toFixed(Math.max(-tick_exp, 0));
+          const x = toVP(t, A, B, W);
 
-      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth / 4, 0);
-      grd.addColorStop(0, LIGHT_GRAY);
-      grd.addColorStop(1, "#fafafa");
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, canvas.offsetWidth / 4, canvas.offsetHeight);
-
-      grd = ctx.createLinearGradient(3 * canvas.offsetWidth / 4, 0, canvas.offsetWidth, 0);
-      grd.addColorStop(0, "#fafafa");
-      grd.addColorStop(1, LIGHT_GRAY);
-      ctx.fillStyle = grd;
-      ctx.fillRect(3 * canvas.offsetWidth / 4, 0, canvas.offsetWidth, canvas.offsetHeight);
-    }
-
-    function clearLesserCanvas(canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      var ctx = canvas.getContext("2d");
-      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-      grd.addColorStop(0, "gray");
-      grd.addColorStop(1, LIGHT_GRAY);
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    }
-
-    function clearGreaterCanvas(canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      var ctx = canvas.getContext("2d");
-      var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-      grd.addColorStop(0, LIGHT_GRAY);
-      grd.addColorStop(1, "gray");
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    }
-
-    function rerender(s) {
-      FOCUS_REGIONS = renderSpectra(s, FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
-
-      const lf = lesserFence();
-      LESSER_REGIONS = renderSpectra(s, LESSER_CANVAS, lf[0], lf[1]);
-
-      const gf = greaterFence();
-      GREATER_REGIONS = renderSpectra(s, GREATER_CANVAS, gf[0], gf[1]);
-    }
-
-    function rerender_all() {
-      clearFocusCanvas(FOCUS_CANVAS);
-      clearLesserCanvas(LESSER_CANVAS);
-      clearGreaterCanvas(GREATER_CANVAS);
-
-      Object.keys(LAYERS).forEach(function (key) {
-        if (LAYER_SETTINGS[key] && LAYER_SETTINGS[key].render) {
-          rerender(LAYERS[key]);
-        }
-      });
-    }
-
-    // Tooltip/hover report
-    function handleMouseMove(e, id, REGIONS) {
-      var canvasOffset = $(id).offset();
-      var offsetX = canvasOffset.left;
-      var offsetY = canvasOffset.top;
-      var mouseX = parseInt(e.clientX - offsetX);
-      var mouseY = parseInt(e.clientY - offsetY);
-
-      var hit = false;
-      var strings = [];
-
-      for (var i = 0; i < REGIONS.length; i++) {
-        var dot = REGIONS[i];
-        if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
-          for (var j = 0; j < dot.numbers.length; j++) {
-            var n = dot.numbers[j];
-            strings.push("<span style='color: " + COLORS[j % COLORS.length] + "'>" +
-              "v: " + n.value + " e: " + (n.expression_text || "") + "</span>");
+          let L;
+          if (string.endsWith("0")) {
+            L = H / 4;
+            ctx.strokeStyle = "#111827";
+          } else if (string.endsWith("5")) {
+            L = H / 6;
+            ctx.strokeStyle = "#4b5563";
+          } else {
+            L = H / 8;
+            ctx.strokeStyle = "#9ca3af";
           }
-          hit = true;
+
+          ctx.font = "12px Arial";
+          ctx.fillStyle = "#111827";
+          ctx.fillText(string, x + 4, (3 * H) / 4 + L);
+
+          ctx.beginPath();
+          ctx.moveTo(x, (3 * H) / 4);
+          ctx.lineTo(x, (3 * H) / 4 + L);
+          ctx.stroke();
+        }
+
+        // NEW: selected value marker
+        if (SELECTED_VALUE !== null) {
+          const x = toVP(SELECTED_VALUE, A, B, W);
+          ctx.beginPath();
+          ctx.strokeStyle = "#111827";
+          ctx.globalAlpha = 0.35;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
         }
       }
 
-      if (hit) {
-        $("#report").html('<div>' + strings.join(",<br>\n") + '</div>');
+      function drawLayerDensity(canvas, hist, color, alpha) {
+        const H = canvas.height;
+        const W = canvas.width;
+        const baseline = (3 * H) / 4;
+        const maxCount = hist.reduce((m, v) => Math.max(m, v), 1);
+
+        var ctx = canvas.getContext("2d");
+        ctx.globalAlpha = alpha;
+
+        for (let x = 0; x < W; x++) {
+          const v = hist[x] || 0;
+          if (v <= 0) continue;
+          const h = (v / maxCount) * (H * 0.45);
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, baseline - h);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1.0;
       }
-    }
 
-    // ---------------------------
-    // Layer checkbox UI
-    // ---------------------------
-    function add_button_layer(key) {
-      const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
-      if (document.getElementById(safeId)) return;
+      function rerender_all() {
+        clearFocusCanvas();
+        clearOverviewCanvas();
 
-      $("#layers").append(
-        `<label class="checkbox-inline" data-layer-key="${key}">
-          <input type="checkbox" checked id="${safeId}"> ${key}
-        </label>`
+        const W = FOCUS_CANVAS.width;
+
+        // focus
+        let enabledKeys = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
+        enabledKeys.forEach((key) => {
+          const layer = LAYERS[key];
+          const color = LAYER_SETTINGS[key].color;
+          const hist = computeHistogramForLayer(
+            layer,
+            0,
+            W,
+            GLOBAL_NL_A,
+            GLOBAL_NL_B,
+            W
+          );
+          drawLayerDensity(FOCUS_CANVAS, hist, color, 0.55);
+        });
+
+        drawAxes(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+
+        // overview
+        const OW = OVERVIEW_CANVAS.width;
+        const ohist = computeHistogramForLayer(
+          OVERVIEW_POINTS,
+          0,
+          OW,
+          OVERVIEW_MIN,
+          OVERVIEW_MAX,
+          OW
+        );
+        drawLayerDensity(OVERVIEW_CANVAS, ohist, "#6b7280", 0.7);
+        drawAxes(OVERVIEW_CANVAS, OVERVIEW_MIN, OVERVIEW_MAX);
+      }
+
+      // ---------------------------
+      // Pan + wheel zoom
+      // ---------------------------
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartA = 0;
+      let dragStartB = 0;
+      let pendingRAF = false;
+
+      function requestRerender() {
+        if (pendingRAF) return;
+        pendingRAF = true;
+        requestAnimationFrame(() => {
+          pendingRAF = false;
+          rerender_all();
+        });
+      }
+
+      function getMouseXOnCanvas(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientX - rect.left;
+      }
+
+      FOCUS_CANVAS.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        dragStartX = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        dragStartA = GLOBAL_NL_A;
+        dragStartB = GLOBAL_NL_B;
+      });
+
+      window.addEventListener("mouseup", () => {
+        isDragging = false;
+      });
+
+      FOCUS_CANVAS.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        const dx = x - dragStartX;
+        const W = FOCUS_CANVAS.width;
+        const shift = (dx * (dragStartB - dragStartA)) / W;
+
+        GLOBAL_NL_A = dragStartA - shift;
+        GLOBAL_NL_B = dragStartB - shift;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+        requestRerender();
+      });
+
+      FOCUS_CANVAS.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const W = FOCUS_CANVAS.width;
+          const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
+          const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          const factor = Math.exp(e.deltaY * 0.0015); // smooth
+
+          let A = anchor - (anchor - GLOBAL_NL_A) * factor;
+          let B = anchor + (GLOBAL_NL_B - anchor) * factor;
+
+          [A, B] = clampWindow(A, B);
+          GLOBAL_NL_A = A;
+          GLOBAL_NL_B = B;
+
+          requestRerender();
+        },
+        { passive: false }
       );
 
-      $(`#${safeId}`).change(function () {
-        LAYER_SETTINGS[key].render = !LAYER_SETTINGS[key].render;
-        rerender_all();
-      });
-    }
+      // ---------------------------
+      // Details panel: Search + sequences list + show more + clickable numbers
+      // ---------------------------
+      function renderSequenceDetailsPanel() {
+        const box = document.getElementById("reportBox");
+        const keys = Object.keys(SEQ_META);
 
-    function clearAllLayers() {
-      LAYERS = {};
-      LAYER_SETTINGS = {};
-      $("#layers").empty();
-      $("#report").html("");
-    }
-
-    // ---------------------------
-    // OEIS multi-load + auto-zoom
-    // ---------------------------
-    function parseOeisIds(raw) {
-      // Accept: commas, spaces, newlines
-      return String(raw || "")
-        .toUpperCase()
-        .split(/[\s,]+/)
-        .map(x => x.trim())
-        .filter(Boolean)
-        .map(x => x.replace(/^A/, ""))
-        .filter(x => /^\d+$/.test(x));
-    }
-
-    function fetchOeisDigits(digits) {
-      return $.getJSON(`http://localhost:3000/oeis/${digits}`);
-    }
-
-    function numbersToLayer(numbers, label) {
-      const layer = numbers.map(n => ({ value: n, expression_text: label }));
-      layer.sort((a, b) => a.value - b.value);
-      return layer;
-    }
-
-    function computeCombinedMinMax(layersObj) {
-      let min = Infinity;
-      let max = -Infinity;
-
-      Object.keys(layersObj).forEach((k) => {
-        const arr = layersObj[k];
-        if (!arr || arr.length === 0) return;
-        const localMin = arr[0].value;
-        const localMax = arr[arr.length - 1].value;
-        if (localMin < min) min = localMin;
-        if (localMax > max) max = localMax;
-      });
-
-      if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
-      return { min, max };
-    }
-
-    async function loadMultipleOeis() {
-      const status = $("#oeisStatus");
-      const raw = $("#oeisInput").val();
-      const ids = parseOeisIds(raw);
-
-      if (ids.length === 0) {
-        status.text("Enter one or more OEIS IDs (e.g. 40, A000045).");
-        return;
-      }
-
-      $("#oeisLoadBtn").prop("disabled", true);
-      status.text("Loading OEIS...");
-
-      // Replace current display with the new set
-      clearAllLayers();
-
-      const requests = ids.map(d => fetchOeisDigits(d));
-      const results = await Promise.allSettled(requests);
-
-      let loadedCount = 0;
-
-      results.forEach((r, idx) => {
-        const digits = ids[idx];
-
-        if (r.status !== "fulfilled") {
-          console.error(`Failed OEIS ${digits}:`, r.reason);
+        if (keys.length === 0) {
+          box.innerHTML = "No sequences loaded.";
           return;
         }
 
-        const resp = r.value; // { id, numbers, count }
-        const key = `OEIS ${resp.id}`;
-        const layer = numbersToLayer(resp.numbers, resp.id);
+        const searchUI = `
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <input id="globalSearchInput" class="form-control form-control-sm"
+                 style="max-width:260px;"
+                 placeholder="Search number (e.g. 233 or -41)"
+                 value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
+          <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
+          <span class="muted" id="globalSearchStatus"></span>
+        </div>
+        <div id="globalSearchResults" style="margin-bottom:12px;"></div>
+      `;
 
-        LAYERS[key] = layer;
-        LAYER_SETTINGS[key] = { render: true };
-        add_button_layer(key);
+        const seqBlocks = keys
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const shown = meta.shown ?? INITIAL_SHOW;
+            const nums = meta.numbers.slice(0, shown);
 
-        loadedCount++;
-        console.log(`OEIS ${resp.id} numbers:`, resp.numbers);
-      });
+            const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
+            const oeisUrl = `https://oeis.org/${meta.id}`;
 
-      // Auto-zoom/reset window to fit all loaded layers
-      const mm = computeCombinedMinMax(LAYERS);
-      if (mm) {
-        const range = mm.max - mm.min;
-        const pad = range * 0.10 || 10; // if range is 0, pad with 10
-        GLOBAL_NL_A = mm.min - pad;
-        GLOBAL_NL_B = mm.max + pad;
-      } else {
-        // fallback
-        GLOBAL_NL_A = -5;
-        GLOBAL_NL_B = 5;
+            const numsHtml = nums
+              .map(
+                (n) =>
+                  `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
+                   data-val="${n}" data-layer="${layerKey}">${n}</button>`
+              )
+              .join("");
+
+            const moreBtn =
+              shown < meta.numbers.length
+                ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
+               Show more (+${SHOW_STEP})
+             </button>`
+                : `<span class="muted">All loaded terms shown.</span>`;
+
+            return `
+          <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div>
+                <a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>
+                <div class="muted">Showing ${Math.min(
+                  shown,
+                  meta.numbers.length
+                )} / ${meta.numbers.length}</div>
+              </div>
+            </div>
+
+            <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
+              ${numsHtml}
+            </div>
+
+            <div style="margin-top:8px;">
+              ${moreBtn}
+            </div>
+          </div>
+        `;
+          })
+          .join("");
+
+        box.innerHTML = searchUI + seqBlocks;
+
+        // number clicks -> jump + highlight + update search results
+        box.querySelectorAll(".oeis-num").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            GLOBAL_SEARCH_LAST = String(v);
+            jumpToValue(v);
+            showExactOverlapInPanel(v);
+          });
+        });
+
+        // show more
+        box.querySelectorAll(".oeis-more").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const layerKey = btn.getAttribute("data-layer");
+            SEQ_META[layerKey].shown =
+              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
+            renderSequenceDetailsPanel();
+            // preserve current search results if any
+            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+            if (Number.isFinite(v)) showExactOverlapInPanel(v);
+          });
+        });
+
+        // global search
+        const input = document.getElementById("globalSearchInput");
+        const searchBtn = document.getElementById("globalSearchBtn");
+
+        function runSearch() {
+          const raw = String(input.value || "").trim();
+          GLOBAL_SEARCH_LAST = raw;
+
+          if (!/^[-]?\d+$/.test(raw)) {
+            showSearchStatus("Enter an integer.", "");
+            return;
+          }
+
+          const v = Number(raw);
+          jumpToValue(v);
+          showExactOverlapInPanel(v);
+        }
+
+        searchBtn.addEventListener("click", runSearch);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runSearch();
+        });
+
+        // If we already have a search value, show it
+        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+        if (Number.isFinite(v)) showExactOverlapInPanel(v);
       }
 
-      rerender_all();
+      function showSearchStatus(statusText, resultsHtml) {
+        const statusEl = document.getElementById("globalSearchStatus");
+        const resultsEl = document.getElementById("globalSearchResults");
+        if (statusEl) statusEl.textContent = statusText || "";
+        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
+      }
 
-      status.text(`Loaded ${loadedCount}/${ids.length} OEIS sequence(s).`);
-      $("#oeisLoadBtn").prop("disabled", false);
-    }
+      function showExactOverlapInPanel(v) {
+        const layers = VALUE_TO_LAYERS.get(v) || [];
+        if (layers.length === 0) {
+          showSearchStatus(
+            "Not found in loaded sequences.",
+            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
+          );
+          return;
+        }
 
-    // ---------------------------
-    // Startup
-    // ---------------------------
-    $(document).ready(function () {
-      $("#focusCanvas").mousemove(function (e) { handleMouseMove(e, "#focusCanvas", FOCUS_REGIONS); });
-      $("#lesserCanvas").mousemove(function (e) { handleMouseMove(e, "#lesserCanvas", LESSER_REGIONS); });
-      $("#greaterCanvas").mousemove(function (e) { handleMouseMove(e, "#greaterCanvas", GREATER_REGIONS); });
+        const list = layers
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const label = meta
+              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
+              : layerKey;
+            return `<li><b>${label}</b></li>`;
+          })
+          .join("");
 
-      $("#left_button").click(left_click);
-      $("#right_button").click(right_click);
-      $("#zoom_button").click(zoom_click);
-      $("#unzoom_button").click(unzoom_click);
+        showSearchStatus(
+          `Found in ${layers.length} sequence(s).`,
+          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+           <div><b>${v}</b> appears in:</div>
+           <ul class="reportList" style="margin-top:6px;">${list}</ul>
+         </div>`
+        );
+      }
 
-      $("#oeisLoadBtn").click(loadMultipleOeis);
-      $("#oeisClearBtn").click(function () {
-        clearAllLayers();
-        $("#oeisStatus").text("Cleared.");
-        // Reset viewport too
+      // Clicking the plot: jump + highlight + update search results (exact only)
+      FOCUS_CANVAS.addEventListener("click", (e) => {
+        const W = FOCUS_CANVAS.width;
+        const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        const xValue = toNL(x, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        const integer = Math.round(xValue);
+        GLOBAL_SEARCH_LAST = String(integer);
+        SELECTED_VALUE = integer;
+
+        // Update panel (if loaded)
+        const input = document.getElementById("globalSearchInput");
+        if (input) input.value = GLOBAL_SEARCH_LAST;
+        showExactOverlapInPanel(integer);
+
+        requestRerender();
+      });
+
+      // ---------------------------
+      // UI buttons
+      // ---------------------------
+      function left_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * (3 / 4);
+        GLOBAL_NL_B -= dp;
+        GLOBAL_NL_A -= dp;
+        requestRerender();
+      }
+
+      function right_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * (3 / 4);
+        GLOBAL_NL_B += dp;
+        GLOBAL_NL_A += dp;
+        requestRerender();
+      }
+
+      function zoom_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * 0.15;
+        GLOBAL_NL_B -= dp;
+        GLOBAL_NL_A += dp;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        requestRerender();
+      }
+
+      function unzoom_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * 0.25;
+        GLOBAL_NL_B += dp;
+        GLOBAL_NL_A -= dp;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        requestRerender();
+      }
+
+      document
+        .getElementById("left_button")
+        .addEventListener("click", left_click);
+      document
+        .getElementById("right_button")
+        .addEventListener("click", right_click);
+      document
+        .getElementById("zoom_button")
+        .addEventListener("click", zoom_click);
+      document
+        .getElementById("unzoom_button")
+        .addEventListener("click", unzoom_click);
+
+      document.getElementById("reset_button").addEventListener("click", () => {
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+          GLOBAL_NL_A = OVERVIEW_MIN - pad;
+          GLOBAL_NL_B = OVERVIEW_MAX + pad;
+        } else {
+          GLOBAL_NL_A = -5;
+          GLOBAL_NL_B = 5;
+        }
+        requestRerender();
+      });
+
+      // ---------------------------
+      // Layers UI + indexing
+      // ---------------------------
+      function add_layer_row(key) {
+        const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const color = LAYER_SETTINGS[key].color;
+
+        if (document.getElementById(safeId)) return;
+
+        const row = document.createElement("div");
+        row.className = "layerRow";
+        row.setAttribute("data-layer-key", key);
+
+        row.innerHTML = `
+        <div class="chip" style="background:${color}"></div>
+        <div class="layerName">${key}</div>
+        <input type="checkbox" id="${safeId}" checked />
+      `;
+
+        document.getElementById("layers").appendChild(row);
+
+        document.getElementById(safeId).addEventListener("change", (e) => {
+          LAYER_SETTINGS[key].render = e.target.checked;
+          requestRerender();
+        });
+      }
+
+      function clearAll() {
+        LAYERS = {};
+        LAYER_SETTINGS = {};
+        LAYER_VALUE_SETS = {};
+        VALUE_TO_LAYERS = new Map();
+        OVERVIEW_POINTS = [];
+        OVERVIEW_MIN = NaN;
+        OVERVIEW_MAX = NaN;
+
+        // NEW resets
+        SELECTED_VALUE = null;
+        for (const k in SEQ_META) delete SEQ_META[k];
+        GLOBAL_SEARCH_LAST = "";
+
+        document.getElementById("layers").innerHTML = "";
+        document.getElementById("oeisStatus").textContent = "Cleared.";
+
         GLOBAL_NL_A = -5;
         GLOBAL_NL_B = 5;
-        rerender_all();
-      });
 
-      // Enter key triggers load
-      $("#oeisInput").on("keydown", function (e) {
-        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-          // Ctrl+Enter / Cmd+Enter loads (since textarea Enter normally adds newline)
-          loadMultipleOeis();
+        renderSequenceDetailsPanel(); // will show "No sequences loaded."
+        requestRerender();
+      }
+
+      document
+        .getElementById("oeisClearBtn")
+        .addEventListener("click", clearAll);
+
+      function parseOeisIds(raw) {
+        return String(raw || "")
+          .toUpperCase()
+          .split(/[\s,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((s) => s.replace(/^A/, ""))
+          .filter((s) => /^\d+$/.test(s));
+      }
+
+      function numbersToLayer(numbers, oeisId, layerKey) {
+        const layer = numbers.map((n) => ({
+          value: n,
+          oeis_id: oeisId,
+          layer_key: layerKey,
+        }));
+        layer.sort((a, b) => a.value - b.value);
+        return layer;
+      }
+
+      function indexLayerValues(layerKey, layerArr) {
+        const s = new Set();
+        layerArr.forEach((p) => s.add(p.value));
+        LAYER_VALUE_SETS[layerKey] = s;
+
+        for (const v of s) {
+          const existing = VALUE_TO_LAYERS.get(v);
+          if (!existing) VALUE_TO_LAYERS.set(v, [layerKey]);
+          else if (!existing.includes(layerKey)) existing.push(layerKey);
         }
+      }
+
+      function rebuildOverview() {
+        OVERVIEW_POINTS = [];
+        const vals = [];
+
+        Object.keys(LAYERS).forEach((k) => {
+          const arr = LAYERS[k];
+          if (!arr || arr.length === 0) return;
+
+          for (let i = 0; i < arr.length; i++) {
+            const v = arr[i].value;
+            OVERVIEW_POINTS.push({ value: v });
+            vals.push(v);
+          }
+        });
+
+        OVERVIEW_POINTS.sort((a, b) => a.value - b.value);
+        vals.sort((a, b) => a - b);
+
+        if (vals.length === 0) {
+          OVERVIEW_MIN = NaN;
+          OVERVIEW_MAX = NaN;
+          return;
+        }
+
+        const pLow = 0.01;
+        const pHigh = 0.99;
+
+        const loIdx = Math.floor((vals.length - 1) * pLow);
+        const hiIdx = Math.floor((vals.length - 1) * pHigh);
+
+        OVERVIEW_MIN = vals[loIdx];
+        OVERVIEW_MAX = vals[hiIdx];
+
+        if (!(OVERVIEW_MAX > OVERVIEW_MIN)) {
+          OVERVIEW_MIN = vals[0];
+          OVERVIEW_MAX = vals[vals.length - 1];
+        }
+      }
+
+      // ---------------------------
+      // OEIS loading
+      // ---------------------------
+      async function loadMultipleOeis() {
+        const status = document.getElementById("oeisStatus");
+        const ids = parseOeisIds(document.getElementById("oeisInput").value);
+
+        if (ids.length === 0) {
+          status.textContent = "Enter OEIS IDs first.";
+          return;
+        }
+
+        document.getElementById("oeisLoadBtn").disabled = true;
+        status.textContent = "Loading...";
+
+        clearAll();
+        status.textContent = "Loading...";
+
+        const requests = ids.map((d) =>
+          $.getJSON(`http://localhost:3000/oeis/${d}`)
+        );
+        const results = await Promise.allSettled(requests);
+
+        let loaded = 0;
+        results.forEach((r, idx) => {
+          if (r.status !== "fulfilled") {
+            console.error("Failed OEIS id:", ids[idx], r.reason);
+            return;
+          }
+
+          const resp = r.value; // { id, name?, numbers, count }
+          const layerKey = `OEIS ${resp.id}`;
+
+          const color = PALETTE[loaded % PALETTE.length];
+          LAYER_SETTINGS[layerKey] = { render: true, color };
+
+          const layer = numbersToLayer(resp.numbers, resp.id, layerKey);
+          LAYERS[layerKey] = layer;
+
+          // NEW: store meta for bottom panel
+          SEQ_META[layerKey] = {
+            id: resp.id,
+            name: resp.name || "",
+            numbers: resp.numbers,
+            shown: INITIAL_SHOW,
+          };
+
+          indexLayerValues(layerKey, layer);
+          add_layer_row(layerKey);
+
+          loaded++;
+        });
+
+        rebuildOverview();
+
+        // Reset view to fit all loaded sequences
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+          GLOBAL_NL_A = OVERVIEW_MIN - pad;
+          GLOBAL_NL_B = OVERVIEW_MAX + pad;
+        } else {
+          GLOBAL_NL_A = -5;
+          GLOBAL_NL_B = 5;
+        }
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+        status.textContent = `Loaded ${loaded}/${ids.length}.`;
+        document.getElementById("oeisLoadBtn").disabled = false;
+
+        // NEW: render bottom panel list + search
+        renderSequenceDetailsPanel();
+
+        rerender_all();
+      }
+
+      document
+        .getElementById("oeisLoadBtn")
+        .addEventListener("click", loadMultipleOeis);
+
+      document.getElementById("oeisInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) loadMultipleOeis();
       });
 
-      // Start with empty canvases
+      // Initial state
+      var OVERVIEW_MIN = NaN;
+      var OVERVIEW_MAX = NaN;
+      renderSequenceDetailsPanel();
       rerender_all();
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>
