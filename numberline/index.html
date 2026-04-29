@@ -53,7 +53,11 @@
         overflow: hidden;
       }
 
+      /* UI FIX: sticky topbar so it never “moves” while content scrolls */
       .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
         background: var(--card);
         border-bottom: 1px solid var(--line);
         padding: 10px 14px;
@@ -61,6 +65,28 @@
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+      }
+
+      .topLeft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 260px;
+        flex-wrap: nowrap;
+      }
+
+      /* UI FIX: prevent wrapping; if screen is narrow, scroll horizontally */
+      .topRight {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: calc(100vw - 420px);
+        padding-bottom: 2px;
+      }
+      .topRight > * {
+        flex: 0 0 auto;
       }
 
       .plotWrap {
@@ -95,13 +121,6 @@
         background: #fafafa;
         border: 1px solid var(--line);
         border-radius: 10px;
-      }
-
-      .btnRow {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
       }
 
       .panelTitle {
@@ -149,7 +168,7 @@
         background: var(--card);
         border-top: 1px solid var(--line);
         padding: 12px 14px;
-        height: 26vh;
+        height: 32vh;
         overflow: auto;
       }
 
@@ -177,15 +196,61 @@
         color: #111827;
       }
 
+      /* UI FIX: tag widths locked so they don’t jitter */
       .tag {
-        display: inline-block;
-        margin-left: 8px;
-        padding: 2px 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 140px;
+        padding: 2px 10px;
         border-radius: 999px;
         border: 1px solid #e5e7eb;
         background: #f3f4f6;
         font-size: 12px;
         color: #111827;
+        white-space: nowrap;
+      }
+
+      /* Desmos-ish control box */
+      .controlBox {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #f9fafb;
+        white-space: nowrap;
+      }
+
+      .controlLabel {
+        font-size: 12px;
+        color: var(--muted);
+        margin-right: 4px;
+      }
+
+      .viewBtn {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+
+      .togglePill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        background: #ffffff;
+        margin-left: 6px;
+      }
+
+      .topRight::-webkit-scrollbar {
+        height: 6px;
+      }
+      .topRight::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 999px;
       }
     </style>
   </head>
@@ -223,8 +288,9 @@
           <ul class="mb-0">
             <li>Drag on the plot to pan</li>
             <li>Mouse wheel to zoom (smooth)</li>
-            <li>Lanes auto-switch: ticks → smudge when too dense</li>
-            <li>Axis labels auto-skip to avoid overlap</li>
+            <li>Click on plot or number buttons to jump</li>
+            <li>Search uses exact match only</li>
+            <li>Log X uses signed symlog (works for negatives + zero)</li>
           </ul>
         </div>
       </div>
@@ -232,32 +298,52 @@
       <!-- MAIN -->
       <div class="main">
         <div class="topbar">
-          <div>
+          <div class="topLeft">
             <b>Numberline</b>
             <span class="muted ml-2">Drag to pan, wheel to zoom</span>
             <span id="viewTag" class="tag">View: Overlaps</span>
+            <span id="scaleTag" class="tag">Scale: Linear</span>
           </div>
 
-          <div class="btnRow">
-            <button id="view_overlaps" class="btn btn-outline-secondary btn-sm">
-              Overlaps
-            </button>
-            <button id="view_lanes" class="btn btn-outline-secondary btn-sm">
-              Lanes
-            </button>
-            <button id="view_density" class="btn btn-outline-secondary btn-sm">
-              Density
-            </button>
+          <div class="topRight">
+            <!-- Fixed View + Log control box (won’t move) -->
+            <div class="controlBox">
+              <span class="controlLabel">View</span>
+              <div class="btn-group" role="group" aria-label="View mode">
+                <button
+                  id="view_overlaps"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Overlaps
+                </button>
+                <button
+                  id="view_lanes"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Lanes
+                </button>
+                <button
+                  id="view_density"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Density
+                </button>
+              </div>
+
+              <div class="togglePill" title="Signed log scale (symlog)">
+                <input type="checkbox" id="logx_toggle" />
+                <span class="muted">Log X</span>
+              </div>
+            </div>
 
             <button id="left_button" class="btn btn-primary btn-sm">←</button>
             <button id="right_button" class="btn btn-primary btn-sm">→</button>
             <button id="zoom_button" class="btn btn-primary btn-sm">Zoom In</button>
-            <button id="unzoom_button" class="btn btn-primary btn-sm">
-              Zoom Out
-            </button>
-            <button id="reset_button" class="btn btn-outline-secondary btn-sm">
-              Reset View
-            </button>
+            <button id="unzoom_button" class="btn btn-primary btn-sm">Zoom Out</button>
+            <button id="reset_button" class="btn btn-outline-secondary btn-sm">Reset View</button>
           </div>
         </div>
 
@@ -277,22 +363,21 @@
 
     <script>
       // ---------------------------
-      // State
+      // Data structures
       // ---------------------------
-      var LAYERS = {}; // layerKey -> [{value,...}] sorted
-      var LAYER_SETTINGS = {}; // layerKey -> {render,color}
-      var VALUE_TO_LAYERS = new Map(); // value -> [layerKey...]
-      var OVERVIEW_POINTS = []; // [{value}]
-      var OVERVIEW_MIN = NaN;
-      var OVERVIEW_MAX = NaN;
+      var LAYERS = {}; // key -> [{value, oeis_id, layer_key}, ...] sorted by value
+      var LAYER_SETTINGS = {}; // key -> { render: bool, color: string }
+      var VALUE_TO_LAYERS = new Map(); // value -> array of layer keys (exact overlap index)
+      var OVERVIEW_POINTS = []; // [{value}] merged from all layers, sorted by value
 
+      // Details panel metadata
       let SELECTED_VALUE = null;
-
-      const SEQ_META = {}; // layerKey -> {id,name,numbers,shown}
+      const SEQ_META = {}; // layerKey -> { id, name, numbers, shown }
       const INITIAL_SHOW = 200;
       const SHOW_STEP = 200;
       let GLOBAL_SEARCH_LAST = "";
 
+      // Colors per layer
       const PALETTE = [
         "#ef4444",
         "#3b82f6",
@@ -304,32 +389,63 @@
         "#84cc16",
       ];
 
-      // Views: overlaps | lanes | density
-      let VIEW = "overlaps";
-
-      // Safety caps
+      // ---------------------------
+      // View + caps
+      // ---------------------------
+      let VIEW = "overlaps"; // overlaps | lanes | density
       const MAX_LANES_RENDER = 200;
       const LANE_HEIGHT = 18;
       const MAX_CONNECTORS = 200;
       const CLICK_NEAR_PX = 10;
 
+      // ---------------------------
       // Numberline window
+      // ---------------------------
       var GLOBAL_NL_A = -5;
       var GLOBAL_NL_B = 5;
+
       const MIN_RANGE = 1e-6;
       const MAX_RANGE = 1e15;
 
-      const FOCUS_CANVAS = document.getElementById("focusCanvas");
-      const OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
+      var FOCUS_CANVAS = document.getElementById("focusCanvas");
+      var OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
 
-      // Overlap list for fast range queries
-      let OVERLAP_VALUES = []; // [{v:number,c:number}] sorted
+      // overlap cache
+      let OVERLAP_VALUES = []; // [{v,c}] sorted
 
       // ---------------------------
-      // Helpers
+      // Log X (symlog) - works with negative/zero/positive
       // ---------------------------
-      function toNL(vp, A, B, N) { return A + (vp * (B - A)) / N; }
-      function toVP(nl, A, B, N) { return Math.round(((nl - A) / (B - A)) * N); }
+      let LOG_X = false;
+      const SYMLOG_C = 1; // linear threshold
+
+      function xTransform(v) {
+        if (!LOG_X) return v;
+        const s = v < 0 ? -1 : 1;
+        const a = Math.abs(v);
+        return s * Math.log10(1 + a / SYMLOG_C);
+      }
+
+      function xUntransform(t) {
+        if (!LOG_X) return t;
+        const s = t < 0 ? -1 : 1;
+        const a = Math.abs(t);
+        return s * SYMLOG_C * (Math.pow(10, a) - 1);
+      }
+
+      function toNL(vp, A, B, N) {
+        const At = xTransform(A);
+        const Bt = xTransform(B);
+        const t = At + (vp * (Bt - At)) / N;
+        return xUntransform(t);
+      }
+
+      function toVP(nl, A, B, N) {
+        const At = xTransform(A);
+        const Bt = xTransform(B);
+        const vt = xTransform(nl);
+        return Math.round(((vt - At) / (Bt - At)) * N);
+      }
 
       function clampWindow(A, B) {
         let range = B - A;
@@ -348,54 +464,7 @@
         return [A, B];
       }
 
-      function getMouseXOnCanvas(e, canvas) {
-        const rect = canvas.getBoundingClientRect();
-        return e.clientX - rect.left;
-      }
-      function getMouseYOnCanvas(e, canvas) {
-        const rect = canvas.getBoundingClientRect();
-        return e.clientY - rect.top;
-      }
-
-      function lowerBoundOverlap(arr, target) {
-        let lo = 0, hi = arr.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (arr[mid].v < target) lo = mid + 1;
-          else hi = mid;
-        }
-        return lo;
-      }
-
-      function lowerBoundLayer(layer, target) {
-        // layer is [{value}] sorted
-        let lo = 0, hi = layer.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (layer[mid].value < target) lo = mid + 1;
-          else hi = mid;
-        }
-        return lo;
-      }
-
-      function binaryNearest(sortedPoints, target) {
-        let lo = 0, hi = sortedPoints.length - 1;
-        if (hi < 0) return null;
-        if (target <= sortedPoints[0].value) return sortedPoints[0].value;
-        if (target >= sortedPoints[hi].value) return sortedPoints[hi].value;
-
-        while (lo + 1 < hi) {
-          const mid = (lo + hi) >> 1;
-          const v = sortedPoints[mid].value;
-          if (v === target) return v;
-          if (v < target) lo = mid;
-          else hi = mid;
-        }
-        return (Math.abs(sortedPoints[lo].value - target) <= Math.abs(sortedPoints[hi].value - target))
-          ? sortedPoints[lo].value
-          : sortedPoints[hi].value;
-      }
-
+      // Jump helpers
       function jumpToValue(v) {
         const range = Math.max((GLOBAL_NL_B - GLOBAL_NL_A) * 0.35, 50);
         GLOBAL_NL_A = v - range / 2;
@@ -412,8 +481,71 @@
       }
 
       // ---------------------------
-      // Axis formatting (FIXES LABEL MERGING)
+      // Rendering
       // ---------------------------
+      const LIGHT_GRAY = "#eeeeee";
+
+      function clearCanvas(canvas, fillStyle) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = fillStyle;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function clearFocusCanvas() {
+        clearCanvas(FOCUS_CANVAS, "#ffffff");
+
+        var ctx = FOCUS_CANVAS.getContext("2d");
+        var grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
+        grd.addColorStop(0, LIGHT_GRAY);
+        grd.addColorStop(1, "#ffffff");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
+
+        grd = ctx.createLinearGradient(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width,
+          0
+        );
+        grd.addColorStop(0, "#ffffff");
+        grd.addColorStop(1, LIGHT_GRAY);
+        ctx.fillStyle = grd;
+        ctx.fillRect(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width / 5,
+          FOCUS_CANVAS.height
+        );
+      }
+
+      function clearOverviewCanvas() {
+        clearCanvas(OVERVIEW_CANVAS, "#fafafa");
+      }
+
+      function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
+        const N = canvasWidth;
+        const LF = toNL(pl, a, b, N);
+
+        var idx = 0;
+        while (idx + 1 < layerArr.length && layerArr[idx + 1].value < LF) idx++;
+
+        const hist = [];
+        const NUM = layerArr.length;
+
+        for (var i = pl; i < ph; i++) {
+          const Fence = toNL(i + 1, a, b, N);
+          var cnt = 0;
+
+          while (idx + cnt < NUM && layerArr[idx + cnt].value < Fence) cnt++;
+          hist.push(cnt);
+          idx += cnt;
+        }
+
+        return hist;
+      }
+
       function formatAxisNumber(n) {
         const an = Math.abs(n);
         if (!Number.isFinite(n)) return "NaN";
@@ -422,12 +554,10 @@
         if (an >= 1e6) return n.toExponential(1);
         if (an >= 1e4) return String(Math.round(n));
         if (an >= 1) return String(Math.round(n));
-        // small numbers
         return n.toExponential(1);
       }
 
       function niceStep(rawStep) {
-        // 1,2,5 * 10^k
         const exp = Math.floor(Math.log10(rawStep));
         const base = rawStep / Math.pow(10, exp);
         let niceBase;
@@ -441,7 +571,7 @@
       function drawAxesSmart(canvas, A, B) {
         const H = canvas.height;
         const W = canvas.width;
-        const ctx = canvas.getContext("2d");
+        var ctx = canvas.getContext("2d");
         const baseline = (3 * H) / 4;
 
         // baseline
@@ -451,65 +581,74 @@
         ctx.lineTo(W, baseline);
         ctx.stroke();
 
-        const d = B - A;
-        if (!(d > 0)) return;
-
-        // choose a step based on desired label spacing
-        // target ~ 120px between labels
-        const targetLabels = Math.max(2, Math.floor(W / 120));
-        const rawStep = d / targetLabels;
-        const step = niceStep(rawStep);
-
-        const first = Math.ceil(A / step) * step;
-        const last = Math.floor(B / step) * step;
+        if (!(B > A)) return;
 
         ctx.font = "12px Arial";
         ctx.fillStyle = "#111827";
 
-        // skip labels if they'd overlap
         let lastLabelRight = -Infinity;
 
-        for (let t = first; t <= last + step * 0.5; t += step) {
-          const x = toVP(t, A, B, W);
-          const label = formatAxisNumber(t);
-          const w = ctx.measureText(label).width;
+        if (!LOG_X) {
+          // linear ticks
+          const d = B - A;
+          const targetLabels = Math.max(2, Math.floor(W / 120));
+          const step = niceStep(d / targetLabels);
 
-          // label box
-          const left = x + 4;
-          const right = left + w;
+          const first = Math.ceil(A / step) * step;
+          const last = Math.floor(B / step) * step;
 
-          // draw major tick always
-          ctx.beginPath();
-          ctx.strokeStyle = "#111827";
-          ctx.moveTo(x, baseline);
-          ctx.lineTo(x, baseline + H / 6);
-          ctx.stroke();
-
-          // only draw label if it doesn't overlap previous
-          if (left > lastLabelRight + 10) {
-            ctx.fillText(label, left, baseline + H / 5);
-            lastLabelRight = right;
-          }
-        }
-
-        // minor ticks (unlabeled) - 5 subdivisions
-        const minor = step / 5;
-        if (minor > 0 && Number.isFinite(minor)) {
-          ctx.strokeStyle = "#9ca3af";
-          ctx.globalAlpha = 0.7;
-          const firstM = Math.ceil(A / minor) * minor;
-          const lastM = Math.floor(B / minor) * minor;
-          for (let t = firstM; t <= lastM + minor * 0.5; t += minor) {
-            // skip if close to major tick
-            const mod = Math.abs((t / step) - Math.round(t / step));
-            if (mod < 1e-6) continue;
+          for (let t = first; t <= last + step * 0.5; t += step) {
             const x = toVP(t, A, B, W);
+            const label = formatAxisNumber(t);
+            const w = ctx.measureText(label).width;
+
+            const left = x + 4;
+            const right = left + w;
+
             ctx.beginPath();
+            ctx.strokeStyle = "#111827";
             ctx.moveTo(x, baseline);
-            ctx.lineTo(x, baseline + H / 10);
+            ctx.lineTo(x, baseline + H / 6);
             ctx.stroke();
+
+            if (left > lastLabelRight + 10) {
+              ctx.fillText(label, left, baseline + H / 5);
+              lastLabelRight = right;
+            }
           }
-          ctx.globalAlpha = 1.0;
+        } else {
+          // log ticks in transformed space (stable labeling)
+          const At = xTransform(A);
+          const Bt = xTransform(B);
+          const dt = Bt - At;
+          if (!(dt > 0)) return;
+
+          const targetLabels = Math.max(2, Math.floor(W / 120));
+          const stepT = niceStep(dt / targetLabels);
+
+          const firstT = Math.ceil(At / stepT) * stepT;
+          const lastT = Math.floor(Bt / stepT) * stepT;
+
+          for (let tt = firstT; tt <= lastT + stepT * 0.5; tt += stepT) {
+            const val = xUntransform(tt);
+            const x = toVP(val, A, B, W);
+
+            const label = formatAxisNumber(val);
+            const w = ctx.measureText(label).width;
+            const left = x + 4;
+            const right = left + w;
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#111827";
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x, baseline + H / 6);
+            ctx.stroke();
+
+            if (left > lastLabelRight + 10) {
+              ctx.fillText(label, left, baseline + H / 5);
+              lastLabelRight = right;
+            }
+          }
         }
 
         // selected marker
@@ -517,80 +656,12 @@
           const x = toVP(SELECTED_VALUE, A, B, W);
           ctx.beginPath();
           ctx.strokeStyle = "#111827";
-          ctx.globalAlpha = 0.30;
+          ctx.globalAlpha = 0.35;
           ctx.moveTo(x, 0);
           ctx.lineTo(x, H);
           ctx.stroke();
           ctx.globalAlpha = 1.0;
         }
-      }
-
-      // ---------------------------
-      // Canvas clearing
-      // ---------------------------
-      const LIGHT_GRAY = "#eeeeee";
-
-      function setFocusCanvasHeightForView() {
-        if (VIEW !== "lanes") {
-          FOCUS_CANVAS.style.height = "46vh";
-          return;
-        }
-        const keys = getRenderableLaneKeys();
-        const laneCount = keys.length;
-        const h = Math.max(220, laneCount * LANE_HEIGHT + 30);
-        FOCUS_CANVAS.style.height = h + "px";
-      }
-
-      function clearCanvas(canvas, fillStyle) {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = fillStyle;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      function clearFocusCanvas() {
-        clearCanvas(FOCUS_CANVAS, "#ffffff");
-        const ctx = FOCUS_CANVAS.getContext("2d");
-
-        let grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
-        grd.addColorStop(0, LIGHT_GRAY);
-        grd.addColorStop(1, "#ffffff");
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
-
-        grd = ctx.createLinearGradient((FOCUS_CANVAS.width * 4) / 5, 0, FOCUS_CANVAS.width, 0);
-        grd.addColorStop(0, "#ffffff");
-        grd.addColorStop(1, LIGHT_GRAY);
-        ctx.fillStyle = grd;
-        ctx.fillRect((FOCUS_CANVAS.width * 4) / 5, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
-      }
-
-      function clearOverviewCanvas() {
-        clearCanvas(OVERVIEW_CANVAS, "#fafafa");
-      }
-
-      // ---------------------------
-      // Density
-      // ---------------------------
-      function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
-        const N = canvasWidth;
-        const LF = toNL(pl, a, b, N);
-
-        let idx = 0;
-        while ((idx + 1) < layerArr.length && layerArr[idx + 1].value < LF) idx++;
-
-        const hist = [];
-        const NUM = layerArr.length;
-
-        for (let i = pl; i < ph; i++) {
-          const Fence = toNL(i + 1, a, b, N);
-          let cnt = 0;
-          while (idx + cnt < NUM && layerArr[idx + cnt].value < Fence) cnt++;
-          hist.push(cnt);
-          idx += cnt;
-        }
-        return hist;
       }
 
       function drawLayerDensity(canvas, hist, color, alpha) {
@@ -599,7 +670,7 @@
         const baseline = (3 * H) / 4;
         const maxCount = hist.reduce((m, v) => Math.max(m, v), 1);
 
-        const ctx = canvas.getContext("2d");
+        var ctx = canvas.getContext("2d");
         ctx.globalAlpha = alpha;
 
         for (let x = 0; x < W; x++) {
@@ -617,20 +688,17 @@
       }
 
       // ---------------------------
-      // Views
+      // Overlaps view
       // ---------------------------
-      function renderDensityView() {
-        const W = FOCUS_CANVAS.width;
-        const enabledKeys = Object.keys(LAYERS).filter((k) => LAYER_SETTINGS[k]?.render);
-
-        enabledKeys.forEach((key) => {
-          const layer = LAYERS[key];
-          const color = LAYER_SETTINGS[key].color;
-          const hist = computeHistogramForLayer(layer, 0, W, GLOBAL_NL_A, GLOBAL_NL_B, W);
-          drawLayerDensity(FOCUS_CANVAS, hist, color, 0.55);
-        });
-
-        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+      function lowerBoundOverlap(arr, target) {
+        let lo = 0,
+          hi = arr.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (arr[mid].v < target) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
       }
 
       function renderOverlapHeatline() {
@@ -688,9 +756,131 @@
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
       }
 
+      function showOverlapsNear(centerValue) {
+        const W = FOCUS_CANVAS.width;
+
+        // pixel-based "near" window is stable for log + linear
+        const centerPx = toVP(centerValue, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        const leftVal = toNL(
+          Math.max(0, centerPx - CLICK_NEAR_PX),
+          GLOBAL_NL_A,
+          GLOBAL_NL_B,
+          W
+        );
+        const rightVal = toNL(
+          Math.min(W, centerPx + CLICK_NEAR_PX),
+          GLOBAL_NL_A,
+          GLOBAL_NL_B,
+          W
+        );
+
+        const A = Math.min(leftVal, rightVal);
+        const B = Math.max(leftVal, rightVal);
+
+        const s = lowerBoundOverlap(OVERLAP_VALUES, A);
+        const t = lowerBoundOverlap(OVERLAP_VALUES, B);
+
+        const slice = OVERLAP_VALUES
+          .slice(s, t)
+          .sort((p, q) => q.c - p.c)
+          .slice(0, 80);
+
+        if (!slice.length) {
+          document.getElementById("reportBox").innerHTML = `
+            <div><b>No overlaps near:</b> ${Math.round(centerValue)}</div>
+            <div class="muted">Try zooming in or loading more sequences.</div>
+          `;
+          return;
+        }
+
+        const itemsHtml = slice
+          .map((o) => {
+            const layers = VALUE_TO_LAYERS.get(o.v) || [];
+            return `
+              <div style="margin-bottom:6px;">
+                <button class="btn btn-sm btn-light jumpOverlap" data-val="${o.v}">
+                  ${o.v} (in ${o.c} sequences)
+                </button>
+                <div class="muted" style="margin-left:4px;">${layers.join(", ")}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+        document.getElementById("reportBox").innerHTML = `
+          <div><b>Overlaps near:</b> ${Math.round(centerValue)}</div>
+          <div class="muted">Top overlaps in this region:</div>
+          <div style="margin-top:8px;">${itemsHtml}</div>
+        `;
+
+        document.querySelectorAll(".jumpOverlap").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            jumpToValue(v);
+          });
+        });
+      }
+
+      // ---------------------------
+      // Lanes view
+      // ---------------------------
       function getRenderableLaneKeys() {
-        const enabled = Object.keys(LAYERS).filter((k) => LAYER_SETTINGS[k]?.render);
+        const enabled = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
         return enabled.slice(0, MAX_LANES_RENDER);
+      }
+
+      function lowerBoundLayer(layer, target) {
+        let lo = 0,
+          hi = layer.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (layer[mid].value < target) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+
+      function binaryNearest(sortedPoints, target) {
+        let lo = 0,
+          hi = sortedPoints.length - 1;
+        if (hi < 0) return null;
+        if (target <= sortedPoints[0].value) return sortedPoints[0].value;
+        if (target >= sortedPoints[hi].value) return sortedPoints[hi].value;
+
+        while (lo + 1 < hi) {
+          const mid = (lo + hi) >> 1;
+          const v = sortedPoints[mid].value;
+          if (v === target) return v;
+          if (v < target) lo = mid;
+          else hi = mid;
+        }
+        return Math.abs(sortedPoints[lo].value - target) <=
+          Math.abs(sortedPoints[hi].value - target)
+          ? sortedPoints[lo].value
+          : sortedPoints[hi].value;
+      }
+
+      function setFocusCanvasHeightForView() {
+        const defaultH = "46vh";
+        let desired;
+
+        if (VIEW !== "lanes") {
+          desired = defaultH;
+        } else {
+          const keys = getRenderableLaneKeys();
+          const laneCount = keys.length;
+          const h = Math.max(220, laneCount * LANE_HEIGHT + 30);
+          desired = h + "px";
+        }
+
+        const prev = FOCUS_CANVAS.style.height || defaultH;
+        if (prev === desired) return false;
+
+        FOCUS_CANVAS.style.height = desired;
+        FOCUS_CANVAS.getBoundingClientRect(); // force layout
+        return true;
       }
 
       function renderLanesView() {
@@ -711,11 +901,9 @@
         }
         ctx.globalAlpha = 1.0;
 
-        // laneIndex map for connectors
         const laneIndex = {};
         keys.forEach((k, idx) => (laneIndex[k] = idx));
 
-        // draw lanes
         keys.forEach((key, idx) => {
           const layer = LAYERS[key];
           if (!layer || layer.length === 0) return;
@@ -724,21 +912,19 @@
           const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
           const color = LAYER_SETTINGS[key].color;
 
-          // lane label
+          // label
           ctx.font = "11px Arial";
           ctx.fillStyle = "#111827";
           ctx.globalAlpha = 0.8;
           ctx.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
           ctx.globalAlpha = 1.0;
 
-          // IMPORTANT FIX: visible count via binary search (not layer.length)
           const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
           const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
           const visibleCount = Math.max(0, hi - lo);
           const pointsPerPixel = visibleCount / Math.max(1, W);
 
           if (pointsPerPixel < 0.7) {
-            // ticks for visible range only
             ctx.strokeStyle = color;
             ctx.globalAlpha = 0.85;
             for (let i = lo; i < hi; i++) {
@@ -751,7 +937,6 @@
             }
             ctx.globalAlpha = 1.0;
           } else {
-            // smudge histogram
             const bins = new Array(W).fill(0);
             for (let i = lo; i < hi; i++) {
               const v = layer[i].value;
@@ -774,7 +959,7 @@
           }
         });
 
-        // overlap connectors (limited)
+        // connectors for overlaps (limited)
         const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
         const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
         const overlapsInView = OVERLAP_VALUES.slice(start, end);
@@ -787,7 +972,9 @@
 
         for (const ov of chosen) {
           const layers = VALUE_TO_LAYERS.get(ov.v) || [];
-          let minLane = Infinity, maxLane = -Infinity, countVisible = 0;
+          let minLane = Infinity,
+            maxLane = -Infinity,
+            countVisible = 0;
 
           for (const lk of layers) {
             if (laneIndex[lk] === undefined) continue;
@@ -810,22 +997,11 @@
 
         ctx.globalAlpha = 1.0;
 
-        // selected marker
-        if (SELECTED_VALUE !== null) {
-          const x = toVP(SELECTED_VALUE, GLOBAL_NL_A, GLOBAL_NL_B, W);
-          ctx.beginPath();
-          ctx.strokeStyle = "#111827";
-          ctx.globalAlpha = 0.30;
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, H);
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
-        }
-
-        // draw axis at bottom of lanes canvas (smart)
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
 
-        const enabledTotal = Object.keys(LAYERS).filter((k) => LAYER_SETTINGS[k]?.render).length;
+        const enabledTotal = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        ).length;
         if (enabledTotal > MAX_LANES_RENDER) {
           document.getElementById("oeisStatus").textContent =
             `Rendering first ${MAX_LANES_RENDER} lanes (of ${enabledTotal}). Search still works for all.`;
@@ -833,10 +1009,41 @@
       }
 
       // ---------------------------
+      // Density view
+      // ---------------------------
+      function renderDensityView() {
+        const W = FOCUS_CANVAS.width;
+        const enabledKeys = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
+
+        enabledKeys.forEach((key) => {
+          const layer = LAYERS[key];
+          const color = LAYER_SETTINGS[key].color;
+          const hist = computeHistogramForLayer(
+            layer,
+            0,
+            W,
+            GLOBAL_NL_A,
+            GLOBAL_NL_B,
+            W
+          );
+          drawLayerDensity(FOCUS_CANVAS, hist, color, 0.55);
+        });
+
+        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+      }
+
+      // ---------------------------
       // Main render
       // ---------------------------
       function rerender_all() {
-        setFocusCanvasHeightForView();
+        const heightChanged = setFocusCanvasHeightForView();
+        if (heightChanged) {
+          requestAnimationFrame(() => rerender_all());
+          return;
+        }
+
         clearFocusCanvas();
         clearOverviewCanvas();
 
@@ -859,7 +1066,7 @@
       }
 
       // ---------------------------
-      // Pan + zoom
+      // Pan + wheel zoom (log-aware)
       // ---------------------------
       let isDragging = false;
       let dragStartX = 0;
@@ -876,6 +1083,16 @@
         });
       }
 
+      function getMouseXOnCanvas(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientX - rect.left;
+      }
+
+      function getMouseYOnCanvas(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientY - rect.top;
+      }
+
       FOCUS_CANVAS.addEventListener("mousedown", (e) => {
         isDragging = true;
         dragStartX = getMouseXOnCanvas(e, FOCUS_CANVAS);
@@ -883,89 +1100,232 @@
         dragStartB = GLOBAL_NL_B;
       });
 
-      window.addEventListener("mouseup", () => { isDragging = false; });
+      window.addEventListener("mouseup", () => {
+        isDragging = false;
+      });
 
       FOCUS_CANVAS.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
         const dx = x - dragStartX;
         const W = FOCUS_CANVAS.width;
-        const shift = (dx * (dragStartB - dragStartA)) / W;
 
-        GLOBAL_NL_A = dragStartA - shift;
-        GLOBAL_NL_B = dragStartB - shift;
+        if (!LOG_X) {
+          const shift = (dx * (dragStartB - dragStartA)) / W;
+          GLOBAL_NL_A = dragStartA - shift;
+          GLOBAL_NL_B = dragStartB - shift;
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+          requestRerender();
+          return;
+        }
+
+        // log-space pan
+        const At0 = xTransform(dragStartA);
+        const Bt0 = xTransform(dragStartB);
+        const shiftT = (dx * (Bt0 - At0)) / W;
+
+        GLOBAL_NL_A = xUntransform(At0 - shiftT);
+        GLOBAL_NL_B = xUntransform(Bt0 - shiftT);
         [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
 
         requestRerender();
       });
 
-      FOCUS_CANVAS.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        const W = FOCUS_CANVAS.width;
-        const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
-        const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
-        const factor = Math.exp(e.deltaY * 0.0015);
+      FOCUS_CANVAS.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const W = FOCUS_CANVAS.width;
+          const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
+          const factor = Math.exp(e.deltaY * 0.0015);
 
-        let A = anchor - (anchor - GLOBAL_NL_A) * factor;
-        let B = anchor + (GLOBAL_NL_B - anchor) * factor;
+          if (!LOG_X) {
+            const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
+            let A = anchor - (anchor - GLOBAL_NL_A) * factor;
+            let B = anchor + (GLOBAL_NL_B - anchor) * factor;
+            [A, B] = clampWindow(A, B);
+            GLOBAL_NL_A = A;
+            GLOBAL_NL_B = B;
+            requestRerender();
+            return;
+          }
 
-        [A, B] = clampWindow(A, B);
-        GLOBAL_NL_A = A;
-        GLOBAL_NL_B = B;
+          // log-space zoom
+          const At = xTransform(GLOBAL_NL_A);
+          const Bt = xTransform(GLOBAL_NL_B);
+          const anchorT = At + (mouseX * (Bt - At)) / W;
 
-        requestRerender();
-      }, { passive: false });
+          const newAt = anchorT - (anchorT - At) * factor;
+          const newBt = anchorT + (Bt - anchorT) * factor;
+
+          GLOBAL_NL_A = xUntransform(newAt);
+          GLOBAL_NL_B = xUntransform(newBt);
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+          requestRerender();
+        },
+        { passive: false }
+      );
 
       // ---------------------------
-      // Click handling per view
+      // Details panel: Search + sequences list + show more + clickable numbers
       // ---------------------------
-      function showOverlapsNear(centerValue) {
-        const W = FOCUS_CANVAS.width;
-        const span = (GLOBAL_NL_B - GLOBAL_NL_A) / Math.max(1, W);
-        const A = centerValue - span * CLICK_NEAR_PX;
-        const B = centerValue + span * CLICK_NEAR_PX;
+      function renderSequenceDetailsPanel() {
+        const box = document.getElementById("reportBox");
+        const keys = Object.keys(SEQ_META);
 
-        const s = lowerBoundOverlap(OVERLAP_VALUES, A);
-        const t = lowerBoundOverlap(OVERLAP_VALUES, B);
-
-        const slice = OVERLAP_VALUES
-          .slice(s, t)
-          .sort((p, q) => q.c - p.c)
-          .slice(0, 80);
-
-        if (!slice.length) {
-          document.getElementById("reportBox").innerHTML =
-            `<div><b>No overlaps near:</b> ${Math.round(centerValue)}</div>
-             <div class="muted">Try zooming in or loading more sequences.</div>`;
+        if (keys.length === 0) {
+          box.innerHTML = "No sequences loaded.";
           return;
         }
 
-        const itemsHtml = slice.map((o) => {
-          const layers = VALUE_TO_LAYERS.get(o.v) || [];
-          return `
-            <div style="margin-bottom:6px;">
-              <button class="btn btn-sm btn-light jumpOverlap" data-val="${o.v}">
-                ${o.v} (in ${o.c} sequences)
-              </button>
-              <div class="muted" style="margin-left:4px;">${layers.join(", ")}</div>
-            </div>
-          `;
-        }).join("");
-
-        document.getElementById("reportBox").innerHTML = `
-          <div><b>Overlaps near:</b> ${Math.round(centerValue)}</div>
-          <div class="muted">Top overlaps in this region:</div>
-          <div style="margin-top:8px;">${itemsHtml}</div>
+        const searchUI = `
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+            <input id="globalSearchInput" class="form-control form-control-sm"
+                  style="max-width:260px;"
+                  placeholder="Search number (e.g. 233 or -41)"
+                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
+            <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
+            <span class="muted" id="globalSearchStatus"></span>
+          </div>
+          <div id="globalSearchResults" style="margin-bottom:12px;"></div>
         `;
 
-        document.querySelectorAll(".jumpOverlap").forEach((btn) => {
+        const seqBlocks = keys
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const shown = meta.shown ?? INITIAL_SHOW;
+            const nums = meta.numbers.slice(0, shown);
+
+            const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
+            const oeisUrl = `https://oeis.org/${meta.id}`;
+
+            const numsHtml = nums
+              .map(
+                (n) =>
+                  `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
+                    data-val="${n}" data-layer="${layerKey}">${n}</button>`
+              )
+              .join("");
+
+            const moreBtn =
+              shown < meta.numbers.length
+                ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
+                    Show more (+${SHOW_STEP})
+                  </button>`
+                : `<span class="muted">All loaded terms shown.</span>`;
+
+            return `
+              <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+                  <div>
+                    <a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>
+                    <div class="muted">Showing ${Math.min(
+                      shown,
+                      meta.numbers.length
+                    )} / ${meta.numbers.length}</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
+                  ${numsHtml}
+                </div>
+
+                <div style="margin-top:8px;">
+                  ${moreBtn}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        box.innerHTML = searchUI + seqBlocks;
+
+        // number clicks -> jump + highlight
+        box.querySelectorAll(".oeis-num").forEach((btn) => {
           btn.addEventListener("click", () => {
             const v = Number(btn.getAttribute("data-val"));
+            GLOBAL_SEARCH_LAST = String(v);
             jumpToValue(v);
           });
         });
+
+        // show more
+        box.querySelectorAll(".oeis-more").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const layerKey = btn.getAttribute("data-layer");
+            SEQ_META[layerKey].shown =
+              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
+            renderSequenceDetailsPanel();
+            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+            if (Number.isFinite(v)) showExactOverlapInPanel(v);
+          });
+        });
+
+        // global search
+        const input = document.getElementById("globalSearchInput");
+        const searchBtn = document.getElementById("globalSearchBtn");
+
+        function runSearch() {
+          const raw = String(input.value || "").trim();
+          GLOBAL_SEARCH_LAST = raw;
+
+          if (!/^[-]?\d+$/.test(raw)) {
+            showSearchStatus("Enter an integer.", "");
+            return;
+          }
+
+          const v = Number(raw);
+          jumpToValue(v);
+          showExactOverlapInPanel(v);
+        }
+
+        searchBtn.addEventListener("click", runSearch);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runSearch();
+        });
+
+        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+        if (Number.isFinite(v)) showExactOverlapInPanel(v);
       }
 
+      function showSearchStatus(statusText, resultsHtml) {
+        const statusEl = document.getElementById("globalSearchStatus");
+        const resultsEl = document.getElementById("globalSearchResults");
+        if (statusEl) statusEl.textContent = statusText || "";
+        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
+      }
+
+      function showExactOverlapInPanel(v) {
+        const layers = VALUE_TO_LAYERS.get(v) || [];
+        if (layers.length === 0) {
+          showSearchStatus(
+            "Not found in loaded sequences.",
+            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
+          );
+          return;
+        }
+
+        const list = layers
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const label = meta
+              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
+              : layerKey;
+            return `<li><b>${label}</b></li>`;
+          })
+          .join("");
+
+        showSearchStatus(
+          `Found in ${layers.length} sequence(s).`,
+          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+            <div><b>${v}</b> appears in:</div>
+            <ul class="reportList" style="margin-top:6px;">${list}</ul>
+          </div>`
+        );
+      }
+
+      // Clicking plot behavior per view
       FOCUS_CANVAS.addEventListener("click", (e) => {
         const W = FOCUS_CANVAS.width;
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
@@ -1016,6 +1376,7 @@
         GLOBAL_NL_A -= dp;
         requestRerender();
       }
+
       function right_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
         const dp = d * (3 / 4);
@@ -1023,6 +1384,7 @@
         GLOBAL_NL_A += dp;
         requestRerender();
       }
+
       function zoom_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
         const dp = d * 0.15;
@@ -1031,6 +1393,7 @@
         [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
         requestRerender();
       }
+
       function unzoom_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
         const dp = d * 0.25;
@@ -1046,8 +1409,12 @@
       document.getElementById("unzoom_button").addEventListener("click", unzoom_click);
 
       document.getElementById("reset_button").addEventListener("click", () => {
-        if (Number.isFinite(OVERVIEW_MIN) && Number.isFinite(OVERVIEW_MAX) && OVERVIEW_MAX > OVERVIEW_MIN) {
-          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.10 || 10;
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
           GLOBAL_NL_A = OVERVIEW_MIN - pad;
           GLOBAL_NL_B = OVERVIEW_MAX + pad;
         } else {
@@ -1061,11 +1428,30 @@
         VIEW = v;
         document.getElementById("viewTag").textContent =
           `View: ${v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"}`;
+
+        // highlight selected view button
+        document.getElementById("view_overlaps").classList.toggle("btn-secondary", v === "overlaps");
+        document.getElementById("view_overlaps").classList.toggle("btn-outline-secondary", v !== "overlaps");
+
+        document.getElementById("view_lanes").classList.toggle("btn-secondary", v === "lanes");
+        document.getElementById("view_lanes").classList.toggle("btn-outline-secondary", v !== "lanes");
+
+        document.getElementById("view_density").classList.toggle("btn-secondary", v === "density");
+        document.getElementById("view_density").classList.toggle("btn-outline-secondary", v !== "density");
+
         requestRerender();
       }
+
       document.getElementById("view_overlaps").addEventListener("click", () => setView("overlaps"));
       document.getElementById("view_lanes").addEventListener("click", () => setView("lanes"));
       document.getElementById("view_density").addEventListener("click", () => setView("density"));
+
+      // log toggle
+      document.getElementById("logx_toggle").addEventListener("change", (e) => {
+        LOG_X = !!e.target.checked;
+        document.getElementById("scaleTag").textContent = `Scale: ${LOG_X ? "Log" : "Linear"}`;
+        requestRerender();
+      });
 
       // ---------------------------
       // Layers UI + indexing
@@ -1073,6 +1459,7 @@
       function add_layer_row(key) {
         const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
         const color = LAYER_SETTINGS[key].color;
+
         if (document.getElementById(safeId)) return;
 
         const row = document.createElement("div");
@@ -1115,6 +1502,7 @@
         renderSequenceDetailsPanel();
         requestRerender();
       }
+
       document.getElementById("oeisClearBtn").addEventListener("click", clearAll);
 
       function parseOeisIds(raw) {
@@ -1128,7 +1516,11 @@
       }
 
       function numbersToLayer(numbers, oeisId, layerKey) {
-        const layer = numbers.map((n) => ({ value: n, oeis_id: oeisId, layer_key: layerKey }));
+        const layer = numbers.map((n) => ({
+          value: n,
+          oeis_id: oeisId,
+          layer_key: layerKey,
+        }));
         layer.sort((a, b) => a.value - b.value);
         return layer;
       }
@@ -1136,6 +1528,7 @@
       function indexLayerValues(layerKey, layerArr) {
         const s = new Set();
         layerArr.forEach((p) => s.add(p.value));
+
         for (const v of s) {
           const existing = VALUE_TO_LAYERS.get(v);
           if (!existing) VALUE_TO_LAYERS.set(v, [layerKey]);
@@ -1167,7 +1560,9 @@
           return;
         }
 
-        const pLow = 0.01, pHigh = 0.99;
+        const pLow = 0.01;
+        const pHigh = 0.99;
+
         const loIdx = Math.floor((vals.length - 1) * pLow);
         const hiIdx = Math.floor((vals.length - 1) * pHigh);
 
@@ -1191,139 +1586,12 @@
       }
 
       // ---------------------------
-      // Details panel (search + list)
-      // ---------------------------
-      function renderSequenceDetailsPanel() {
-        const box = document.getElementById("reportBox");
-        const keys = Object.keys(SEQ_META);
-
-        if (keys.length === 0) {
-          box.innerHTML = "No sequences loaded.";
-          return;
-        }
-
-        const searchUI = `
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-            <input id="globalSearchInput" class="form-control form-control-sm"
-                  style="max-width:260px;"
-                  placeholder="Search number (e.g. 233 or -41)"
-                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
-            <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
-            <span class="muted" id="globalSearchStatus"></span>
-          </div>
-          <div id="globalSearchResults" style="margin-bottom:12px;"></div>
-        `;
-
-        const seqBlocks = keys.map((layerKey) => {
-          const meta = SEQ_META[layerKey];
-          const shown = meta.shown ?? INITIAL_SHOW;
-          const nums = meta.numbers.slice(0, shown);
-
-          const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
-          const oeisUrl = `https://oeis.org/${meta.id}`;
-
-          const numsHtml = nums.map((n) =>
-            `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
-              data-val="${n}" data-layer="${layerKey}">${n}</button>`
-          ).join("");
-
-          const moreBtn = (shown < meta.numbers.length)
-            ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
-                Show more (+${SHOW_STEP})
-              </button>`
-            : `<span class="muted">All loaded terms shown.</span>`;
-
-          return `
-            <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
-              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-                <div>
-                  <a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>
-                  <div class="muted">Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}</div>
-                </div>
-              </div>
-              <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
-                ${numsHtml}
-              </div>
-              <div style="margin-top:8px;">
-                ${moreBtn}
-              </div>
-            </div>
-          `;
-        }).join("");
-
-        box.innerHTML = searchUI + seqBlocks;
-
-        box.querySelectorAll(".oeis-num").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const v = Number(btn.getAttribute("data-val"));
-            jumpToValue(v);
-          });
-        });
-
-        box.querySelectorAll(".oeis-more").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const layerKey = btn.getAttribute("data-layer");
-            SEQ_META[layerKey].shown = (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
-            renderSequenceDetailsPanel();
-            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
-            if (Number.isFinite(v)) showExactOverlapInPanel(v);
-          });
-        });
-
-        const input = document.getElementById("globalSearchInput");
-        const searchBtn = document.getElementById("globalSearchBtn");
-
-        function runSearch() {
-          const raw = String(input.value || "").trim();
-          GLOBAL_SEARCH_LAST = raw;
-          if (!/^[-]?\d+$/.test(raw)) {
-            showSearchStatus("Enter an integer.", "");
-            return;
-          }
-          jumpToValue(Number(raw));
-        }
-
-        searchBtn.addEventListener("click", runSearch);
-        input.addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
-
-        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
-        if (Number.isFinite(v)) showExactOverlapInPanel(v);
-      }
-
-      function showSearchStatus(statusText, resultsHtml) {
-        const statusEl = document.getElementById("globalSearchStatus");
-        const resultsEl = document.getElementById("globalSearchResults");
-        if (statusEl) statusEl.textContent = statusText || "";
-        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
-      }
-
-      function showExactOverlapInPanel(v) {
-        const layers = VALUE_TO_LAYERS.get(v) || [];
-        if (layers.length === 0) {
-          showSearchStatus("Not found in loaded sequences.",
-            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`);
-          return;
-        }
-
-        const list = layers.map((layerKey) => {
-          const meta = SEQ_META[layerKey];
-          const label = meta ? `${meta.id}${meta.name ? " — " + meta.name : ""}` : layerKey;
-          return `<li><b>${label}</b></li>`;
-        }).join("");
-
-        showSearchStatus(`Found in ${layers.length} sequence(s).`,
-          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
-            <div><b>${v}</b> appears in:</div>
-            <ul class="reportList" style="margin-top:6px;">${list}</ul>
-          </div>`);
-      }
-
-      // ---------------------------
       // OEIS loading
       // ---------------------------
       async function loadMultipleOeis() {
         const status = document.getElementById("oeisStatus");
         const ids = parseOeisIds(document.getElementById("oeisInput").value);
+
         if (ids.length === 0) {
           status.textContent = "Enter OEIS IDs first.";
           return;
@@ -1335,7 +1603,9 @@
         clearAll();
         status.textContent = "Loading...";
 
-        const requests = ids.map((d) => $.getJSON(`http://localhost:3000/oeis/${d}`));
+        const requests = ids.map((d) =>
+          $.getJSON(`http://localhost:3000/oeis/${d}`)
+        );
         const results = await Promise.allSettled(requests);
 
         let loaded = 0;
@@ -1354,6 +1624,7 @@
           const layer = numbersToLayer(resp.numbers, resp.id, layerKey);
           LAYERS[layerKey] = layer;
 
+          // store meta for bottom panel
           SEQ_META[layerKey] = {
             id: resp.id,
             name: resp.name || "",
@@ -1363,14 +1634,20 @@
 
           indexLayerValues(layerKey, layer);
           add_layer_row(layerKey);
+
           loaded++;
         });
 
         rebuildOverview();
         buildOverlapValues();
 
-        if (Number.isFinite(OVERVIEW_MIN) && Number.isFinite(OVERVIEW_MAX) && OVERVIEW_MAX > OVERVIEW_MIN) {
-          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.10 || 10;
+        // Reset view to fit all loaded sequences
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
           GLOBAL_NL_A = OVERVIEW_MIN - pad;
           GLOBAL_NL_B = OVERVIEW_MAX + pad;
         } else {
@@ -1392,8 +1669,9 @@
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) loadMultipleOeis();
       });
 
-      // init
+      // Initial state
       renderSequenceDetailsPanel();
+      setView("overlaps");
       rerender_all();
     </script>
   </body>
