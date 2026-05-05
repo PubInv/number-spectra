@@ -433,6 +433,7 @@
         return s * SYMLOG_C * (Math.pow(10, a) - 1);
       }
 
+      // Converts a canvas pixel position back into a number-line value.
       function toNL(vp, A, B, N) {
         const At = xTransform(A);
         const Bt = xTransform(B);
@@ -440,6 +441,7 @@
         return xUntransform(t);
       }
 
+      // Converts a number-line value into a canvas pixel position.
       function toVP(nl, A, B, N) {
         const At = xTransform(A);
         const Bt = xTransform(B);
@@ -488,22 +490,22 @@
       function clearCanvas(canvas, fillStyle) {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-        var ctx = canvas.getContext("2d");
-        ctx.fillStyle = fillStyle;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        var canvasContext = canvas.getContext("2d");
+       canvasContext.fillStyle = fillStyle;
+       canvasContext.fillRect(0, 0, canvas.width, canvas.height);
       }
 
       function clearFocusCanvas() {
         clearCanvas(FOCUS_CANVAS, "#ffffff");
 
-        var ctx = FOCUS_CANVAS.getContext("2d");
-        var grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
+        var canvasContext = FOCUS_CANVAS.getContext("2d");
+        var grd = canvasContext.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
         grd.addColorStop(0, LIGHT_GRAY);
         grd.addColorStop(1, "#ffffff");
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
+       canvasContext.fillStyle = grd;
+       canvasContext.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
 
-        grd = ctx.createLinearGradient(
+        grd = canvasContext.createLinearGradient(
           (FOCUS_CANVAS.width * 4) / 5,
           0,
           FOCUS_CANVAS.width,
@@ -511,8 +513,8 @@
         );
         grd.addColorStop(0, "#ffffff");
         grd.addColorStop(1, LIGHT_GRAY);
-        ctx.fillStyle = grd;
-        ctx.fillRect(
+       canvasContext.fillStyle = grd;
+       canvasContext.fillRect(
           (FOCUS_CANVAS.width * 4) / 5,
           0,
           FOCUS_CANVAS.width / 5,
@@ -524,6 +526,7 @@
         clearCanvas(OVERVIEW_CANVAS, "#fafafa");
       }
 
+      // Converts a sequence into a pixel-based histogram.
       function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
         const N = canvasWidth;
         const LF = toNL(pl, a, b, N);
@@ -568,23 +571,24 @@
         return niceBase * Math.pow(10, exp);
       }
 
+      // Draws baseline and tick labels.
       function drawAxesSmart(canvas, A, B) {
         const H = canvas.height;
         const W = canvas.width;
-        var ctx = canvas.getContext("2d");
+        var canvasContext = canvas.getContext("2d");
         const baseline = (3 * H) / 4;
 
         // baseline
-        ctx.beginPath();
-        ctx.strokeStyle = "#1f3a8a";
-        ctx.moveTo(0, baseline);
-        ctx.lineTo(W, baseline);
-        ctx.stroke();
+       canvasContext.beginPath();
+       canvasContext.strokeStyle = "#1f3a8a";
+       canvasContext.moveTo(0, baseline);
+       canvasContext.lineTo(W, baseline);
+       canvasContext.stroke();
 
         if (!(B > A)) return;
 
-        ctx.font = "12px Arial";
-        ctx.fillStyle = "#111827";
+       canvasContext.font = "12px Arial";
+       canvasContext.fillStyle = "#111827";
 
         let lastLabelRight = -Infinity;
 
@@ -600,19 +604,19 @@
           for (let t = first; t <= last + step * 0.5; t += step) {
             const x = toVP(t, A, B, W);
             const label = formatAxisNumber(t);
-            const w = ctx.measureText(label).width;
+            const w = canvasContext.measureText(label).width;
 
             const left = x + 4;
             const right = left + w;
 
-            ctx.beginPath();
-            ctx.strokeStyle = "#111827";
-            ctx.moveTo(x, baseline);
-            ctx.lineTo(x, baseline + H / 6);
-            ctx.stroke();
+           canvasContext.beginPath();
+           canvasContext.strokeStyle = "#111827";
+           canvasContext.moveTo(x, baseline);
+           canvasContext.lineTo(x, baseline + H / 6);
+           canvasContext.stroke();
 
             if (left > lastLabelRight + 10) {
-              ctx.fillText(label, left, baseline + H / 5);
+             canvasContext.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
             }
           }
@@ -634,18 +638,18 @@
             const x = toVP(val, A, B, W);
 
             const label = formatAxisNumber(val);
-            const w = ctx.measureText(label).width;
+            const w = canvasContext.measureText(label).width;
             const left = x + 4;
             const right = left + w;
 
-            ctx.beginPath();
-            ctx.strokeStyle = "#111827";
-            ctx.moveTo(x, baseline);
-            ctx.lineTo(x, baseline + H / 6);
-            ctx.stroke();
+           canvasContext.beginPath();
+           canvasContext.strokeStyle = "#111827";
+           canvasContext.moveTo(x, baseline);
+           canvasContext.lineTo(x, baseline + H / 6);
+           canvasContext.stroke();
 
             if (left > lastLabelRight + 10) {
-              ctx.fillText(label, left, baseline + H / 5);
+             canvasContext.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
             }
           }
@@ -654,13 +658,13 @@
         // selected marker
         if (SELECTED_VALUE !== null) {
           const x = toVP(SELECTED_VALUE, A, B, W);
-          ctx.beginPath();
-          ctx.strokeStyle = "#111827";
-          ctx.globalAlpha = 0.35;
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, H);
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
+         canvasContext.beginPath();
+         canvasContext.strokeStyle = "#111827";
+         canvasContext.globalAlpha = 0.35;
+         canvasContext.moveTo(x, 0);
+         canvasContext.lineTo(x, H);
+         canvasContext.stroke();
+         canvasContext.globalAlpha = 1.0;
         }
       }
 
@@ -670,21 +674,21 @@
         const baseline = (3 * H) / 4;
         const maxCount = hist.reduce((m, v) => Math.max(m, v), 1);
 
-        var ctx = canvas.getContext("2d");
-        ctx.globalAlpha = alpha;
+        var canvasContext = canvas.getContext("2d");
+       canvasContext.globalAlpha = alpha;
 
         for (let x = 0; x < W; x++) {
           const v = hist[x] || 0;
           if (v <= 0) continue;
           const h = (v / maxCount) * (H * 0.55);
-          ctx.beginPath();
-          ctx.strokeStyle = color;
-          ctx.moveTo(x, baseline);
-          ctx.lineTo(x, baseline - h);
-          ctx.stroke();
+         canvasContext.beginPath();
+         canvasContext.strokeStyle = color;
+         canvasContext.moveTo(x, baseline);
+         canvasContext.lineTo(x, baseline - h);
+         canvasContext.stroke();
         }
 
-        ctx.globalAlpha = 1.0;
+       canvasContext.globalAlpha = 1.0;
       }
 
       // ---------------------------
@@ -704,14 +708,14 @@
       function renderOverlapHeatline() {
         const W = FOCUS_CANVAS.width;
         const H = FOCUS_CANVAS.height;
-        const ctx = FOCUS_CANVAS.getContext("2d");
+        const canvasContext = FOCUS_CANVAS.getContext("2d");
         const baseline = (3 * H) / 4;
 
-        ctx.beginPath();
-        ctx.strokeStyle = "#1f3a8a";
-        ctx.moveTo(0, baseline);
-        ctx.lineTo(W, baseline);
-        ctx.stroke();
+       canvasContext.beginPath();
+       canvasContext.strokeStyle = "#1f3a8a";
+       canvasContext.moveTo(0, baseline);
+       canvasContext.lineTo(W, baseline);
+       canvasContext.stroke();
 
         if (!OVERLAP_VALUES.length || !(GLOBAL_NL_B > GLOBAL_NL_A)) {
           drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
@@ -734,24 +738,24 @@
 
         const maxStrength = strengths.reduce((m, v) => Math.max(m, v), 1);
 
-        ctx.globalAlpha = 0.85;
+       canvasContext.globalAlpha = 0.85;
         for (let x = 0; x < W; x++) {
           const s = strengths[x];
           if (s <= 0) continue;
 
           const h = (s / maxStrength) * (H * 0.65);
-          ctx.beginPath();
-          ctx.strokeStyle = "#111827";
-          ctx.moveTo(x, baseline);
-          ctx.lineTo(x, baseline - h);
-          ctx.stroke();
+         canvasContext.beginPath();
+         canvasContext.strokeStyle = "#111827";
+         canvasContext.moveTo(x, baseline);
+         canvasContext.lineTo(x, baseline - h);
+         canvasContext.stroke();
 
-          ctx.beginPath();
-          ctx.fillStyle = "#111827";
-          ctx.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
-          ctx.fill();
+         canvasContext.beginPath();
+         canvasContext.fillStyle = "#111827";
+         canvasContext.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
+         canvasContext.fill();
         }
-        ctx.globalAlpha = 1.0;
+       canvasContext.globalAlpha = 1.0;
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
       }
@@ -887,19 +891,19 @@
         const keys = getRenderableLaneKeys();
         const W = FOCUS_CANVAS.width;
         const H = FOCUS_CANVAS.height;
-        const ctx = FOCUS_CANVAS.getContext("2d");
+        const canvasContext = FOCUS_CANVAS.getContext("2d");
 
         // lane separators
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = "#e5e7eb";
+       canvasContext.globalAlpha = 0.35;
+       canvasContext.strokeStyle = "#e5e7eb";
         for (let i = 0; i <= keys.length; i++) {
           const y = i * LANE_HEIGHT + 10;
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(W, y);
-          ctx.stroke();
+         canvasContext.beginPath();
+         canvasContext.moveTo(0, y);
+         canvasContext.lineTo(W, y);
+         canvasContext.stroke();
         }
-        ctx.globalAlpha = 1.0;
+       canvasContext.globalAlpha = 1.0;
 
         const laneIndex = {};
         keys.forEach((k, idx) => (laneIndex[k] = idx));
@@ -913,11 +917,11 @@
           const color = LAYER_SETTINGS[key].color;
 
           // label
-          ctx.font = "11px Arial";
-          ctx.fillStyle = "#111827";
-          ctx.globalAlpha = 0.8;
-          ctx.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
-          ctx.globalAlpha = 1.0;
+         canvasContext.font = "11px Arial";
+         canvasContext.fillStyle = "#111827";
+         canvasContext.globalAlpha = 0.8;
+         canvasContext.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
+         canvasContext.globalAlpha = 1.0;
 
           const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
           const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
@@ -925,17 +929,17 @@
           const pointsPerPixel = visibleCount / Math.max(1, W);
 
           if (pointsPerPixel < 0.7) {
-            ctx.strokeStyle = color;
-            ctx.globalAlpha = 0.85;
+           canvasContext.strokeStyle = color;
+           canvasContext.globalAlpha = 0.85;
             for (let i = lo; i < hi; i++) {
               const v = layer[i].value;
               const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-              ctx.beginPath();
-              ctx.moveTo(x, yMid - 5);
-              ctx.lineTo(x, yMid + 5);
-              ctx.stroke();
+             canvasContext.beginPath();
+             canvasContext.moveTo(x, yMid - 5);
+             canvasContext.lineTo(x, yMid + 5);
+             canvasContext.stroke();
             }
-            ctx.globalAlpha = 1.0;
+           canvasContext.globalAlpha = 1.0;
           } else {
             const bins = new Array(W).fill(0);
             for (let i = lo; i < hi; i++) {
@@ -944,18 +948,18 @@
               if (x >= 0 && x < W) bins[x]++;
             }
             const maxBin = bins.reduce((m, v) => Math.max(m, v), 1);
-            ctx.globalAlpha = 0.7;
-            ctx.strokeStyle = color;
+           canvasContext.globalAlpha = 0.7;
+           canvasContext.strokeStyle = color;
             for (let x = 0; x < W; x++) {
               const b = bins[x];
               if (!b) continue;
               const h = (b / maxBin) * 8;
-              ctx.beginPath();
-              ctx.moveTo(x, yMid + 5);
-              ctx.lineTo(x, yMid + 5 - h);
-              ctx.stroke();
+             canvasContext.beginPath();
+             canvasContext.moveTo(x, yMid + 5);
+             canvasContext.lineTo(x, yMid + 5 - h);
+             canvasContext.stroke();
             }
-            ctx.globalAlpha = 1.0;
+           canvasContext.globalAlpha = 1.0;
           }
         });
 
@@ -967,8 +971,8 @@
         overlapsInView.sort((a, b) => b.c - a.c);
         const chosen = overlapsInView.slice(0, MAX_CONNECTORS);
 
-        ctx.globalAlpha = 0.25;
-        ctx.strokeStyle = "#111827";
+       canvasContext.globalAlpha = 0.25;
+       canvasContext.strokeStyle = "#111827";
 
         for (const ov of chosen) {
           const layers = VALUE_TO_LAYERS.get(ov.v) || [];
@@ -989,13 +993,13 @@
           if (countVisible < 2 || !(maxLane > minLane)) continue;
 
           const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-          ctx.beginPath();
-          ctx.moveTo(x, minLane);
-          ctx.lineTo(x, maxLane);
-          ctx.stroke();
+         canvasContext.beginPath();
+         canvasContext.moveTo(x, minLane);
+         canvasContext.lineTo(x, maxLane);
+         canvasContext.stroke();
         }
 
-        ctx.globalAlpha = 1.0;
+       canvasContext.globalAlpha = 1.0;
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
 
