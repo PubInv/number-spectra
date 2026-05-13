@@ -1,5 +1,6 @@
 {
   "name": "number-spectra",
+  "type": "module",
   "version": "1.0.0",
   "description": "Experimental study of finding simple closed-form expressions matching decimal expansions",
   "main": "index.js",

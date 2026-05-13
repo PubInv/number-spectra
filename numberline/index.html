@@ -1,670 +1,1883 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-  <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Number Spectra - Numberline</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Number Spectra - Numberline</title>
+
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
 
-  <style>
+    <style>
+      :root {
+        --sidebar-w: 340px;
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --line: #e5e7eb;
+        --text: #111827;
+        --muted: #6b7280;
+      }
 
-.numberline {
-  width: 80%;
-  margin-left: 10%;
-  margin-right: 10%;
-  height: 20vh;
-}
+      body {
+        background: var(--bg);
+        color: var(--text);
+      }
 
-#focusCanvas {
-      height: 40vh;
-      background: lightGray;
-  }
+      .app {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
 
+      .sidebar {
+        width: var(--sidebar-w);
+        background: var(--card);
+        border-right: 1px solid var(--line);
+        padding: 14px;
+        overflow: auto;
+      }
 
-#report {
-  width: 80%;
-  background: silver;
-}
-#tip,#tooltiptext{
-  background-color:white;
-  border:1px solid blue;
-  position:absolute;
-  font-size:15px;
-  left:-600px;
-  top:100px;
-}
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-.buttonbarclass {
-    display: flex;
-    justify-content: center;
-}
-#layers {
-  display: flex;
-  flex-direction: column;
-    justify-content: space-around;
-}
+      /* UI FIX: sticky topbar so it never “moves” while content scrolls */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--card);
+        border-bottom: 1px solid var(--line);
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
 
-#left_button,#right_button,#zoom_button,#unzoom_button {
-  margin-left: 1%;
-  margin-right: 1%;
-}
+      .topLeft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 260px;
+        flex-wrap: nowrap;
+      }
 
-i {
-  border: solid black;
-  border-width: 0 3px 3px 0;
-  display: inline-block;
-  padding: 3px;
-}
+      /* UI FIX: prevent wrapping; if screen is narrow, scroll horizontally */
+      .topRight {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: calc(100vw - 420px);
+        padding-bottom: 2px;
+      }
+      .topRight > * {
+        flex: 0 0 auto;
+      }
 
-.right {
-  transform: rotate(-45deg);
-  -webkit-transform: rotate(-45deg);
-}
+      .plotWrap {
+        flex: 1;
+        overflow: auto;
+        padding: 12px 0;
+      }
 
-.left {
-  transform: rotate(135deg);
-  -webkit-transform: rotate(135deg);
-}
+      .canvasBlock {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 12px;
+      }
 
-.up {
-  transform: rotate(-135deg);
-  -webkit-transform: rotate(-135deg);
-}
+      canvas.numberline {
+        width: 92%;
+        background: #f3f4f6;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
 
-.down {
-  transform: rotate(45deg);
-  -webkit-transform: rotate(45deg);
+      canvas#focusCanvas {
+        height: 46vh;
+      }
 
-  </style>
+      canvas#overviewCanvas {
+        width: 92%;
+        height: 10vh;
+        background: #fafafa;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
 
-    <body>
-    <canvas class="numberline" id="lesserCanvas">
-    </canvas>
-    <canvas class="numberline" id="focusCanvas">
-    </canvas>
-    <canvas class="numberline" id="greaterCanvas">
-    </canvas>
+      .panelTitle {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
 
-    <div id="tooltiptext"  width=300 height=100></div>
-    <textarea id="oeisInput" class="form-control" rows="3"
-  placeholder="Enter OEIS ids: 40, A000040, 52 (comma/space/newline separated)"></textarea>
-<button id="oeisSubmit" class="btn btn-success mt-2">Load</button>
-    <div class="buttonbarclass" id="buttonbar">
-    <button id="left_button" type="button" class="btn btn-primary"><i class="left"></i></button>
-    <button id="right_button" type="button" class="btn btn-primary"><i class="right"></i></button>
-    <button id="zoom_button" type="button" class="btn btn-primary">Zoom</button>
-    <button id="unzoom_button" type="button" class="btn btn-primary">Unzoom</button>
+      #layers {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .layerRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fbfbfc;
+      }
+
+      .chip {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: #999;
+        flex: 0 0 auto;
+      }
+
+      .layerName {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.2;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      #report {
+        background: var(--card);
+        border-top: 1px solid var(--line);
+        padding: 12px 14px;
+        height: 32vh;
+        overflow: auto;
+      }
+
+      .reportBox {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fbfbfc;
+      }
+
+      .reportList {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 1px 6px;
+        color: #111827;
+      }
+
+      /* UI FIX: tag widths locked so they don’t jitter */
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 140px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        background: #f3f4f6;
+        font-size: 12px;
+        color: #111827;
+        white-space: nowrap;
+      }
+
+      /* Desmos-ish control box */
+      .controlBox {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #f9fafb;
+        white-space: nowrap;
+      }
+
+      .controlLabel {
+        font-size: 12px;
+        color: var(--muted);
+        margin-right: 4px;
+      }
+
+      .viewBtn {
+        padding: 4px 10px;
+        font-size: 12px;
+      }
+
+      .togglePill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        background: #ffffff;
+        margin-left: 6px;
+      }
+
+      .topRight::-webkit-scrollbar {
+        height: 6px;
+      }
+      .topRight::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 999px;
+      }
+
+      #customCode {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <div class="panelTitle">OEIS</div>
+        <div class="muted">
+          Enter multiple IDs separated by commas/spaces/newlines. Example:
+          <span class="kbd">40, 45</span> <span class="kbd">A000052</span>
+        </div>
+
+        <textarea
+          id="oeisInput"
+          class="form-control mt-2"
+          rows="3"
+          placeholder="40, 45, A000052"
+        ></textarea>
+
+        <div class="mt-2 d-flex align-items-center" style="gap: 10px">
+          <button id="oeisLoadBtn" class="btn btn-success btn-sm">Load</button>
+          <button id="oeisClearBtn" class="btn btn-outline-danger btn-sm">
+            Clear
+          </button>
+          <span id="oeisStatus" class="muted"></span>
+        </div>
+
+        <!-- Custom sequence panel -->
+        <div class="panelTitle mt-3">Custom sequence</div>
+        <div class="muted">
+          Write JS that fills an array <span class="kbd">a</span> with numbers.
+          Runs locally with a timeout.
+        </div>
+
+        <input
+          id="customName"
+          class="form-control form-control-sm mt-2"
+          placeholder="Name (optional) e.g. Powers"
+        />
+        <div class="d-flex align-items-center mt-2" style="gap: 10px">
+          <input
+            id="customTerms"
+            type="number"
+            class="form-control form-control-sm"
+            style="max-width: 120px"
+            value="50"
+            min="1"
+            max="20000"
+          />
+          <span class="muted">terms</span>
+          <button id="customRunBtn" class="btn btn-sm btn-primary">
+            Compute
+          </button>
+          <button id="customClearBtn" class="btn btn-sm btn-outline-secondary">
+            Remove
+          </button>
+        </div>
+
+        <textarea
+          id="customCode"
+          class="form-control mt-2"
+          rows="6"
+          placeholder="Example:
+for (let i = 0; i < n; i++) {
+  a.push(20 ** i);
+}"
+        ></textarea>
+
+        <div id="customStatus" class="muted mt-2"></div>
+
+        <div class="panelTitle mt-3">Sequences</div>
+        <div id="layers"></div>
+
+        <div class="muted mt-3">
+          Controls:
+          <ul class="mb-0">
+            <li>Drag on the plot to pan</li>
+            <li>Mouse wheel to zoom (smooth)</li>
+            <li>Click on plot or number buttons to jump</li>
+            <li>Search uses exact match only</li>
+            <li>Log X uses signed symlog (works for negatives + zero)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- MAIN -->
+      <div class="main">
+        <div class="topbar">
+          <div class="topLeft">
+            <b>Numberline</b>
+            <span class="muted ml-2">Drag to pan, wheel to zoom</span>
+            <span id="viewTag" class="tag">View: Overlaps</span>
+            <span id="scaleTag" class="tag">Scale: Linear</span>
+          </div>
+
+          <div class="topRight">
+            <!-- Fixed View + Log control box (won’t move) -->
+            <div class="controlBox">
+              <span class="controlLabel">View</span>
+              <div class="btn-group" role="group" aria-label="View mode">
+                <button
+                  id="view_overlaps"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Overlaps
+                </button>
+                <button
+                  id="view_lanes"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Lanes
+                </button>
+                <button
+                  id="view_density"
+                  class="btn btn-outline-secondary btn-sm viewBtn"
+                  type="button"
+                >
+                  Density
+                </button>
+              </div>
+
+              <div class="togglePill" title="Signed log scale (symlog)">
+                <input type="checkbox" id="logx_toggle" />
+                <span class="muted">Log X</span>
+              </div>
+            </div>
+
+            <button id="left_button" class="btn btn-primary btn-sm">←</button>
+            <button id="right_button" class="btn btn-primary btn-sm">→</button>
+            <button id="zoom_button" class="btn btn-primary btn-sm">
+              Zoom In
+            </button>
+            <button id="unzoom_button" class="btn btn-primary btn-sm">
+              Zoom Out
+            </button>
+            <button id="reset_button" class="btn btn-outline-secondary btn-sm">
+              Reset View
+            </button>
+          </div>
+        </div>
+
+        <div class="plotWrap">
+          <div class="canvasBlock">
+            <canvas class="numberline" id="focusCanvas"></canvas>
+            <canvas class="numberline" id="overviewCanvas"></canvas>
+          </div>
+        </div>
+
+        <div id="report">
+          <div class="panelTitle">Details</div>
+          <div class="reportBox" id="reportBox">No sequences loaded.</div>
+        </div>
+      </div>
     </div>
 
-<div id="layers">
-</div>
+    <script>
+      // ---------------------------
+      // Data structures
+      // ---------------------------
+      var LAYERS = {}; // key -> [{value, oeis_id, layer_key}, ...] sorted by value
+      var LAYER_SETTINGS = {}; // key -> { render: bool, color: string }
+      var VALUE_TO_LAYERS = new Map(); // value -> array of layer keys (exact overlap index)
+      var OVERVIEW_POINTS = []; // [{value}] merged from all layers, sorted by value
 
+      // Details panel metadata
+      let SELECTED_VALUE = null;
+      const SEQ_META = {}; // layerKey -> { id, name, numbers, shown }
+      const INITIAL_SHOW = 200;
+      const SHOW_STEP = 200;
+      let GLOBAL_SEARCH_LAST = "";
 
+      // Colors per layer
+      const PALETTE = [
+        "#ef4444",
+        "#3b82f6",
+        "#22c55e",
+        "#a855f7",
+        "#f59e0b",
+        "#06b6d4",
+        "#f97316",
+        "#84cc16",
+      ];
 
-  <h1>Report</h1>
-    <div id="report" ></div>
+      // ---------------------------
+      // View + caps
+      // ---------------------------
+      let VIEW = "overlaps"; // overlaps | lanes | density
+      const MAX_LANES_RENDER = 200;
+      const LANE_HEIGHT = 18;
+      const MAX_CONNECTORS = 200;
+      const CLICK_NEAR_PX = 10;
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    </body>
-  </html>
+      // ---------------------------
+      // Numberline window
+      // ---------------------------
+      var GLOBAL_NL_A = -5;
+      var GLOBAL_NL_B = 5;
 
-        <script>
+      const MIN_RANGE = 1e-6;
+      const MAX_RANGE = 1e15;
 
-<!--npm run dev to start -->
-/*$.getJSON("http://localhost:3000/oeis/A000040", data => {
-  console.log(data);
-})
-.done(function() {
-  // Optional: code to run when the request is done
-  console.log("Request done!");
-})
-.fail(function(jqxhr, settings, ex) {
-  // Optional: code to run if the request fails
-  console.log("failed, " + ex);
-});
-*/
+      var FOCUS_CANVAS = document.getElementById("focusCanvas");
+      var OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
 
-function parseOeisIds(raw) {
-  // Split on commas, whitespace, newlines
-  return String(raw || "")
-    .toUpperCase()
-    .split(/[\s,]+/)
-    .map(x => x.trim())
-    .filter(Boolean)
-    .map(x => x.replace(/^A/, ""))     // keep digits only
-    .filter(x => /^\d+$/.test(x));     // digits only
-}
+      // overlap cache
+      let OVERLAP_VALUES = []; // [{v,c}] sorted
 
-function fetchOeisDigits(digits) {
-  return $.getJSON(`http://localhost:3000/oeis/${digits}`);
-}
+      // ---------------------------
+      // Log X (symlog)
+      // ---------------------------
+      let LOG_X = false;
+      const SYMLOG_C = 1; // linear threshold
 
-$("#oeisSubmit").on("click", async function () {
-  const ids = parseOeisIds($("#oeisInput").val());
-
-  if (ids.length === 0) {
-    console.log("No valid OEIS ids entered.");
-    return;
-  }
-
-  console.log("Loading OEIS ids (digits):", ids);
-
-  // Fire them in parallel and wait
-  const requests = ids.map(d => fetchOeisDigits(d));
-  const results = await Promise.allSettled(requests);
-
-  results.forEach((r, idx) => {
-    const digits = ids[idx];
-
-    if (r.status !== "fulfilled") {
-      console.error(`Failed OEIS ${digits}:`, r.reason);
-      return;
-    }
-
-    const resp = r.value; // { id, numbers, count }
-    console.log(`OEIS ${resp.id} numbers:`, resp.numbers);
-
-    // Turn numbers into your layer objects
-    const key = `OEIS ${resp.id}`;
-    const layer = resp.numbers.map(n => ({ value: n, expression_text: resp.id }));
-    layer.sort((a, b) => a.value - b.value);
-
-    LAYERS[key] = layer;
-    LAYER_SETTINGS[key] = { render: true };
-    add_button_layer(key);
-  });
-
-  rerender_all();
-});
-
-
-
-  var files = [ "spectracf-4-1.js",
-                "spectracf-4-2.js",
-                "spectracf-4-3.js",
-                "spectracf-4-4.js",
-                "spectracf-4-5.js"];
-
-  var LAYERS = {};
-  // I will map keys here
-  var LAYER_SETTINGS = {};
-
-    var SPECTRA1; // this is a sort
-
-//  var GLOBAL_TIP_CANVAS;
-//  var GLOBAL_TIP_CTX;
-
-  function toNL(vp,A,B,N) {
-    return A + vp * (B-A)/ N;
-  }
-
-  function toVP(nl,A,B,N) {
-    return Math.round( ((nl - A) / (B - A) * N));
-  }
-
-  function zoom(vpl,vph,A,B,N) {
-    return [
-      toNL(vpl,A,B,N),
-      toNL(vph,A,B,N)
-    ];
-  }
-  function unzoom(vpl,vph,A,B,N) {
-    // s is a scaling factor
-    const s = (vph - vpl)/ N;
-    const Ap = s * (vpl/N) + A;
-    const Bp = s * (B - A) + Ap;
-    return [Ap,Bp];
-  }
-
-  function unzoom_v2(vpl,vph,A,B,N) {
-    const y = unzoom(vpl,vph,A,B,N)
-    const x = zoom(-vpl,2*N - vph,A,B,N);
-    console.log("unzoom",x,y);
-    return x;
-  }
-
-  function unzoom_old(vpl,vph,A,B,N) {
-    return [
-      toNL(0,A,B,vph-vpl),
-      toNL(vph - vpl,A,B,vph - vpl)
-    ];
-  }
-
-
-
-  // These are globals that
-  // basically represent the window and
-  // viewport on the number line we are creating.
-
-  var GLOBAL_NL_A = -5;
-  var GLOBAL_NL_B = 5;
-
-  function lesserFence() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d*2;
-    return [GLOBAL_NL_A - dp, GLOBAL_NL_A ];
-  }
-  function greaterFence() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d*2;
-    return [GLOBAL_NL_B, GLOBAL_NL_B + dp ];
-  }
-
-
-  var GLOBAL_VP_A = 0;
-
-  var FOCUS_CANVAS = document.getElementById("focusCanvas");
-  var LESSER_CANVAS = document.getElementById("lesserCanvas");
-  var GREATER_CANVAS = document.getElementById("greaterCanvas");
-
-  var FOCUS_REGIONS = [];
-  var LESSER_REGIONS = [];
-  var GREATER_REGIONS = [];
-
-  var GLOBAL_VP_B = FOCUS_CANVAS.offsetWidth;
-  var GLOBAL_DOWN_X = 0;
-  var GLOBAL_DOWN_Y = 0;
-
-  function left_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (3/4);
-    GLOBAL_NL_B -= dp;
-    GLOBAL_NL_A -= dp;
-    rerender_all();
-  }
-  function right_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (3/4);
-    GLOBAL_NL_B += dp;
-    GLOBAL_NL_A += dp;
-    rerender_all();
-  }
-  function zoom_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (1/4);
-    GLOBAL_NL_B -= dp;
-    GLOBAL_NL_A += dp;
-    rerender_all();
-  }
-  function unzoom_click() {
-    const d = GLOBAL_NL_B - GLOBAL_NL_A;
-    const dp = d * (1/2);
-    GLOBAL_NL_B += dp;
-    GLOBAL_NL_A -= dp;
-    rerender_all();
-  }
-
-
-function onMouseDown(e) {
-
-  var rect = e.target.getBoundingClientRect();
-  var x = e.clientX - rect.left; //x position within the element.
-  var y = e.clientY - rect.top;  //y position within the element.
-
-  GLOBAL_DOWN_X = x;
-  GLOBAL_DOWN_Y = y;
-
-  var coords = "DN X coords: " + x + ", Y coords: " + y;
-  console.log(coords);
-
-}
-
-  function onMouseUp(e) {
-    var rect = e.target.getBoundingClientRect();
-    var x = e.clientX - rect.left; //x position within the element.
-    var y = e.clientY - rect.top;  //y position within the element.
-
-    var coords = "UP X coords: " + x + ", Y coords: " + y;
-
-    if (Math.abs(x - GLOBAL_DOWN_X) >= 10) {
-
-    if (x < GLOBAL_DOWN_X) { // count this an unzoom
-      [GLOBAL_NL_A,GLOBAL_NL_B] = unzoom_v2(x,GLOBAL_DOWN_X,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
-    } else { // count this as a zoom
-      [GLOBAL_NL_A,GLOBAL_NL_B] = zoom(GLOBAL_DOWN_X,x,GLOBAL_NL_A,GLOBAL_NL_B,GLOBAL_VP_B);
-    }
-  }
-  console.log(coords);
-  rerender_all();
-}
-
-FOCUS_CANVAS.addEventListener("mouseup", onMouseUp, false);
-FOCUS_CANVAS.addEventListener("mousedown", onMouseDown, false);
-
-// Okay, trying to do something a little
-// sophisticated here...for each pixel,
-// we want to compute how many points fall in
-// that pixel. Then we will render the height
-// of a line to represent it.
-  function computeSpectraHistogram(s,pl,ph,a,b) {
-
-  // for each pixel, we want to compute
-  // the number of members of the spectra inside
-  // that pixel. Since the spectra is ordered,
-  // This ought to be easy to compute.
-  // We will consider the pixel boundary to
-  // start at the low edge of pl (so that the
-  // zero pixel contains zero) and go to just below
-  // the next pixel.
-
-  // first, let's find the index in the spectra
-  // which is below the image of the low pixel...
-
-    const LF = toNL(pl,a,b,GLOBAL_VP_B);
-  var idx = 0;
-  // now iterate the index in s so long as
-    // we s[idx+1] < LF;
-    try {
-      while ((idx + 1) < s.length && s[idx+1].value < LF ) idx++;
-    } catch(e) {
-      console.log("s",s);
-      console.log("idx",idx);
-      console.log("LF",LF);
-      console.log(e);
-    }
-
-  // now we do the counting...
-  const hist = []; // histogram mapping pixel to count
-  const NUM = s.length;
-  for(var i = pl; i < ph; i++) {
-    const Fence = toNL(i+1,a,b,GLOBAL_VP_B);
-    var cnt = 0;
-    const numbers = [];
-    while(idx+cnt < NUM && s[idx+cnt].value < Fence) {
-      numbers.push(s[idx+cnt]);
-      cnt++;
-    }
-    hist.push([cnt,numbers]);
-    idx += cnt;
-  }
-  return hist;
-
-}
-
-
-// show tooltip when mouse hovers over dot
-  function handleMouseMove(e,id,REGIONS){
-  var canvasOffset = $(id).offset();
-  var offsetX = canvasOffset.left;
-  var offsetY = canvasOffset.top;
-  mouseX=parseInt(e.clientX-offsetX);
-  mouseY=parseInt(e.clientY-offsetY);
-
-  var tt = $("#tooltiptext");
-  // Put your mousemove stuff here
-  var hit = false;
-  var strings = [];
-  var X,Y;
-  for (var i = 0; i < REGIONS.length; i++) {
-    var dot = REGIONS[i];
-    var dx = mouseX - dot.x;
-    var dy = mouseY - dot.ymin
-    if ((mouseX == dot.x) && (dot.ymin <= mouseY) && (mouseY <= dot.ymax)) {
-      X = dot.x;
-      Y = dot.ymin - 40;
-      for(var j = 0; j < dot.numbers.length; j++) {
-        var n = dot.numbers[j];
-        strings.push("<span style='color: "+COLORS[j % COLORS.length] +"'>" + "v: " + n.value + " e: " + n.expression_text + "</span>");
+      function xTransform(v) {
+        if (!LOG_X) return v;
+        const s = v < 0 ? -1 : 1;
+        const a = Math.abs(v);
+        return s * Math.log10(1 + a / SYMLOG_C);
       }
-      hit = true;
-    }
-  }
-  if (!hit) {
-    tt.css('left',"-600px");
-  } else {
-    const ns = strings.length;
-    const lh = 21;
 
-    // tt.css('height',(ns+1) * lh + 'px');
-    // tt.css('top',Y);
-    // tt.css('left',X);
-    // TODO: Figure out how to do color matching later...
-    const html = '<div>'+ strings.join(",<br>\n")+ '<\div>';
-//    tt.html();
-//    console.log(tt.text());
-    var report = $("#report");
-    report.html(html);
-  }
+      function xUntransform(t) {
+        if (!LOG_X) return t;
+        const s = t < 0 ? -1 : 1;
+        const a = Math.abs(t);
+        return s * SYMLOG_C * (Math.pow(10, a) - 1);
+      }
 
-}
+      function toNL(vp, A, B, N) {
+        const At = xTransform(A);
+        const Bt = xTransform(B);
+        const t = At + (vp * (Bt - At)) / N;
+        return xUntransform(t);
+      }
 
-  const COLORS = ["red","blue","green"];
-  function drawLines(hist,canvas,pl,ph) {
+      function toVP(nl, A, B, N) {
+        const At = xTransform(A);
+        const Bt = xTransform(B);
+        const vt = xTransform(nl);
+        return Math.round(((vt - At) / (Bt - At)) * N);
+      }
 
-  const H = canvas.height;
-  const M = H/2;
-//  const mv = Math.max(...hist);
-  const mv = hist.reduce(
-        (accumulator, currentValue) => {
-            return Math.max(currentValue[0], accumulator);
-        },  Number.MIN_VALUE
-  );
-    const regions = [];
-    const interval = ((3*H)/4)/mv;
+      function clampWindow(A, B) {
+        let range = B - A;
+        if (!Number.isFinite(range) || range <= 0) return [-5, 5];
 
-    var ctx = canvas.getContext("2d");
-    for(var i = pl; i < ph; i++) {
-      const v = hist[i][0];
-      const d = (v/mv)* M/2;
-      // Now we want to render a line line of height
-      // v....
-      if (v > 0) {
+        if (range < MIN_RANGE) {
+          const mid = (A + B) / 2;
+          A = mid - MIN_RANGE / 2;
+          B = mid + MIN_RANGE / 2;
+        }
+        if (range > MAX_RANGE) {
+          const mid = (A + B) / 2;
+          A = mid - MAX_RANGE / 2;
+          B = mid + MAX_RANGE / 2;
+        }
+        return [A, B];
+      }
 
-        // ctx.beginPath();
-        // ctx.moveTo(i,M);
+      function jumpToValue(v) {
+        const range = Math.max((GLOBAL_NL_B - GLOBAL_NL_A) * 0.35, 50);
+        GLOBAL_NL_A = v - range / 2;
+        GLOBAL_NL_B = v + range / 2;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        SELECTED_VALUE = v;
 
-        // ctx.lineTo(i,M + -d);
-        // ctx.stroke();
+        GLOBAL_SEARCH_LAST = String(v);
+        const input = document.getElementById("globalSearchInput");
+        if (input) input.value = GLOBAL_SEARCH_LAST;
 
-        regions.push({
-          x: i,
-          ymin: 3*H/4 + -v*interval,
-          ymax: 3*H/4,
-          numbers: hist[i][1]
+        requestRerender();
+        showExactOverlapInPanel(v);
+      }
+
+      // ---------------------------
+      // Rendering helpers
+      // ---------------------------
+      const LIGHT_GRAY = "#eeeeee";
+
+      function clearCanvas(canvas, fillStyle) {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = fillStyle;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function clearFocusCanvas() {
+        clearCanvas(FOCUS_CANVAS, "#ffffff");
+
+        var ctx = FOCUS_CANVAS.getContext("2d");
+        var grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
+        grd.addColorStop(0, LIGHT_GRAY);
+        grd.addColorStop(1, "#ffffff");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
+
+        grd = ctx.createLinearGradient(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width,
+          0
+        );
+        grd.addColorStop(0, "#ffffff");
+        grd.addColorStop(1, LIGHT_GRAY);
+        ctx.fillStyle = grd;
+        ctx.fillRect(
+          (FOCUS_CANVAS.width * 4) / 5,
+          0,
+          FOCUS_CANVAS.width / 5,
+          FOCUS_CANVAS.height
+        );
+      }
+
+      function clearOverviewCanvas() {
+        clearCanvas(OVERVIEW_CANVAS, "#fafafa");
+      }
+
+      function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
+        const N = canvasWidth;
+        const LF = toNL(pl, a, b, N);
+
+        var idx = 0;
+        while (idx + 1 < layerArr.length && layerArr[idx + 1].value < LF) idx++;
+
+        const hist = [];
+        const NUM = layerArr.length;
+
+        for (var i = pl; i < ph; i++) {
+          const Fence = toNL(i + 1, a, b, N);
+          var cnt = 0;
+
+          while (idx + cnt < NUM && layerArr[idx + cnt].value < Fence) cnt++;
+          hist.push(cnt);
+          idx += cnt;
+        }
+
+        return hist;
+      }
+
+      function formatAxisNumber(n) {
+        const an = Math.abs(n);
+        if (!Number.isFinite(n)) return "NaN";
+        if (an === 0) return "0";
+        if (an >= 1e9) return n.toExponential(2);
+        if (an >= 1e6) return n.toExponential(1);
+        if (an >= 1e4) return String(Math.round(n));
+        if (an >= 1) return String(Math.round(n));
+        return n.toExponential(1);
+      }
+
+      function niceStep(rawStep) {
+        const exp = Math.floor(Math.log10(rawStep));
+        const base = rawStep / Math.pow(10, exp);
+        let niceBase;
+        if (base <= 1) niceBase = 1;
+        else if (base <= 2) niceBase = 2;
+        else if (base <= 5) niceBase = 5;
+        else niceBase = 10;
+        return niceBase * Math.pow(10, exp);
+      }
+
+      function drawAxesSmart(canvas, A, B) {
+        const H = canvas.height;
+        const W = canvas.width;
+        var ctx = canvas.getContext("2d");
+        const baseline = (3 * H) / 4;
+
+        // baseline
+        ctx.beginPath();
+        ctx.strokeStyle = "#1f3a8a";
+        ctx.moveTo(0, baseline);
+        ctx.lineTo(W, baseline);
+        ctx.stroke();
+
+        if (!(B > A)) return;
+
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#111827";
+
+        let lastLabelRight = -Infinity;
+
+        if (!LOG_X) {
+          const d = B - A;
+          const targetLabels = Math.max(2, Math.floor(W / 120));
+          const step = niceStep(d / targetLabels);
+
+          const first = Math.ceil(A / step) * step;
+          const last = Math.floor(B / step) * step;
+
+          for (let t = first; t <= last + step * 0.5; t += step) {
+            const x = toVP(t, A, B, W);
+            const label = formatAxisNumber(t);
+            const w = ctx.measureText(label).width;
+
+            const left = x + 4;
+            const right = left + w;
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#111827";
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x, baseline + H / 6);
+            ctx.stroke();
+
+            if (left > lastLabelRight + 10) {
+              ctx.fillText(label, left, baseline + H / 5);
+              lastLabelRight = right;
+            }
+          }
+        } else {
+          const At = xTransform(A);
+          const Bt = xTransform(B);
+          const dt = Bt - At;
+          if (!(dt > 0)) return;
+
+          const targetLabels = Math.max(2, Math.floor(W / 120));
+          const stepT = niceStep(dt / targetLabels);
+
+          const firstT = Math.ceil(At / stepT) * stepT;
+          const lastT = Math.floor(Bt / stepT) * stepT;
+
+          for (let tt = firstT; tt <= lastT + stepT * 0.5; tt += stepT) {
+            const val = xUntransform(tt);
+            const x = toVP(val, A, B, W);
+
+            const label = formatAxisNumber(val);
+            const w = ctx.measureText(label).width;
+            const left = x + 4;
+            const right = left + w;
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#111827";
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x, baseline + H / 6);
+            ctx.stroke();
+
+            if (left > lastLabelRight + 10) {
+              ctx.fillText(label, left, baseline + H / 5);
+              lastLabelRight = right;
+            }
+          }
+        }
+
+        if (SELECTED_VALUE !== null) {
+          const x = toVP(SELECTED_VALUE, A, B, W);
+          ctx.beginPath();
+          ctx.strokeStyle = "#111827";
+          ctx.globalAlpha = 0.35;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+      }
+
+      function drawLayerDensity(canvas, hist, color, alpha) {
+        const H = canvas.height;
+        const W = canvas.width;
+        const baseline = (3 * H) / 4;
+        const maxCount = hist.reduce((m, v) => Math.max(m, v), 1);
+
+        var ctx = canvas.getContext("2d");
+        ctx.globalAlpha = alpha;
+
+        for (let x = 0; x < W; x++) {
+          const v = hist[x] || 0;
+          if (v <= 0) continue;
+          const h = (v / maxCount) * (H * 0.55);
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, baseline - h);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1.0;
+      }
+
+      // ---------------------------
+      // Overlaps view
+      // ---------------------------
+      function lowerBoundOverlap(arr, target) {
+        let lo = 0,
+          hi = arr.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (arr[mid].v < target) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+
+      function renderOverlapHeatline() {
+        const W = FOCUS_CANVAS.width;
+        const H = FOCUS_CANVAS.height;
+        const ctx = FOCUS_CANVAS.getContext("2d");
+        const baseline = (3 * H) / 4;
+
+        ctx.beginPath();
+        ctx.strokeStyle = "#1f3a8a";
+        ctx.moveTo(0, baseline);
+        ctx.lineTo(W, baseline);
+        ctx.stroke();
+
+        if (!OVERLAP_VALUES.length || !(GLOBAL_NL_B > GLOBAL_NL_A)) {
+          drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+          return;
+        }
+
+        const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
+        const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
+        if (end <= start) {
+          drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+          return;
+        }
+
+        const strengths = new Array(W).fill(0);
+        for (let i = start; i < end; i++) {
+          const ov = OVERLAP_VALUES[i];
+          const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          if (x >= 0 && x < W) strengths[x] += ov.c;
+        }
+
+        const maxStrength = strengths.reduce((m, v) => Math.max(m, v), 1);
+
+        ctx.globalAlpha = 0.85;
+        for (let x = 0; x < W; x++) {
+          const s = strengths[x];
+          if (s <= 0) continue;
+
+          const h = (s / maxStrength) * (H * 0.65);
+          ctx.beginPath();
+          ctx.strokeStyle = "#111827";
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, baseline - h);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.fillStyle = "#111827";
+          ctx.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+
+        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+      }
+
+      function showOverlapsNear(centerValue) {
+        const W = FOCUS_CANVAS.width;
+        const centerPx = toVP(centerValue, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        const leftVal = toNL(
+          Math.max(0, centerPx - CLICK_NEAR_PX),
+          GLOBAL_NL_A,
+          GLOBAL_NL_B,
+          W
+        );
+        const rightVal = toNL(
+          Math.min(W, centerPx + CLICK_NEAR_PX),
+          GLOBAL_NL_A,
+          GLOBAL_NL_B,
+          W
+        );
+
+        const A = Math.min(leftVal, rightVal);
+        const B = Math.max(leftVal, rightVal);
+
+        const s = lowerBoundOverlap(OVERLAP_VALUES, A);
+        const t = lowerBoundOverlap(OVERLAP_VALUES, B);
+
+        const slice = OVERLAP_VALUES
+          .slice(s, t)
+          .sort((p, q) => q.c - p.c)
+          .slice(0, 80);
+
+        if (!slice.length) {
+          document.getElementById("reportBox").innerHTML = `
+            <div><b>No overlaps near:</b> ${Math.round(centerValue)}</div>
+            <div class="muted">Try zooming in or loading more sequences.</div>
+          `;
+          return;
+        }
+
+        const itemsHtml = slice
+          .map((o) => {
+            const layers = VALUE_TO_LAYERS.get(o.v) || [];
+            return `
+              <div style="margin-bottom:6px;">
+                <button class="btn btn-sm btn-light jumpOverlap" data-val="${o.v}">
+                  ${o.v} (in ${o.c} sequences)
+                </button>
+                <div class="muted" style="margin-left:4px;">${layers.join(", ")}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+        document.getElementById("reportBox").innerHTML = `
+          <div><b>Overlaps near:</b> ${Math.round(centerValue)}</div>
+          <div class="muted">Top overlaps in this region:</div>
+          <div style="margin-top:8px;">${itemsHtml}</div>
+        `;
+
+        document.querySelectorAll(".jumpOverlap").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            jumpToValue(v);
+          });
         });
-    }
-;
-      var cur = (3*H)/4;
-    for(var j = 0; j < hist[i][1].length; j++) {
-      ctx.beginPath();
-      ctx.moveTo(i,cur);
-      ctx.strokeStyle = COLORS[j % COLORS.length];
-      ctx.lineTo(i,cur + -interval);
-      ctx.stroke();
-      ctx.closePath();
-      cur = cur - interval;
-    }
-  }
-    return regions;
-}
+      }
 
-// This is an attempt to draw a nice set of tick
-// marks in on the canvas
-function drawNumberline(hist,canvas,pl,ph,A,B) {
+      // ---------------------------
+      // Lanes view
+      // ---------------------------
+      function getRenderableLaneKeys() {
+        const enabled = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
+        return enabled.slice(0, MAX_LANES_RENDER);
+      }
 
-  const H = canvas.height;
-  var ctx = canvas.getContext("2d");
-  const M = H/2;
-  ctx.beginPath();
-   ctx.strokeStyle = "#0000aa";
-  ctx.moveTo(pl, (3*H)/4);
-  ctx.lineTo(ph, (3*H)/4);
-  ctx.stroke();
+      function lowerBoundLayer(layer, target) {
+        let lo = 0,
+          hi = layer.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (layer[mid].value < target) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
 
-  const N = ph;
+      function binaryNearest(sortedPoints, target) {
+        let lo = 0,
+          hi = sortedPoints.length - 1;
+        if (hi < 0) return null;
+        if (target <= sortedPoints[0].value) return sortedPoints[0].value;
+        if (target >= sortedPoints[hi].value) return sortedPoints[hi].value;
 
+        while (lo + 1 < hi) {
+          const mid = (lo + hi) >> 1;
+          const v = sortedPoints[mid].value;
+          if (v === target) return v;
+          if (v < target) lo = mid;
+          else hi = mid;
+        }
+        return Math.abs(sortedPoints[lo].value - target) <=
+          Math.abs(sortedPoints[hi].value - target)
+          ? sortedPoints[lo].value
+          : sortedPoints[hi].value;
+      }
 
-  // First, let us compute the decimal division
-  // needed to make minor tick marks no more
-  // than 30 pixels apart...
-  const MAX_PIXELS_PER_MINOR_TICK = 200;
+      function setFocusCanvasHeightForView() {
+        const defaultH = "46vh";
+        let desired;
 
-  // We want at least this many ticks...
-  const MIN_TICKS = (ph - pl) / MAX_PIXELS_PER_MINOR_TICK;
-  const d = B-A;
-  const tick_exp = Math.floor(Math.log10(d/MIN_TICKS));
-  const tick = Math.pow(10,tick_exp);
+        if (VIEW !== "lanes") {
+          desired = defaultH;
+        } else {
+          const keys = getRenderableLaneKeys();
+          const laneCount = keys.length;
+          const h = Math.max(220, laneCount * LANE_HEIGHT + 30);
+          desired = h + "px";
+        }
 
-  // Now divide A by the tick, and take the floor...
-  const first_tick = Math.floor(A/tick)*tick;
-  const last_tick = Math.ceil(B/tick)*tick;
-  for(var t = first_tick; t < last_tick; t += tick) {
-    const string = ""+t.toFixed(Math.max(-tick_exp,0));
+        const prev = FOCUS_CANVAS.style.height || defaultH;
+        if (prev === desired) return false;
 
-    var L;
-    if (string.substr(-1) == '0') {
-      L = M/2;
-      ctx.strokeStyle = "#000000";
-    } else if (string.substr(-1) == '5') {
-      L = M/3;
-      ctx.strokeStyle = "#333333";
-    } else {
-      L = M/4;
-      ctx.strokeStyle = "#666666";
-    }
+        FOCUS_CANVAS.style.height = desired;
+        FOCUS_CANVAS.getBoundingClientRect(); // force layout
+        return true;
+      }
 
-    ctx.font = "15px Arial";
-    ctx.fillStyle = "black";
-    const horiz = toVP(t,A,B,N);
-    ctx.fillText(string, horiz + 5, (3*H)/4 + L);
-    ctx.beginPath();
-    ctx.moveTo(horiz, (3*H)/4);
-    ctx.lineTo(horiz, (3*H)/4 + L);
-    ctx.stroke();
-  }
-}
+      function renderLanesView() {
+        const keys = getRenderableLaneKeys();
+        const W = FOCUS_CANVAS.width;
+        const H = FOCUS_CANVAS.height;
+        const ctx = FOCUS_CANVAS.getContext("2d");
 
-  function renderSpectra(s,canvas,a,b) {
-    const pl = 0;
-    const ph =  canvas.offsetWidth; // really this should be the canvas width
-    const hist = computeSpectraHistogram(s,pl,ph,a,b);
-    var det_regions =
-        drawLines(hist,canvas,pl,ph);
-    drawNumberline(hist,canvas,pl,ph,a,b);
-    return det_regions;
-  }
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = "#e5e7eb";
+        for (let i = 0; i <= keys.length; i++) {
+          const y = i * LANE_HEIGHT + 10;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
 
-  const LIGHT_GRAY = "#eeeeee";
-  function clearFocusCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+        const laneIndex = {};
+        keys.forEach((k, idx) => (laneIndex[k] = idx));
 
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+        keys.forEach((key, idx) => {
+          const layer = LAYERS[key];
+          if (!layer || layer.length === 0) return;
 
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth/4, 0);
-    grd.addColorStop(0, LIGHT_GRAY);
-    grd.addColorStop(1, "#fafafa");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth/4 , canvas.offsetHeight);
+          const y0 = idx * LANE_HEIGHT + 10;
+          const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
+          const color = LAYER_SETTINGS[key].color;
 
-    var grd = ctx.createLinearGradient(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "#fafafa");
-    grd.addColorStop(1, LIGHT_GRAY);
-    ctx.fillStyle = grd;
-    ctx.fillRect(3*canvas.offsetWidth/4, 0, canvas.offsetWidth, canvas.offsetHeight);
-  }
+          ctx.font = "11px Arial";
+          ctx.fillStyle = "#111827";
+          ctx.globalAlpha = 0.8;
+          ctx.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
+          ctx.globalAlpha = 1.0;
 
-  function clearLesserCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    var ctx = canvas.getContext("2d");
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, "gray");
-    grd.addColorStop(1, LIGHT_GRAY);
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
-  }
+          const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
+          const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
+          const visibleCount = Math.max(0, hi - lo);
+          const pointsPerPixel = visibleCount / Math.max(1, W);
 
-  function clearGreaterCanvas(canvas) {
-    canvas.width  = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-    var ctx = canvas.getContext("2d");
-    var grd = ctx.createLinearGradient(0, 0, canvas.offsetWidth, 0);
-    grd.addColorStop(0, LIGHT_GRAY);
-    grd.addColorStop(1, "gray");
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.offsetWidth , canvas.offsetHeight);
-  }
+          if (pointsPerPixel < 0.7) {
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 0.85;
+            for (let i = lo; i < hi; i++) {
+              const v = layer[i].value;
+              const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+              ctx.beginPath();
+              ctx.moveTo(x, yMid - 5);
+              ctx.lineTo(x, yMid + 5);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+          } else {
+            const bins = new Array(W).fill(0);
+            for (let i = lo; i < hi; i++) {
+              const v = layer[i].value;
+              const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+              if (x >= 0 && x < W) bins[x]++;
+            }
+            const maxBin = bins.reduce((m, v) => Math.max(m, v), 1);
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = color;
+            for (let x = 0; x < W; x++) {
+              const b = bins[x];
+              if (!b) continue;
+              const h = (b / maxBin) * 8;
+              ctx.beginPath();
+              ctx.moveTo(x, yMid + 5);
+              ctx.lineTo(x, yMid + 5 - h);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+          }
+        });
 
-  function rerender(s) {
-    FOCUS_REGIONS = renderSpectra(s,FOCUS_CANVAS,GLOBAL_NL_A,GLOBAL_NL_B);
+        const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
+        const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
+        const overlapsInView = OVERLAP_VALUES.slice(start, end);
 
-    const lf = lesserFence();
-    LESSER_REGIONS = renderSpectra(s,LESSER_CANVAS,lf[0],lf[1]);
+        overlapsInView.sort((a, b) => b.c - a.c);
+        const chosen = overlapsInView.slice(0, MAX_CONNECTORS);
 
-    const gf = greaterFence();
-    GREATER_REGIONS = renderSpectra(s,GREATER_CANVAS,gf[0],gf[1]);
-  }
-  function rerender_all() {
-    clearFocusCanvas(FOCUS_CANVAS);
-    clearLesserCanvas(LESSER_CANVAS);
-    clearGreaterCanvas(GREATER_CANVAS);
-    Object.keys(LAYERS).forEach(function(key,index) {
-    // key: the name of the object key
-      // index: the ordinal position of the key within the object
-      if (LAYER_SETTINGS[key].render)
-        rerender(LAYERS[key]);
-});
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = "#111827";
 
-  }
+        for (const ov of chosen) {
+          const layers = VALUE_TO_LAYERS.get(ov.v) || [];
+          let minLane = Infinity,
+            maxLane = -Infinity,
+            countVisible = 0;
 
-  function add_button_layer(key) {
-      $("#layers").append(
-        `<label class="checkbox-inline">
-  <input type="checkbox" checked
-     data-toggle="toggle"
-     id="checkbox-${key}">${key}
-</label>`
-      );
-      $(`#checkbox-${key}`).change( function(eventData,handler) {
-        console.log("key",key);
-        LAYER_SETTINGS[key].render = ! LAYER_SETTINGS[key].render;
-        rerender_all();
+          for (const lk of layers) {
+            if (laneIndex[lk] === undefined) continue;
+            const idx = laneIndex[lk];
+            const y0 = idx * LANE_HEIGHT + 10;
+            const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
+            minLane = Math.min(minLane, yMid);
+            maxLane = Math.max(maxLane, yMid);
+            countVisible++;
+          }
+
+          if (countVisible < 2 || !(maxLane > minLane)) continue;
+
+          const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          ctx.beginPath();
+          ctx.moveTo(x, minLane);
+          ctx.lineTo(x, maxLane);
+          ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1.0;
+
+        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+
+        const enabledTotal = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        ).length;
+        if (enabledTotal > MAX_LANES_RENDER) {
+          document.getElementById("oeisStatus").textContent =
+            `Rendering first ${MAX_LANES_RENDER} lanes (of ${enabledTotal}). Search still works for all.`;
+        }
+      }
+
+      // ---------------------------
+      // Density view
+      // ---------------------------
+      function renderDensityView() {
+        const W = FOCUS_CANVAS.width;
+        const enabledKeys = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
+
+        enabledKeys.forEach((key) => {
+          const layer = LAYERS[key];
+          const color = LAYER_SETTINGS[key].color;
+          const hist = computeHistogramForLayer(
+            layer,
+            0,
+            W,
+            GLOBAL_NL_A,
+            GLOBAL_NL_B,
+            W
+          );
+          drawLayerDensity(FOCUS_CANVAS, hist, color, 0.55);
+        });
+
+        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+      }
+
+      // ---------------------------
+      // Main render
+      // ---------------------------
+      function rerender_all() {
+        const heightChanged = setFocusCanvasHeightForView();
+        if (heightChanged) {
+          requestAnimationFrame(() => rerender_all());
+          return;
+        }
+
+        clearFocusCanvas();
+        clearOverviewCanvas();
+
+        if (VIEW === "overlaps") renderOverlapHeatline();
+        else if (VIEW === "lanes") renderLanesView();
+        else renderDensityView();
+
+        const OW = OVERVIEW_CANVAS.width;
+        const ohist = computeHistogramForLayer(
+          OVERVIEW_POINTS,
+          0,
+          OW,
+          OVERVIEW_MIN,
+          OVERVIEW_MAX,
+          OW
+        );
+        drawLayerDensity(OVERVIEW_CANVAS, ohist, "#6b7280", 0.7);
+        drawAxesSmart(OVERVIEW_CANVAS, OVERVIEW_MIN, OVERVIEW_MAX);
+      }
+
+      // ---------------------------
+      // Pan + wheel zoom (log-aware)
+      // ---------------------------
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartA = 0;
+      let dragStartB = 0;
+      let pendingRAF = false;
+
+      function requestRerender() {
+        if (pendingRAF) return;
+        pendingRAF = true;
+        requestAnimationFrame(() => {
+          pendingRAF = false;
+          rerender_all();
+        });
+      }
+
+      function getMouseXOnCanvas(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientX - rect.left;
+      }
+
+      function getMouseYOnCanvas(e, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientY - rect.top;
+      }
+
+      FOCUS_CANVAS.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        dragStartX = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        dragStartA = GLOBAL_NL_A;
+        dragStartB = GLOBAL_NL_B;
       });
-  }
 
-    // request mousemove events
-$(document).ready(function()  {
+      window.addEventListener("mouseup", () => {
+        isDragging = false;
+      });
 
-  $("#focusCanvas").mousemove(function(e){handleMouseMove(e,"#focusCanvas",FOCUS_REGIONS);});
-  $("#lesserCanvas").mousemove(function(e){handleMouseMove(e,"#lesserCanvas",LESSER_REGIONS);});
-  $("#greaterCanvas").mousemove(function(e){handleMouseMove(e,"#greaterCanvas",GREATER_REGIONS);});
+      FOCUS_CANVAS.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        const dx = x - dragStartX;
+        const W = FOCUS_CANVAS.width;
 
-  $("#left_button").click(left_click);
-  $("#right_button").click(right_click);
-  $("#zoom_button").click(zoom_click);
-  $("#unzoom_button").click(unzoom_click);
-  $.ajaxSetup({ cache: false });
+        if (!LOG_X) {
+          const shift = (dx * (dragStartB - dragStartA)) / W;
+          GLOBAL_NL_A = dragStartA - shift;
+          GLOBAL_NL_B = dragStartB - shift;
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+          requestRerender();
+          return;
+        }
 
-  files.forEach( file => {
-    console.log("file",file);
-    $.ajax({
-      url: "./samples/"+file,
-      dataType: "json",
-      success: function(item) {
-        console.log("item",item);
-        Object.keys(item).forEach(function(key,index) {
-          LAYERS[key] = item[key];
-          LAYERS[key].sort((a,b) => a.value - b.value);
-          LAYER_SETTINGS[key] = { render: true };
-          add_button_layer(key);
+        const At0 = xTransform(dragStartA);
+        const Bt0 = xTransform(dragStartB);
+        const shiftT = (dx * (Bt0 - At0)) / W;
+
+        GLOBAL_NL_A = xUntransform(At0 - shiftT);
+        GLOBAL_NL_B = xUntransform(Bt0 - shiftT);
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+        requestRerender();
+      });
+
+      FOCUS_CANVAS.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const W = FOCUS_CANVAS.width;
+          const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
+          const factor = Math.exp(e.deltaY * 0.0015);
+
+          if (!LOG_X) {
+            const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
+            let A = anchor - (anchor - GLOBAL_NL_A) * factor;
+            let B = anchor + (GLOBAL_NL_B - anchor) * factor;
+            [A, B] = clampWindow(A, B);
+            GLOBAL_NL_A = A;
+            GLOBAL_NL_B = B;
+            requestRerender();
+            return;
+          }
+
+          const At = xTransform(GLOBAL_NL_A);
+          const Bt = xTransform(GLOBAL_NL_B);
+          const anchorT = At + (mouseX * (Bt - At)) / W;
+
+          const newAt = anchorT - (anchorT - At) * factor;
+          const newBt = anchorT + (Bt - anchorT) * factor;
+
+          GLOBAL_NL_A = xUntransform(newAt);
+          GLOBAL_NL_B = xUntransform(newBt);
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+          requestRerender();
+        },
+        { passive: false }
+      );
+
+      // ---------------------------
+      // UI buttons
+      // ---------------------------
+      function left_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * (3 / 4);
+        GLOBAL_NL_B -= dp;
+        GLOBAL_NL_A -= dp;
+        requestRerender();
+      }
+
+      function right_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * (3 / 4);
+        GLOBAL_NL_B += dp;
+        GLOBAL_NL_A += dp;
+        requestRerender();
+      }
+
+      function zoom_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * 0.15;
+        GLOBAL_NL_B -= dp;
+        GLOBAL_NL_A += dp;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        requestRerender();
+      }
+
+      function unzoom_click() {
+        const d = GLOBAL_NL_B - GLOBAL_NL_A;
+        const dp = d * 0.25;
+        GLOBAL_NL_B += dp;
+        GLOBAL_NL_A -= dp;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        requestRerender();
+      }
+
+      document.getElementById("left_button").addEventListener("click", left_click);
+      document.getElementById("right_button").addEventListener("click", right_click);
+      document.getElementById("zoom_button").addEventListener("click", zoom_click);
+      document.getElementById("unzoom_button").addEventListener("click", unzoom_click);
+
+      document.getElementById("reset_button").addEventListener("click", () => {
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+          GLOBAL_NL_A = OVERVIEW_MIN - pad;
+          GLOBAL_NL_B = OVERVIEW_MAX + pad;
+        } else {
+          GLOBAL_NL_A = -5;
+          GLOBAL_NL_B = 5;
+        }
+        requestRerender();
+      });
+
+      function setView(v) {
+        VIEW = v;
+        document.getElementById("viewTag").textContent =
+          `View: ${v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"}`;
+
+        document.getElementById("view_overlaps").classList.toggle("btn-secondary", v === "overlaps");
+        document.getElementById("view_overlaps").classList.toggle("btn-outline-secondary", v !== "overlaps");
+
+        document.getElementById("view_lanes").classList.toggle("btn-secondary", v === "lanes");
+        document.getElementById("view_lanes").classList.toggle("btn-outline-secondary", v !== "lanes");
+
+        document.getElementById("view_density").classList.toggle("btn-secondary", v === "density");
+        document.getElementById("view_density").classList.toggle("btn-outline-secondary", v !== "density");
+
+        requestRerender();
+      }
+
+      document.getElementById("view_overlaps").addEventListener("click", () => setView("overlaps"));
+      document.getElementById("view_lanes").addEventListener("click", () => setView("lanes"));
+      document.getElementById("view_density").addEventListener("click", () => setView("density"));
+
+      document.getElementById("logx_toggle").addEventListener("change", (e) => {
+        LOG_X = !!e.target.checked;
+        document.getElementById("scaleTag").textContent = `Scale: ${LOG_X ? "Log" : "Linear"}`;
+        requestRerender();
+      });
+
+      // ---------------------------
+      // Layers UI + indexing
+      // ---------------------------
+      function add_layer_row(key) {
+        const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const color = LAYER_SETTINGS[key].color;
+
+        if (document.getElementById(safeId)) return;
+
+        const row = document.createElement("div");
+        row.className = "layerRow";
+        row.setAttribute("data-layer-key", key);
+
+        row.innerHTML = `
+          <div class="chip" style="background:${color}"></div>
+          <div class="layerName">${key}</div>
+          <input type="checkbox" id="${safeId}" checked />
+        `;
+
+        document.getElementById("layers").appendChild(row);
+
+        document.getElementById(safeId).addEventListener("change", (e) => {
+          LAYER_SETTINGS[key].render = e.target.checked;
+          requestRerender();
+        });
+      }
+
+      function clearAll() {
+        LAYERS = {};
+        LAYER_SETTINGS = {};
+        VALUE_TO_LAYERS = new Map();
+        OVERVIEW_POINTS = [];
+        OVERVIEW_MIN = NaN;
+        OVERVIEW_MAX = NaN;
+        OVERLAP_VALUES = [];
+
+        SELECTED_VALUE = null;
+        for (const k in SEQ_META) delete SEQ_META[k];
+        GLOBAL_SEARCH_LAST = "";
+
+        // Custom sequence UI reset
+        CUSTOM_LAYER_KEY = null;
+        const cs = document.getElementById("customStatus");
+        if (cs) cs.textContent = "";
+        const cc = document.getElementById("customCode");
+        if (cc) cc.value = cc.value; // keep user text
+
+        document.getElementById("layers").innerHTML = "";
+        document.getElementById("oeisStatus").textContent = "Cleared.";
+
+        GLOBAL_NL_A = -5;
+        GLOBAL_NL_B = 5;
+
+        renderSequenceDetailsPanel();
+        requestRerender();
+      }
+
+      document.getElementById("oeisClearBtn").addEventListener("click", clearAll);
+
+      function parseOeisIds(raw) {
+        return String(raw || "")
+          .toUpperCase()
+          .split(/[\s,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map((s) => s.replace(/^A/, ""))
+          .filter((s) => /^\d+$/.test(s));
+      }
+
+      function numbersToLayer(numbers, oeisId, layerKey) {
+        const layer = numbers.map((n) => ({
+          value: n,
+          oeis_id: oeisId,
+          layer_key: layerKey,
+        }));
+        layer.sort((a, b) => a.value - b.value);
+        return layer;
+      }
+
+      function indexLayerValues(layerKey, layerArr) {
+        const s = new Set();
+        layerArr.forEach((p) => s.add(p.value));
+
+        for (const v of s) {
+          const existing = VALUE_TO_LAYERS.get(v);
+          if (!existing) VALUE_TO_LAYERS.set(v, [layerKey]);
+          else if (!existing.includes(layerKey)) existing.push(layerKey);
+        }
+      }
+
+      function rebuildOverview() {
+        OVERVIEW_POINTS = [];
+        const vals = [];
+
+        Object.keys(LAYERS).forEach((k) => {
+          const arr = LAYERS[k];
+          if (!arr || arr.length === 0) return;
+
+          for (let i = 0; i < arr.length; i++) {
+            const v = arr[i].value;
+            OVERVIEW_POINTS.push({ value: v });
+            vals.push(v);
+          }
         });
 
+        OVERVIEW_POINTS.sort((a, b) => a.value - b.value);
+        vals.sort((a, b) => a - b);
+
+        if (vals.length === 0) {
+          OVERVIEW_MIN = NaN;
+          OVERVIEW_MAX = NaN;
+          return;
+        }
+
+        const pLow = 0.01;
+        const pHigh = 0.99;
+
+        const loIdx = Math.floor((vals.length - 1) * pLow);
+        const hiIdx = Math.floor((vals.length - 1) * pHigh);
+
+        OVERVIEW_MIN = vals[loIdx];
+        OVERVIEW_MAX = vals[hiIdx];
+
+        if (!(OVERVIEW_MAX > OVERVIEW_MIN)) {
+          OVERVIEW_MIN = vals[0];
+          OVERVIEW_MAX = vals[vals.length - 1];
+        }
+      }
+
+      function buildOverlapValues() {
+        OVERLAP_VALUES = [];
+        for (const [v, layers] of VALUE_TO_LAYERS.entries()) {
+          if (layers && layers.length >= 2) {
+            OVERLAP_VALUES.push({ v: Number(v), c: layers.length });
+          }
+        }
+        OVERLAP_VALUES.sort((a, b) => a.v - b.v);
+      }
+
+      // ---------------------------
+      // Custom sequence (user code) - SAFE-ish mode
+      // ---------------------------
+      const MAX_CUSTOM_TERMS = 20000;
+      const CUSTOM_TIMEOUT_MS = 600; // kill runaway loops
+      let CUSTOM_LAYER_KEY = null;
+
+      function sanitizeCustomCode(code) {
+        const s = String(code || "");
+        const bad = [
+          /\bwhile\s*\(\s*true\s*\)/i,
+          /\bfor\s*\(\s*;\s*;\s*\)/i,
+          /\bimportScripts\b/i,
+          /\bXMLHttpRequest\b/i,
+          /\bfetch\b/i,
+          /\bWebSocket\b/i,
+          /\blocation\b/i,
+          /\bdocument\b/i,
+          /\bwindow\b/i,
+        ];
+        for (const rx of bad) {
+          if (rx.test(s)) {
+            return { ok: false, error: `Blocked keyword/pattern: ${rx}` };
+          }
+        }
+        return { ok: true, code: s };
+      }
+
+      function makeWorker() {
+        const workerSrc = `
+          self.onmessage = (e) => {
+            const code = String(e.data.code || "");
+            const n = Number(e.data.n || 0);
+
+            try { self.fetch = undefined; } catch {}
+            try { self.XMLHttpRequest = undefined; } catch {}
+            try { self.importScripts = undefined; } catch {}
+
+            let a = [];
+            try {
+              const fn = new Function("n", "a", '"use strict";\\n' + code + "\\n; return a;");
+              const out = fn(n, a);
+              if (Array.isArray(out)) a = out;
+
+              const nums = [];
+              for (let i = 0; i < a.length; i++) {
+                const v = Number(a[i]);
+                if (!Number.isFinite(v)) continue;
+                nums.push(v);
+              }
+              self.postMessage({ ok: true, numbers: nums });
+            } catch (err) {
+              self.postMessage({ ok: false, error: String(err) });
+            }
+          };
+        `;
+        const blob = new Blob([workerSrc], { type: "application/javascript" });
+        const url = URL.createObjectURL(blob);
+        return new Worker(url);
+      }
+
+      function rebuildAllIndexesFromScratch() {
+        VALUE_TO_LAYERS = new Map();
+        Object.keys(LAYERS).forEach((layerKey) => {
+          const layerArr = LAYERS[layerKey] || [];
+          const s = new Set();
+          layerArr.forEach((p) => s.add(p.value));
+          for (const v of s) {
+            const existing = VALUE_TO_LAYERS.get(v);
+            if (!existing) VALUE_TO_LAYERS.set(v, [layerKey]);
+            else if (!existing.includes(layerKey)) existing.push(layerKey);
+          }
+        });
+        rebuildOverview();
+        buildOverlapValues();
+      }
+
+      function removeCustomLayer() {
+        if (!CUSTOM_LAYER_KEY) return;
+        delete LAYERS[CUSTOM_LAYER_KEY];
+        delete LAYER_SETTINGS[CUSTOM_LAYER_KEY];
+        delete SEQ_META[CUSTOM_LAYER_KEY];
+        rebuildAllIndexesFromScratch();
+        document.getElementById("customStatus").textContent = "Removed custom sequence.";
+        CUSTOM_LAYER_KEY = null;
         rerender_all();
-      },
-      error: function (xhr, ajaxOptions, thrownError) {
-        alert(xhr.status);
-        alert(thrownError);
-      },
-    });
-  });
+        renderSequenceDetailsPanel();
+      }
 
-});
+      async function runCustomSequence() {
+        const statusEl = document.getElementById("customStatus");
+        statusEl.textContent = "";
 
-</script>
+        const name = String(document.getElementById("customName").value || "").trim();
+        const nRaw = Number(document.getElementById("customTerms").value || 0);
+        const n = Math.max(1, Math.min(MAX_CUSTOM_TERMS, Math.floor(nRaw)));
+
+        const rawCode = document.getElementById("customCode").value || "";
+        const sanitized = sanitizeCustomCode(rawCode);
+        if (!sanitized.ok) {
+          statusEl.textContent = sanitized.error;
+          return;
+        }
+
+        if (!sanitized.code.trim()) {
+          statusEl.textContent = "Enter code first.";
+          return;
+        }
+
+        statusEl.textContent = "Computing...";
+        const worker = makeWorker();
+
+        const timer = setTimeout(() => {
+          worker.terminate();
+          statusEl.textContent = `Stopped (timeout ${CUSTOM_TIMEOUT_MS}ms). Your code is too slow or stuck.`;
+        }, CUSTOM_TIMEOUT_MS);
+
+        worker.onmessage = (ev) => {
+          clearTimeout(timer);
+          worker.terminate();
+
+          const msg = ev.data || {};
+          if (!msg.ok) {
+            statusEl.textContent = msg.error || "Error.";
+            return;
+          }
+
+          const nums = Array.isArray(msg.numbers) ? msg.numbers : [];
+          if (nums.length === 0) {
+            statusEl.textContent = "No numbers produced.";
+            return;
+          }
+
+          if (CUSTOM_LAYER_KEY) removeCustomLayer();
+
+          const id = "CUSTOM";
+          const title = name ? `CUSTOM — ${name}` : "CUSTOM — Expression";
+          CUSTOM_LAYER_KEY = `CUSTOM ${Date.now()}`;
+
+          const color = PALETTE[Object.keys(LAYERS).length % PALETTE.length];
+          LAYER_SETTINGS[CUSTOM_LAYER_KEY] = { render: true, color };
+
+          const layer = numbersToLayer(nums, id, CUSTOM_LAYER_KEY);
+          LAYERS[CUSTOM_LAYER_KEY] = layer;
+
+          SEQ_META[CUSTOM_LAYER_KEY] = {
+            id,
+            name: title,
+            numbers: nums,
+            shown: INITIAL_SHOW,
+          };
+
+          add_layer_row(CUSTOM_LAYER_KEY);
+          rebuildAllIndexesFromScratch();
+
+          if (Number.isFinite(OVERVIEW_MIN) && Number.isFinite(OVERVIEW_MAX) && OVERVIEW_MAX > OVERVIEW_MIN) {
+            const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+            GLOBAL_NL_A = OVERVIEW_MIN - pad;
+            GLOBAL_NL_B = OVERVIEW_MAX + pad;
+            [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+          }
+
+          statusEl.textContent = `Loaded custom sequence (${nums.length} terms).`;
+          renderSequenceDetailsPanel();
+          rerender_all();
+        };
+
+        worker.postMessage({ code: sanitized.code, n });
+      }
+
+      document.getElementById("customRunBtn").addEventListener("click", runCustomSequence);
+      document.getElementById("customClearBtn").addEventListener("click", removeCustomLayer);
+
+      // ---------------------------
+      // OEIS loading
+      // ---------------------------
+      async function loadMultipleOeis() {
+        const status = document.getElementById("oeisStatus");
+        const ids = parseOeisIds(document.getElementById("oeisInput").value);
+
+        if (ids.length === 0) {
+          status.textContent = "Enter OEIS IDs first.";
+          return;
+        }
+
+        document.getElementById("oeisLoadBtn").disabled = true;
+        status.textContent = "Loading...";
+
+        clearAll();
+        status.textContent = "Loading...";
+
+        const requests = ids.map((d) =>
+          $.getJSON(`http://localhost:3000/oeis/${d}`)
+        );
+        const results = await Promise.allSettled(requests);
+
+        let loaded = 0;
+        results.forEach((r, idx) => {
+          if (r.status !== "fulfilled") {
+            console.error("Failed OEIS id:", ids[idx], r.reason);
+            return;
+          }
+
+          const resp = r.value; // { id, name?, numbers, count }
+          const layerKey = `OEIS ${resp.id}`;
+
+          const color = PALETTE[loaded % PALETTE.length];
+          LAYER_SETTINGS[layerKey] = { render: true, color };
+
+          const layer = numbersToLayer(resp.numbers, resp.id, layerKey);
+          LAYERS[layerKey] = layer;
+
+          SEQ_META[layerKey] = {
+            id: resp.id,
+            name: resp.name || "",
+            numbers: resp.numbers,
+            shown: INITIAL_SHOW,
+          };
+
+          indexLayerValues(layerKey, layer);
+          add_layer_row(layerKey);
+
+          loaded++;
+        });
+
+        rebuildOverview();
+        buildOverlapValues();
+
+        if (
+          Number.isFinite(OVERVIEW_MIN) &&
+          Number.isFinite(OVERVIEW_MAX) &&
+          OVERVIEW_MAX > OVERVIEW_MIN
+        ) {
+          const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+          GLOBAL_NL_A = OVERVIEW_MIN - pad;
+          GLOBAL_NL_B = OVERVIEW_MAX + pad;
+        } else {
+          GLOBAL_NL_A = -5;
+          GLOBAL_NL_B = 5;
+        }
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+        status.textContent = `Loaded ${loaded}/${ids.length}.`;
+        document.getElementById("oeisLoadBtn").disabled = false;
+
+        renderSequenceDetailsPanel();
+        requestRerender();
+      }
+
+      document.getElementById("oeisLoadBtn").addEventListener("click", loadMultipleOeis);
+
+      document.getElementById("oeisInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) loadMultipleOeis();
+      });
+
+      // ---------------------------
+      // Details panel (search + list)
+      // ---------------------------
+      function renderSequenceDetailsPanel() {
+        const box = document.getElementById("reportBox");
+        const keys = Object.keys(SEQ_META);
+
+        if (keys.length === 0) {
+          box.innerHTML = "No sequences loaded.";
+          return;
+        }
+
+        const searchUI = `
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+            <input id="globalSearchInput" class="form-control form-control-sm"
+                  style="max-width:260px;"
+                  placeholder="Search number (e.g. 233 or -41)"
+                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
+            <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
+            <span class="muted" id="globalSearchStatus"></span>
+          </div>
+          <div id="globalSearchResults" style="margin-bottom:12px;"></div>
+        `;
+
+        const seqBlocks = keys
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const shown = meta.shown ?? INITIAL_SHOW;
+            const nums = meta.numbers.slice(0, shown);
+
+            const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
+            const oeisUrl = meta.id === "CUSTOM" ? null : `https://oeis.org/${meta.id}`;
+
+            const numsHtml = nums
+              .map(
+                (n) =>
+                  `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
+                    data-val="${n}" data-layer="${layerKey}">${n}</button>`
+              )
+              .join("");
+
+            const moreBtn =
+              shown < meta.numbers.length
+                ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
+                    Show more (+${SHOW_STEP})
+                  </button>`
+                : `<span class="muted">All loaded terms shown.</span>`;
+
+            return `
+              <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+                  <div>
+                    ${
+                      oeisUrl
+                        ? `<a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>`
+                        : `<b>${title}</b>`
+                    }
+                    <div class="muted">Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
+                  ${numsHtml}
+                </div>
+
+                <div style="margin-top:8px;">
+                  ${moreBtn}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        box.innerHTML = searchUI + seqBlocks;
+
+        box.querySelectorAll(".oeis-num").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            GLOBAL_SEARCH_LAST = String(v);
+            jumpToValue(v);
+          });
+        });
+
+        box.querySelectorAll(".oeis-more").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const layerKey = btn.getAttribute("data-layer");
+            SEQ_META[layerKey].shown =
+              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
+            renderSequenceDetailsPanel();
+            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+            if (Number.isFinite(v)) showExactOverlapInPanel(v);
+          });
+        });
+
+        const input = document.getElementById("globalSearchInput");
+        const searchBtn = document.getElementById("globalSearchBtn");
+
+        function runSearch() {
+          const raw = String(input.value || "").trim();
+          GLOBAL_SEARCH_LAST = raw;
+
+          if (!/^[-]?\d+$/.test(raw)) {
+            showSearchStatus("Enter an integer.", "");
+            return;
+          }
+
+          const v = Number(raw);
+          jumpToValue(v);
+          showExactOverlapInPanel(v);
+        }
+
+        searchBtn.addEventListener("click", runSearch);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runSearch();
+        });
+
+        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+        if (Number.isFinite(v)) showExactOverlapInPanel(v);
+      }
+
+      function showSearchStatus(statusText, resultsHtml) {
+        const statusEl = document.getElementById("globalSearchStatus");
+        const resultsEl = document.getElementById("globalSearchResults");
+        if (statusEl) statusEl.textContent = statusText || "";
+        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
+      }
+
+      function showExactOverlapInPanel(v) {
+        const layers = VALUE_TO_LAYERS.get(v) || [];
+        if (layers.length === 0) {
+          showSearchStatus(
+            "Not found in loaded sequences.",
+            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
+          );
+          return;
+        }
+
+        const list = layers
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const label = meta
+              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
+              : layerKey;
+            return `<li><b>${label}</b></li>`;
+          })
+          .join("");
+
+        showSearchStatus(
+          `Found in ${layers.length} sequence(s).`,
+          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+            <div><b>${v}</b> appears in:</div>
+            <ul class="reportList" style="margin-top:6px;">${list}</ul>
+          </div>`
+        );
+      }
+
+      // ---------------------------
+      // Layer UI helper (kept)
+      // ---------------------------
+      function add_layer_row(key) {
+        const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const color = LAYER_SETTINGS[key].color;
+
+        if (document.getElementById(safeId)) return;
+
+        const row = document.createElement("div");
+        row.className = "layerRow";
+        row.setAttribute("data-layer-key", key);
+
+        row.innerHTML = `
+          <div class="chip" style="background:${color}"></div>
+          <div class="layerName">${key}</div>
+          <input type="checkbox" id="${safeId}" checked />
+        `;
+
+        document.getElementById("layers").appendChild(row);
+
+        document.getElementById(safeId).addEventListener("change", (e) => {
+          LAYER_SETTINGS[key].render = e.target.checked;
+          requestRerender();
+        });
+      }
+
+      // ---------------------------
+      // UI init
+      // ---------------------------
+      renderSequenceDetailsPanel();
+      setView("overlaps");
+      rerender_all();
+    </script>
+  </body>
+</html>

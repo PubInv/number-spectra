@@ -1,0 +1,99 @@
+OEIS Numberline – Custom Sequence Examples
+=========================================
+
+How to use
+----------
+- Your code runs with:
+  - n = number of terms (set in the UI)
+  - a = output array (push numbers into it)
+- Keep code simple. Produce finite numbers only.
+
+1) Powers of 20
+--------------
+for (let i = 0; i < n; i++) {
+  a.push(20 ** i);
+}
+
+2) Squares
+----------
+for (let i = 0; i < n; i++) {
+  a.push(i * i);
+}
+
+3) Triangular numbers
+---------------------
+let s = 0;
+for (let i = 1; i <= n; i++) {
+  s += i;
+  a.push(s);
+}
+
+4) Fibonacci
+------------
+let x = 0, y = 1;
+for (let i = 0; i < n; i++) {
+  a.push(x);
+  [x, y] = [y, x + y];
+}
+
+5) Alternating sign squares (tests negatives + symlog)
+------------------------------------------------------
+for (let i = 1; i <= n; i++) {
+  a.push((i % 2 === 0 ? 1 : -1) * i * i);
+}
+
+6) Factorials (grows fast)
+--------------------------
+let f = 1;
+for (let i = 1; i <= n; i++) {
+  f *= i;
+  a.push(f);
+}
+
+7) Seeded random noise (good for overlap testing)
+-------------------------------------------------
+let seed = 123456;
+function rnd() {
+  seed = (1664525 * seed + 1013904223) >>> 0;
+  return seed / 4294967296;
+}
+for (let i = 0; i < n; i++) {
+  a.push(Math.floor(rnd() * 1000));
+}
+
+8) Primes (slow-ish; keep n <= 2000)
+------------------------------------
+function isPrime(x) {
+  if (x < 2) return false;
+  if (x % 2 === 0) return x === 2;
+  for (let d = 3; d * d <= x; d += 2) {
+    if (x % d === 0) return false;
+  }
+  return true;
+}
+
+let x = 2;
+while (a.length < n) {
+  if (isPrime(x)) a.push(x);
+  x++;
+}
+
+9) Polynomial values (smooth growth)
+------------------------------------
+for (let i = 0; i < n; i++) {
+  a.push(i*i*i + 3*i*i + 2*i + 7);
+}
+
+10) Collatz stopping time (chaotic)
+-----------------------------------
+function stepsTo1(x) {
+  let steps = 0;
+  while (x !== 1 && steps < 10000) {
+    x = (x % 2 === 0) ? (x / 2) : (3 * x + 1);
+    steps++;
+  }
+  return steps;
+}
+for (let i = 1; i <= n; i++) {
+  a.push(stepsTo1(i));
+}
