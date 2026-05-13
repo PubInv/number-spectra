@@ -252,6 +252,12 @@
         background: #d1d5db;
         border-radius: 999px;
       }
+
+      #customCode {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+      }
     </style>
   </head>
 
@@ -279,6 +285,49 @@
           </button>
           <span id="oeisStatus" class="muted"></span>
         </div>
+
+        <!-- Custom sequence panel -->
+        <div class="panelTitle mt-3">Custom sequence</div>
+        <div class="muted">
+          Write JS that fills an array <span class="kbd">a</span> with numbers.
+          Runs locally with a timeout.
+        </div>
+
+        <input
+          id="customName"
+          class="form-control form-control-sm mt-2"
+          placeholder="Name (optional) e.g. Powers"
+        />
+        <div class="d-flex align-items-center mt-2" style="gap: 10px">
+          <input
+            id="customTerms"
+            type="number"
+            class="form-control form-control-sm"
+            style="max-width: 120px"
+            value="50"
+            min="1"
+            max="20000"
+          />
+          <span class="muted">terms</span>
+          <button id="customRunBtn" class="btn btn-sm btn-primary">
+            Compute
+          </button>
+          <button id="customClearBtn" class="btn btn-sm btn-outline-secondary">
+            Remove
+          </button>
+        </div>
+
+        <textarea
+          id="customCode"
+          class="form-control mt-2"
+          rows="6"
+          placeholder="Example:
+for (let i = 0; i < n; i++) {
+  a.push(20 ** i);
+}"
+        ></textarea>
+
+        <div id="customStatus" class="muted mt-2"></div>
 
         <div class="panelTitle mt-3">Sequences</div>
         <div id="layers"></div>
@@ -341,9 +390,15 @@
 
             <button id="left_button" class="btn btn-primary btn-sm">←</button>
             <button id="right_button" class="btn btn-primary btn-sm">→</button>
-            <button id="zoom_button" class="btn btn-primary btn-sm">Zoom In</button>
-            <button id="unzoom_button" class="btn btn-primary btn-sm">Zoom Out</button>
-            <button id="reset_button" class="btn btn-outline-secondary btn-sm">Reset View</button>
+            <button id="zoom_button" class="btn btn-primary btn-sm">
+              Zoom In
+            </button>
+            <button id="unzoom_button" class="btn btn-primary btn-sm">
+              Zoom Out
+            </button>
+            <button id="reset_button" class="btn btn-outline-secondary btn-sm">
+              Reset View
+            </button>
           </div>
         </div>
 
@@ -414,7 +469,7 @@
       let OVERLAP_VALUES = []; // [{v,c}] sorted
 
       // ---------------------------
-      // Log X (symlog) - works with negative/zero/positive
+      // Log X (symlog)
       // ---------------------------
       let LOG_X = false;
       const SYMLOG_C = 1; // linear threshold
@@ -433,7 +488,6 @@
         return s * SYMLOG_C * (Math.pow(10, a) - 1);
       }
 
-      // Converts a canvas pixel position back into a number-line value.
       function toNL(vp, A, B, N) {
         const At = xTransform(A);
         const Bt = xTransform(B);
@@ -441,7 +495,6 @@
         return xUntransform(t);
       }
 
-      // Converts a number-line value into a canvas pixel position.
       function toVP(nl, A, B, N) {
         const At = xTransform(A);
         const Bt = xTransform(B);
@@ -466,7 +519,6 @@
         return [A, B];
       }
 
-      // Jump helpers
       function jumpToValue(v) {
         const range = Math.max((GLOBAL_NL_B - GLOBAL_NL_A) * 0.35, 50);
         GLOBAL_NL_A = v - range / 2;
@@ -483,29 +535,29 @@
       }
 
       // ---------------------------
-      // Rendering
+      // Rendering helpers
       // ---------------------------
       const LIGHT_GRAY = "#eeeeee";
 
       function clearCanvas(canvas, fillStyle) {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
-        var canvasContext = canvas.getContext("2d");
-       canvasContext.fillStyle = fillStyle;
-       canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+        var ctx = canvas.getContext("2d");
+        ctx.fillStyle = fillStyle;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
       function clearFocusCanvas() {
         clearCanvas(FOCUS_CANVAS, "#ffffff");
 
-        var canvasContext = FOCUS_CANVAS.getContext("2d");
-        var grd = canvasContext.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
+        var ctx = FOCUS_CANVAS.getContext("2d");
+        var grd = ctx.createLinearGradient(0, 0, FOCUS_CANVAS.width / 5, 0);
         grd.addColorStop(0, LIGHT_GRAY);
         grd.addColorStop(1, "#ffffff");
-       canvasContext.fillStyle = grd;
-       canvasContext.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, FOCUS_CANVAS.width / 5, FOCUS_CANVAS.height);
 
-        grd = canvasContext.createLinearGradient(
+        grd = ctx.createLinearGradient(
           (FOCUS_CANVAS.width * 4) / 5,
           0,
           FOCUS_CANVAS.width,
@@ -513,8 +565,8 @@
         );
         grd.addColorStop(0, "#ffffff");
         grd.addColorStop(1, LIGHT_GRAY);
-       canvasContext.fillStyle = grd;
-       canvasContext.fillRect(
+        ctx.fillStyle = grd;
+        ctx.fillRect(
           (FOCUS_CANVAS.width * 4) / 5,
           0,
           FOCUS_CANVAS.width / 5,
@@ -526,7 +578,6 @@
         clearCanvas(OVERVIEW_CANVAS, "#fafafa");
       }
 
-      // Converts a sequence into a pixel-based histogram.
       function computeHistogramForLayer(layerArr, pl, ph, a, b, canvasWidth) {
         const N = canvasWidth;
         const LF = toNL(pl, a, b, N);
@@ -571,29 +622,27 @@
         return niceBase * Math.pow(10, exp);
       }
 
-      // Draws baseline and tick labels.
       function drawAxesSmart(canvas, A, B) {
         const H = canvas.height;
         const W = canvas.width;
-        var canvasContext = canvas.getContext("2d");
+        var ctx = canvas.getContext("2d");
         const baseline = (3 * H) / 4;
 
         // baseline
-       canvasContext.beginPath();
-       canvasContext.strokeStyle = "#1f3a8a";
-       canvasContext.moveTo(0, baseline);
-       canvasContext.lineTo(W, baseline);
-       canvasContext.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = "#1f3a8a";
+        ctx.moveTo(0, baseline);
+        ctx.lineTo(W, baseline);
+        ctx.stroke();
 
         if (!(B > A)) return;
 
-       canvasContext.font = "12px Arial";
-       canvasContext.fillStyle = "#111827";
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "#111827";
 
         let lastLabelRight = -Infinity;
 
         if (!LOG_X) {
-          // linear ticks
           const d = B - A;
           const targetLabels = Math.max(2, Math.floor(W / 120));
           const step = niceStep(d / targetLabels);
@@ -604,24 +653,23 @@
           for (let t = first; t <= last + step * 0.5; t += step) {
             const x = toVP(t, A, B, W);
             const label = formatAxisNumber(t);
-            const w = canvasContext.measureText(label).width;
+            const w = ctx.measureText(label).width;
 
             const left = x + 4;
             const right = left + w;
 
-           canvasContext.beginPath();
-           canvasContext.strokeStyle = "#111827";
-           canvasContext.moveTo(x, baseline);
-           canvasContext.lineTo(x, baseline + H / 6);
-           canvasContext.stroke();
+            ctx.beginPath();
+            ctx.strokeStyle = "#111827";
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x, baseline + H / 6);
+            ctx.stroke();
 
             if (left > lastLabelRight + 10) {
-             canvasContext.fillText(label, left, baseline + H / 5);
+              ctx.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
             }
           }
         } else {
-          // log ticks in transformed space (stable labeling)
           const At = xTransform(A);
           const Bt = xTransform(B);
           const dt = Bt - At;
@@ -638,33 +686,32 @@
             const x = toVP(val, A, B, W);
 
             const label = formatAxisNumber(val);
-            const w = canvasContext.measureText(label).width;
+            const w = ctx.measureText(label).width;
             const left = x + 4;
             const right = left + w;
 
-           canvasContext.beginPath();
-           canvasContext.strokeStyle = "#111827";
-           canvasContext.moveTo(x, baseline);
-           canvasContext.lineTo(x, baseline + H / 6);
-           canvasContext.stroke();
+            ctx.beginPath();
+            ctx.strokeStyle = "#111827";
+            ctx.moveTo(x, baseline);
+            ctx.lineTo(x, baseline + H / 6);
+            ctx.stroke();
 
             if (left > lastLabelRight + 10) {
-             canvasContext.fillText(label, left, baseline + H / 5);
+              ctx.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
             }
           }
         }
 
-        // selected marker
         if (SELECTED_VALUE !== null) {
           const x = toVP(SELECTED_VALUE, A, B, W);
-         canvasContext.beginPath();
-         canvasContext.strokeStyle = "#111827";
-         canvasContext.globalAlpha = 0.35;
-         canvasContext.moveTo(x, 0);
-         canvasContext.lineTo(x, H);
-         canvasContext.stroke();
-         canvasContext.globalAlpha = 1.0;
+          ctx.beginPath();
+          ctx.strokeStyle = "#111827";
+          ctx.globalAlpha = 0.35;
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
         }
       }
 
@@ -674,21 +721,21 @@
         const baseline = (3 * H) / 4;
         const maxCount = hist.reduce((m, v) => Math.max(m, v), 1);
 
-        var canvasContext = canvas.getContext("2d");
-       canvasContext.globalAlpha = alpha;
+        var ctx = canvas.getContext("2d");
+        ctx.globalAlpha = alpha;
 
         for (let x = 0; x < W; x++) {
           const v = hist[x] || 0;
           if (v <= 0) continue;
           const h = (v / maxCount) * (H * 0.55);
-         canvasContext.beginPath();
-         canvasContext.strokeStyle = color;
-         canvasContext.moveTo(x, baseline);
-         canvasContext.lineTo(x, baseline - h);
-         canvasContext.stroke();
+          ctx.beginPath();
+          ctx.strokeStyle = color;
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, baseline - h);
+          ctx.stroke();
         }
 
-       canvasContext.globalAlpha = 1.0;
+        ctx.globalAlpha = 1.0;
       }
 
       // ---------------------------
@@ -708,14 +755,14 @@
       function renderOverlapHeatline() {
         const W = FOCUS_CANVAS.width;
         const H = FOCUS_CANVAS.height;
-        const canvasContext = FOCUS_CANVAS.getContext("2d");
+        const ctx = FOCUS_CANVAS.getContext("2d");
         const baseline = (3 * H) / 4;
 
-       canvasContext.beginPath();
-       canvasContext.strokeStyle = "#1f3a8a";
-       canvasContext.moveTo(0, baseline);
-       canvasContext.lineTo(W, baseline);
-       canvasContext.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = "#1f3a8a";
+        ctx.moveTo(0, baseline);
+        ctx.lineTo(W, baseline);
+        ctx.stroke();
 
         if (!OVERLAP_VALUES.length || !(GLOBAL_NL_B > GLOBAL_NL_A)) {
           drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
@@ -738,32 +785,30 @@
 
         const maxStrength = strengths.reduce((m, v) => Math.max(m, v), 1);
 
-       canvasContext.globalAlpha = 0.85;
+        ctx.globalAlpha = 0.85;
         for (let x = 0; x < W; x++) {
           const s = strengths[x];
           if (s <= 0) continue;
 
           const h = (s / maxStrength) * (H * 0.65);
-         canvasContext.beginPath();
-         canvasContext.strokeStyle = "#111827";
-         canvasContext.moveTo(x, baseline);
-         canvasContext.lineTo(x, baseline - h);
-         canvasContext.stroke();
+          ctx.beginPath();
+          ctx.strokeStyle = "#111827";
+          ctx.moveTo(x, baseline);
+          ctx.lineTo(x, baseline - h);
+          ctx.stroke();
 
-         canvasContext.beginPath();
-         canvasContext.fillStyle = "#111827";
-         canvasContext.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
-         canvasContext.fill();
+          ctx.beginPath();
+          ctx.fillStyle = "#111827";
+          ctx.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
+          ctx.fill();
         }
-       canvasContext.globalAlpha = 1.0;
+        ctx.globalAlpha = 1.0;
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
       }
 
       function showOverlapsNear(centerValue) {
         const W = FOCUS_CANVAS.width;
-
-        // pixel-based "near" window is stable for log + linear
         const centerPx = toVP(centerValue, GLOBAL_NL_A, GLOBAL_NL_B, W);
         const leftVal = toNL(
           Math.max(0, centerPx - CLICK_NEAR_PX),
@@ -891,19 +936,18 @@
         const keys = getRenderableLaneKeys();
         const W = FOCUS_CANVAS.width;
         const H = FOCUS_CANVAS.height;
-        const canvasContext = FOCUS_CANVAS.getContext("2d");
+        const ctx = FOCUS_CANVAS.getContext("2d");
 
-        // lane separators
-       canvasContext.globalAlpha = 0.35;
-       canvasContext.strokeStyle = "#e5e7eb";
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = "#e5e7eb";
         for (let i = 0; i <= keys.length; i++) {
           const y = i * LANE_HEIGHT + 10;
-         canvasContext.beginPath();
-         canvasContext.moveTo(0, y);
-         canvasContext.lineTo(W, y);
-         canvasContext.stroke();
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
         }
-       canvasContext.globalAlpha = 1.0;
+        ctx.globalAlpha = 1.0;
 
         const laneIndex = {};
         keys.forEach((k, idx) => (laneIndex[k] = idx));
@@ -916,12 +960,11 @@
           const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
           const color = LAYER_SETTINGS[key].color;
 
-          // label
-         canvasContext.font = "11px Arial";
-         canvasContext.fillStyle = "#111827";
-         canvasContext.globalAlpha = 0.8;
-         canvasContext.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
-         canvasContext.globalAlpha = 1.0;
+          ctx.font = "11px Arial";
+          ctx.fillStyle = "#111827";
+          ctx.globalAlpha = 0.8;
+          ctx.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
+          ctx.globalAlpha = 1.0;
 
           const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
           const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
@@ -929,17 +972,17 @@
           const pointsPerPixel = visibleCount / Math.max(1, W);
 
           if (pointsPerPixel < 0.7) {
-           canvasContext.strokeStyle = color;
-           canvasContext.globalAlpha = 0.85;
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 0.85;
             for (let i = lo; i < hi; i++) {
               const v = layer[i].value;
               const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-             canvasContext.beginPath();
-             canvasContext.moveTo(x, yMid - 5);
-             canvasContext.lineTo(x, yMid + 5);
-             canvasContext.stroke();
+              ctx.beginPath();
+              ctx.moveTo(x, yMid - 5);
+              ctx.lineTo(x, yMid + 5);
+              ctx.stroke();
             }
-           canvasContext.globalAlpha = 1.0;
+            ctx.globalAlpha = 1.0;
           } else {
             const bins = new Array(W).fill(0);
             for (let i = lo; i < hi; i++) {
@@ -948,22 +991,21 @@
               if (x >= 0 && x < W) bins[x]++;
             }
             const maxBin = bins.reduce((m, v) => Math.max(m, v), 1);
-           canvasContext.globalAlpha = 0.7;
-           canvasContext.strokeStyle = color;
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = color;
             for (let x = 0; x < W; x++) {
               const b = bins[x];
               if (!b) continue;
               const h = (b / maxBin) * 8;
-             canvasContext.beginPath();
-             canvasContext.moveTo(x, yMid + 5);
-             canvasContext.lineTo(x, yMid + 5 - h);
-             canvasContext.stroke();
+              ctx.beginPath();
+              ctx.moveTo(x, yMid + 5);
+              ctx.lineTo(x, yMid + 5 - h);
+              ctx.stroke();
             }
-           canvasContext.globalAlpha = 1.0;
+            ctx.globalAlpha = 1.0;
           }
         });
 
-        // connectors for overlaps (limited)
         const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
         const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
         const overlapsInView = OVERLAP_VALUES.slice(start, end);
@@ -971,8 +1013,8 @@
         overlapsInView.sort((a, b) => b.c - a.c);
         const chosen = overlapsInView.slice(0, MAX_CONNECTORS);
 
-       canvasContext.globalAlpha = 0.25;
-       canvasContext.strokeStyle = "#111827";
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = "#111827";
 
         for (const ov of chosen) {
           const layers = VALUE_TO_LAYERS.get(ov.v) || [];
@@ -993,13 +1035,13 @@
           if (countVisible < 2 || !(maxLane > minLane)) continue;
 
           const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-         canvasContext.beginPath();
-         canvasContext.moveTo(x, minLane);
-         canvasContext.lineTo(x, maxLane);
-         canvasContext.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x, minLane);
+          ctx.lineTo(x, maxLane);
+          ctx.stroke();
         }
 
-       canvasContext.globalAlpha = 1.0;
+        ctx.globalAlpha = 1.0;
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
 
@@ -1055,7 +1097,6 @@
         else if (VIEW === "lanes") renderLanesView();
         else renderDensityView();
 
-        // overview always density
         const OW = OVERVIEW_CANVAS.width;
         const ohist = computeHistogramForLayer(
           OVERVIEW_POINTS,
@@ -1123,7 +1164,6 @@
           return;
         }
 
-        // log-space pan
         const At0 = xTransform(dragStartA);
         const Bt0 = xTransform(dragStartB);
         const shiftT = (dx * (Bt0 - At0)) / W;
@@ -1154,7 +1194,6 @@
             return;
           }
 
-          // log-space zoom
           const At = xTransform(GLOBAL_NL_A);
           const Bt = xTransform(GLOBAL_NL_B);
           const anchorT = At + (mouseX * (Bt - At)) / W;
@@ -1170,205 +1209,6 @@
         },
         { passive: false }
       );
-
-      // ---------------------------
-      // Details panel: Search + sequences list + show more + clickable numbers
-      // ---------------------------
-      function renderSequenceDetailsPanel() {
-        const box = document.getElementById("reportBox");
-        const keys = Object.keys(SEQ_META);
-
-        if (keys.length === 0) {
-          box.innerHTML = "No sequences loaded.";
-          return;
-        }
-
-        const searchUI = `
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-            <input id="globalSearchInput" class="form-control form-control-sm"
-                  style="max-width:260px;"
-                  placeholder="Search number (e.g. 233 or -41)"
-                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
-            <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
-            <span class="muted" id="globalSearchStatus"></span>
-          </div>
-          <div id="globalSearchResults" style="margin-bottom:12px;"></div>
-        `;
-
-        const seqBlocks = keys
-          .map((layerKey) => {
-            const meta = SEQ_META[layerKey];
-            const shown = meta.shown ?? INITIAL_SHOW;
-            const nums = meta.numbers.slice(0, shown);
-
-            const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
-            const oeisUrl = `https://oeis.org/${meta.id}`;
-
-            const numsHtml = nums
-              .map(
-                (n) =>
-                  `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
-                    data-val="${n}" data-layer="${layerKey}">${n}</button>`
-              )
-              .join("");
-
-            const moreBtn =
-              shown < meta.numbers.length
-                ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
-                    Show more (+${SHOW_STEP})
-                  </button>`
-                : `<span class="muted">All loaded terms shown.</span>`;
-
-            return `
-              <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
-                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
-                  <div>
-                    <a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>
-                    <div class="muted">Showing ${Math.min(
-                      shown,
-                      meta.numbers.length
-                    )} / ${meta.numbers.length}</div>
-                  </div>
-                </div>
-
-                <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
-                  ${numsHtml}
-                </div>
-
-                <div style="margin-top:8px;">
-                  ${moreBtn}
-                </div>
-              </div>
-            `;
-          })
-          .join("");
-
-        box.innerHTML = searchUI + seqBlocks;
-
-        // number clicks -> jump + highlight
-        box.querySelectorAll(".oeis-num").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const v = Number(btn.getAttribute("data-val"));
-            GLOBAL_SEARCH_LAST = String(v);
-            jumpToValue(v);
-          });
-        });
-
-        // show more
-        box.querySelectorAll(".oeis-more").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const layerKey = btn.getAttribute("data-layer");
-            SEQ_META[layerKey].shown =
-              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
-            renderSequenceDetailsPanel();
-            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
-            if (Number.isFinite(v)) showExactOverlapInPanel(v);
-          });
-        });
-
-        // global search
-        const input = document.getElementById("globalSearchInput");
-        const searchBtn = document.getElementById("globalSearchBtn");
-
-        function runSearch() {
-          const raw = String(input.value || "").trim();
-          GLOBAL_SEARCH_LAST = raw;
-
-          if (!/^[-]?\d+$/.test(raw)) {
-            showSearchStatus("Enter an integer.", "");
-            return;
-          }
-
-          const v = Number(raw);
-          jumpToValue(v);
-          showExactOverlapInPanel(v);
-        }
-
-        searchBtn.addEventListener("click", runSearch);
-        input.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") runSearch();
-        });
-
-        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
-        if (Number.isFinite(v)) showExactOverlapInPanel(v);
-      }
-
-      function showSearchStatus(statusText, resultsHtml) {
-        const statusEl = document.getElementById("globalSearchStatus");
-        const resultsEl = document.getElementById("globalSearchResults");
-        if (statusEl) statusEl.textContent = statusText || "";
-        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
-      }
-
-      function showExactOverlapInPanel(v) {
-        const layers = VALUE_TO_LAYERS.get(v) || [];
-        if (layers.length === 0) {
-          showSearchStatus(
-            "Not found in loaded sequences.",
-            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
-          );
-          return;
-        }
-
-        const list = layers
-          .map((layerKey) => {
-            const meta = SEQ_META[layerKey];
-            const label = meta
-              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
-              : layerKey;
-            return `<li><b>${label}</b></li>`;
-          })
-          .join("");
-
-        showSearchStatus(
-          `Found in ${layers.length} sequence(s).`,
-          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
-            <div><b>${v}</b> appears in:</div>
-            <ul class="reportList" style="margin-top:6px;">${list}</ul>
-          </div>`
-        );
-      }
-
-      // Clicking plot behavior per view
-      FOCUS_CANVAS.addEventListener("click", (e) => {
-        const W = FOCUS_CANVAS.width;
-        const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
-        const center = toNL(x, GLOBAL_NL_A, GLOBAL_NL_B, W);
-
-        if (VIEW === "overlaps") {
-          showOverlapsNear(center);
-          return;
-        }
-
-        if (VIEW === "density") {
-          const integer = Math.round(center);
-          SELECTED_VALUE = integer;
-          GLOBAL_SEARCH_LAST = String(integer);
-
-          const input = document.getElementById("globalSearchInput");
-          if (input) input.value = GLOBAL_SEARCH_LAST;
-
-          showExactOverlapInPanel(integer);
-          requestRerender();
-          return;
-        }
-
-        // lanes: pick lane + nearest
-        const y = getMouseYOnCanvas(e, FOCUS_CANVAS);
-        const keys = getRenderableLaneKeys();
-        const laneIdx = Math.floor((y - 10) / LANE_HEIGHT);
-        if (laneIdx < 0 || laneIdx >= keys.length) return;
-
-        const key = keys[laneIdx];
-        const layer = LAYERS[key];
-        if (!layer || layer.length === 0) return;
-
-        const nearest = binaryNearest(layer, center);
-        if (nearest === null) return;
-
-        SELECTED_VALUE = nearest;
-        jumpToValue(nearest);
-      });
 
       // ---------------------------
       // UI buttons
@@ -1433,7 +1273,6 @@
         document.getElementById("viewTag").textContent =
           `View: ${v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"}`;
 
-        // highlight selected view button
         document.getElementById("view_overlaps").classList.toggle("btn-secondary", v === "overlaps");
         document.getElementById("view_overlaps").classList.toggle("btn-outline-secondary", v !== "overlaps");
 
@@ -1450,7 +1289,6 @@
       document.getElementById("view_lanes").addEventListener("click", () => setView("lanes"));
       document.getElementById("view_density").addEventListener("click", () => setView("density"));
 
-      // log toggle
       document.getElementById("logx_toggle").addEventListener("change", (e) => {
         LOG_X = !!e.target.checked;
         document.getElementById("scaleTag").textContent = `Scale: ${LOG_X ? "Log" : "Linear"}`;
@@ -1496,6 +1334,13 @@
         SELECTED_VALUE = null;
         for (const k in SEQ_META) delete SEQ_META[k];
         GLOBAL_SEARCH_LAST = "";
+
+        // Custom sequence UI reset
+        CUSTOM_LAYER_KEY = null;
+        const cs = document.getElementById("customStatus");
+        if (cs) cs.textContent = "";
+        const cc = document.getElementById("customCode");
+        if (cc) cc.value = cc.value; // keep user text
 
         document.getElementById("layers").innerHTML = "";
         document.getElementById("oeisStatus").textContent = "Cleared.";
@@ -1590,6 +1435,179 @@
       }
 
       // ---------------------------
+      // Custom sequence (user code) - SAFE-ish mode
+      // ---------------------------
+      const MAX_CUSTOM_TERMS = 20000;
+      const CUSTOM_TIMEOUT_MS = 600; // kill runaway loops
+      let CUSTOM_LAYER_KEY = null;
+
+      function sanitizeCustomCode(code) {
+        const s = String(code || "");
+        const bad = [
+          /\bwhile\s*\(\s*true\s*\)/i,
+          /\bfor\s*\(\s*;\s*;\s*\)/i,
+          /\bimportScripts\b/i,
+          /\bXMLHttpRequest\b/i,
+          /\bfetch\b/i,
+          /\bWebSocket\b/i,
+          /\blocation\b/i,
+          /\bdocument\b/i,
+          /\bwindow\b/i,
+        ];
+        for (const rx of bad) {
+          if (rx.test(s)) {
+            return { ok: false, error: `Blocked keyword/pattern: ${rx}` };
+          }
+        }
+        return { ok: true, code: s };
+      }
+
+      function makeWorker() {
+        const workerSrc = `
+          self.onmessage = (e) => {
+            const code = String(e.data.code || "");
+            const n = Number(e.data.n || 0);
+
+            try { self.fetch = undefined; } catch {}
+            try { self.XMLHttpRequest = undefined; } catch {}
+            try { self.importScripts = undefined; } catch {}
+
+            let a = [];
+            try {
+              const fn = new Function("n", "a", '"use strict";\\n' + code + "\\n; return a;");
+              const out = fn(n, a);
+              if (Array.isArray(out)) a = out;
+
+              const nums = [];
+              for (let i = 0; i < a.length; i++) {
+                const v = Number(a[i]);
+                if (!Number.isFinite(v)) continue;
+                nums.push(v);
+              }
+              self.postMessage({ ok: true, numbers: nums });
+            } catch (err) {
+              self.postMessage({ ok: false, error: String(err) });
+            }
+          };
+        `;
+        const blob = new Blob([workerSrc], { type: "application/javascript" });
+        const url = URL.createObjectURL(blob);
+        return new Worker(url);
+      }
+
+      function rebuildAllIndexesFromScratch() {
+        VALUE_TO_LAYERS = new Map();
+        Object.keys(LAYERS).forEach((layerKey) => {
+          const layerArr = LAYERS[layerKey] || [];
+          const s = new Set();
+          layerArr.forEach((p) => s.add(p.value));
+          for (const v of s) {
+            const existing = VALUE_TO_LAYERS.get(v);
+            if (!existing) VALUE_TO_LAYERS.set(v, [layerKey]);
+            else if (!existing.includes(layerKey)) existing.push(layerKey);
+          }
+        });
+        rebuildOverview();
+        buildOverlapValues();
+      }
+
+      function removeCustomLayer() {
+        if (!CUSTOM_LAYER_KEY) return;
+        delete LAYERS[CUSTOM_LAYER_KEY];
+        delete LAYER_SETTINGS[CUSTOM_LAYER_KEY];
+        delete SEQ_META[CUSTOM_LAYER_KEY];
+        rebuildAllIndexesFromScratch();
+        document.getElementById("customStatus").textContent = "Removed custom sequence.";
+        CUSTOM_LAYER_KEY = null;
+        rerender_all();
+        renderSequenceDetailsPanel();
+      }
+
+      async function runCustomSequence() {
+        const statusEl = document.getElementById("customStatus");
+        statusEl.textContent = "";
+
+        const name = String(document.getElementById("customName").value || "").trim();
+        const nRaw = Number(document.getElementById("customTerms").value || 0);
+        const n = Math.max(1, Math.min(MAX_CUSTOM_TERMS, Math.floor(nRaw)));
+
+        const rawCode = document.getElementById("customCode").value || "";
+        const sanitized = sanitizeCustomCode(rawCode);
+        if (!sanitized.ok) {
+          statusEl.textContent = sanitized.error;
+          return;
+        }
+
+        if (!sanitized.code.trim()) {
+          statusEl.textContent = "Enter code first.";
+          return;
+        }
+
+        statusEl.textContent = "Computing...";
+        const worker = makeWorker();
+
+        const timer = setTimeout(() => {
+          worker.terminate();
+          statusEl.textContent = `Stopped (timeout ${CUSTOM_TIMEOUT_MS}ms). Your code is too slow or stuck.`;
+        }, CUSTOM_TIMEOUT_MS);
+
+        worker.onmessage = (ev) => {
+          clearTimeout(timer);
+          worker.terminate();
+
+          const msg = ev.data || {};
+          if (!msg.ok) {
+            statusEl.textContent = msg.error || "Error.";
+            return;
+          }
+
+          const nums = Array.isArray(msg.numbers) ? msg.numbers : [];
+          if (nums.length === 0) {
+            statusEl.textContent = "No numbers produced.";
+            return;
+          }
+
+          if (CUSTOM_LAYER_KEY) removeCustomLayer();
+
+          const id = "CUSTOM";
+          const title = name ? `CUSTOM — ${name}` : "CUSTOM — Expression";
+          CUSTOM_LAYER_KEY = `CUSTOM ${Date.now()}`;
+
+          const color = PALETTE[Object.keys(LAYERS).length % PALETTE.length];
+          LAYER_SETTINGS[CUSTOM_LAYER_KEY] = { render: true, color };
+
+          const layer = numbersToLayer(nums, id, CUSTOM_LAYER_KEY);
+          LAYERS[CUSTOM_LAYER_KEY] = layer;
+
+          SEQ_META[CUSTOM_LAYER_KEY] = {
+            id,
+            name: title,
+            numbers: nums,
+            shown: INITIAL_SHOW,
+          };
+
+          add_layer_row(CUSTOM_LAYER_KEY);
+          rebuildAllIndexesFromScratch();
+
+          if (Number.isFinite(OVERVIEW_MIN) && Number.isFinite(OVERVIEW_MAX) && OVERVIEW_MAX > OVERVIEW_MIN) {
+            const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
+            GLOBAL_NL_A = OVERVIEW_MIN - pad;
+            GLOBAL_NL_B = OVERVIEW_MAX + pad;
+            [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+          }
+
+          statusEl.textContent = `Loaded custom sequence (${nums.length} terms).`;
+          renderSequenceDetailsPanel();
+          rerender_all();
+        };
+
+        worker.postMessage({ code: sanitized.code, n });
+      }
+
+      document.getElementById("customRunBtn").addEventListener("click", runCustomSequence);
+      document.getElementById("customClearBtn").addEventListener("click", removeCustomLayer);
+
+      // ---------------------------
       // OEIS loading
       // ---------------------------
       async function loadMultipleOeis() {
@@ -1628,7 +1646,6 @@
           const layer = numbersToLayer(resp.numbers, resp.id, layerKey);
           LAYERS[layerKey] = layer;
 
-          // store meta for bottom panel
           SEQ_META[layerKey] = {
             id: resp.id,
             name: resp.name || "",
@@ -1645,7 +1662,6 @@
         rebuildOverview();
         buildOverlapValues();
 
-        // Reset view to fit all loaded sequences
         if (
           Number.isFinite(OVERVIEW_MIN) &&
           Number.isFinite(OVERVIEW_MAX) &&
@@ -1673,7 +1689,192 @@
         if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) loadMultipleOeis();
       });
 
-      // Initial state
+      // ---------------------------
+      // Details panel (search + list)
+      // ---------------------------
+      function renderSequenceDetailsPanel() {
+        const box = document.getElementById("reportBox");
+        const keys = Object.keys(SEQ_META);
+
+        if (keys.length === 0) {
+          box.innerHTML = "No sequences loaded.";
+          return;
+        }
+
+        const searchUI = `
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+            <input id="globalSearchInput" class="form-control form-control-sm"
+                  style="max-width:260px;"
+                  placeholder="Search number (e.g. 233 or -41)"
+                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
+            <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
+            <span class="muted" id="globalSearchStatus"></span>
+          </div>
+          <div id="globalSearchResults" style="margin-bottom:12px;"></div>
+        `;
+
+        const seqBlocks = keys
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const shown = meta.shown ?? INITIAL_SHOW;
+            const nums = meta.numbers.slice(0, shown);
+
+            const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
+            const oeisUrl = meta.id === "CUSTOM" ? null : `https://oeis.org/${meta.id}`;
+
+            const numsHtml = nums
+              .map(
+                (n) =>
+                  `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
+                    data-val="${n}" data-layer="${layerKey}">${n}</button>`
+              )
+              .join("");
+
+            const moreBtn =
+              shown < meta.numbers.length
+                ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
+                    Show more (+${SHOW_STEP})
+                  </button>`
+                : `<span class="muted">All loaded terms shown.</span>`;
+
+            return `
+              <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+                  <div>
+                    ${
+                      oeisUrl
+                        ? `<a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>`
+                        : `<b>${title}</b>`
+                    }
+                    <div class="muted">Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}</div>
+                  </div>
+                </div>
+
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
+                  ${numsHtml}
+                </div>
+
+                <div style="margin-top:8px;">
+                  ${moreBtn}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        box.innerHTML = searchUI + seqBlocks;
+
+        box.querySelectorAll(".oeis-num").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            GLOBAL_SEARCH_LAST = String(v);
+            jumpToValue(v);
+          });
+        });
+
+        box.querySelectorAll(".oeis-more").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const layerKey = btn.getAttribute("data-layer");
+            SEQ_META[layerKey].shown =
+              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
+            renderSequenceDetailsPanel();
+            const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+            if (Number.isFinite(v)) showExactOverlapInPanel(v);
+          });
+        });
+
+        const input = document.getElementById("globalSearchInput");
+        const searchBtn = document.getElementById("globalSearchBtn");
+
+        function runSearch() {
+          const raw = String(input.value || "").trim();
+          GLOBAL_SEARCH_LAST = raw;
+
+          if (!/^[-]?\d+$/.test(raw)) {
+            showSearchStatus("Enter an integer.", "");
+            return;
+          }
+
+          const v = Number(raw);
+          jumpToValue(v);
+          showExactOverlapInPanel(v);
+        }
+
+        searchBtn.addEventListener("click", runSearch);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runSearch();
+        });
+
+        const v = parseInt(GLOBAL_SEARCH_LAST, 10);
+        if (Number.isFinite(v)) showExactOverlapInPanel(v);
+      }
+
+      function showSearchStatus(statusText, resultsHtml) {
+        const statusEl = document.getElementById("globalSearchStatus");
+        const resultsEl = document.getElementById("globalSearchResults");
+        if (statusEl) statusEl.textContent = statusText || "";
+        if (resultsEl) resultsEl.innerHTML = resultsHtml || "";
+      }
+
+      function showExactOverlapInPanel(v) {
+        const layers = VALUE_TO_LAYERS.get(v) || [];
+        if (layers.length === 0) {
+          showSearchStatus(
+            "Not found in loaded sequences.",
+            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
+          );
+          return;
+        }
+
+        const list = layers
+          .map((layerKey) => {
+            const meta = SEQ_META[layerKey];
+            const label = meta
+              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
+              : layerKey;
+            return `<li><b>${label}</b></li>`;
+          })
+          .join("");
+
+        showSearchStatus(
+          `Found in ${layers.length} sequence(s).`,
+          `<div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+            <div><b>${v}</b> appears in:</div>
+            <ul class="reportList" style="margin-top:6px;">${list}</ul>
+          </div>`
+        );
+      }
+
+      // ---------------------------
+      // Layer UI helper (kept)
+      // ---------------------------
+      function add_layer_row(key) {
+        const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const color = LAYER_SETTINGS[key].color;
+
+        if (document.getElementById(safeId)) return;
+
+        const row = document.createElement("div");
+        row.className = "layerRow";
+        row.setAttribute("data-layer-key", key);
+
+        row.innerHTML = `
+          <div class="chip" style="background:${color}"></div>
+          <div class="layerName">${key}</div>
+          <input type="checkbox" id="${safeId}" checked />
+        `;
+
+        document.getElementById("layers").appendChild(row);
+
+        document.getElementById(safeId).addEventListener("change", (e) => {
+          LAYER_SETTINGS[key].render = e.target.checked;
+          requestRerender();
+        });
+      }
+
+      // ---------------------------
+      // UI init
+      // ---------------------------
       renderSequenceDetailsPanel();
       setView("overlaps");
       rerender_all();
