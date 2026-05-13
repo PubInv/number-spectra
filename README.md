@@ -17,6 +17,8 @@ to view the page on root folder
 /number-spectra
 run the command ```npm run dev```
 
+# Run the backend
+
 
 
 # Status
@@ -24,7 +26,7 @@ run the command ```npm run dev```
 This project is very early in its lifetime; at the time of this writing it is the first weekend.
 
 
-# Usage
+# Very Obsolete Version
 
 Go [https://pubinv.github.io/number-spectra/numberline/index.html](https://pubinv.github.io/number-spectra/numberline/index.html).
 
