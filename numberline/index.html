@@ -112,6 +112,15 @@
       }
 
       canvas#focusCanvas {
+        cursor: grab;
+        touch-action: none;
+      }
+
+      canvas#focusCanvas.dragging {
+        cursor: grabbing;
+      }
+
+      canvas#focusCanvas {
         height: 46vh;
       }
 
@@ -431,6 +440,9 @@ for (let i = 0; i < n; i++) {
       const INITIAL_SHOW = 200;
       const SHOW_STEP = 200;
       let GLOBAL_SEARCH_LAST = "";
+      let GLOBAL_RANGE_MIN_LAST = "";
+      let GLOBAL_RANGE_MAX_LAST = "";
+      let ACTIVE_RANGE_FILTER = null; // { min, max } inclusive
 
       // Colors per layer
       const PALETTE = [
@@ -461,6 +473,12 @@ for (let i = 0; i < n; i++) {
 
       const MIN_RANGE = 1e-6;
       const MAX_RANGE = 1e15;
+
+      // Interaction tuning: lower values keep the viewport from flying away.
+      const PAN_SENSITIVITY = 0.42;
+      const WHEEL_ZOOM_INTENSITY = 0.00055;
+      const MIN_WHEEL_FACTOR = 0.88;
+      const MAX_WHEEL_FACTOR = 1.14;
 
       var FOCUS_CANVAS = document.getElementById("focusCanvas");
       var OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
@@ -495,11 +513,17 @@ for (let i = 0; i < n; i++) {
         return xUntransform(t);
       }
 
-      function toVP(nl, A, B, N) {
+      function toVPFloat(nl, A, B, N) {
         const At = xTransform(A);
         const Bt = xTransform(B);
         const vt = xTransform(nl);
-        return Math.round(((vt - At) / (Bt - At)) * N);
+        const denom = Bt - At;
+        if (!Number.isFinite(denom) || denom === 0) return 0;
+        return ((vt - At) / denom) * N;
+      }
+
+      function toVP(nl, A, B, N) {
+        return Math.round(toVPFloat(nl, A, B, N));
       }
 
       function clampWindow(A, B) {
@@ -611,46 +635,47 @@ for (let i = 0; i < n; i++) {
         return lo;
       }
 
-      // ✅ FIX: step-aware formatting so labels change while zooming
+      // Step-aware formatting so labels keep changing while zooming/panning.
+      function stripTrailingZeros(text) {
+        return String(text)
+          .replace(/(\.\d*?[1-9])0+(e[+-]?\d+)?$/i, "$1$2")
+          .replace(/\.0+(e[+-]?\d+)?$/i, "$1")
+          .replace(/\.$/, "");
+      }
+
       function formatAxisNumber(n, step) {
-        const an = Math.abs(n);
         if (!Number.isFinite(n)) return "NaN";
-        if (an === 0) return "0";
+        if (Object.is(n, -0) || n === 0) return "0";
 
-        const hasStep = Number.isFinite(step) && step !== 0;
-        const absStep = hasStep ? Math.abs(step) : null;
+        const an = Math.abs(n);
+        const absStep = Number.isFinite(step) && step !== 0 ? Math.abs(step) : null;
 
-        if (hasStep) {
-          if (an < 1e6 && absStep < 1) {
-            const dec = Math.min(10, Math.max(0, -Math.floor(Math.log10(absStep)) + 1));
-            return n.toFixed(dec);
-          }
-
-          if (an >= 1e6) {
-            const rel = absStep / an;
-            let sig = 3;
-            if (rel < 1e-10) sig = 8;
-            else if (rel < 1e-8) sig = 7;
-            else if (rel < 1e-6) sig = 6;
-            else if (rel < 1e-4) sig = 5;
-            else if (rel < 1e-2) sig = 4;
-            return n.toExponential(Math.max(0, sig - 1));
-          }
-
-          if (absStep >= 1) return String(Math.round(n));
-
-          const dec = Math.min(10, Math.max(0, -Math.floor(Math.log10(absStep)) + 1));
-          return n.toFixed(dec);
+        if (!absStep) {
+          if (an >= 1e9 || an < 1e-4) return stripTrailingZeros(n.toExponential(4));
+          if (an >= 1e6) return stripTrailingZeros(n.toPrecision(7));
+          if (an >= 1) return stripTrailingZeros(n.toFixed(2));
+          return stripTrailingZeros(n.toPrecision(5));
         }
 
-        if (an >= 1e9) return n.toExponential(2);
-        if (an >= 1e6) return n.toExponential(1);
-        if (an >= 1e4) return String(Math.round(n));
-        if (an >= 1) return String(Math.round(n));
-        return n.toExponential(1);
+        if (absStep < 1) {
+          const dec = Math.min(12, Math.max(0, -Math.floor(Math.log10(absStep)) + 1));
+          return stripTrailingZeros(n.toFixed(dec));
+        }
+
+        // For large absolute values, plain rounding can make labels appear frozen.
+        // Keep enough significant digits to show movement relative to the tick step.
+        if (an >= 1e6) {
+          const magnitude = Math.floor(Math.log10(an));
+          const stepMagnitude = Math.floor(Math.log10(absStep));
+          const sig = Math.min(14, Math.max(4, magnitude - stepMagnitude + 2));
+          return stripTrailingZeros(n.toPrecision(sig));
+        }
+
+        return String(Math.round(n));
       }
 
       function niceStep(rawStep) {
+        if (!Number.isFinite(rawStep) || rawStep <= 0) return 1;
         const exp = Math.floor(Math.log10(rawStep));
         const base = rawStep / Math.pow(10, exp);
         let niceBase;
@@ -679,6 +704,7 @@ for (let i = 0; i < n; i++) {
         ctx.fillStyle = "#111827";
 
         let lastLabelRight = -Infinity;
+        let lastLabelText = null;
 
         if (!LOG_X) {
           const d = B - A;
@@ -689,7 +715,7 @@ for (let i = 0; i < n; i++) {
           const last = Math.floor(B / step) * step;
 
           for (let t = first; t <= last + step * 0.5; t += step) {
-            const x = toVP(t, A, B, W);
+            const x = toVPFloat(t, A, B, W);
             const label = formatAxisNumber(t, step);
             const w = ctx.measureText(label).width;
 
@@ -702,9 +728,10 @@ for (let i = 0; i < n; i++) {
             ctx.lineTo(x, baseline + H / 6);
             ctx.stroke();
 
-            if (left > lastLabelRight + 10) {
+            if (label !== lastLabelText && left > lastLabelRight + 10) {
               ctx.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
+              lastLabelText = label;
             }
           }
         } else {
@@ -724,7 +751,7 @@ for (let i = 0; i < n; i++) {
             const nextVal = xUntransform(tt + stepT);
             const stepApprox = Math.abs(nextVal - val);
 
-            const x = toVP(val, A, B, W);
+            const x = toVPFloat(val, A, B, W);
             const label = formatAxisNumber(val, stepApprox);
 
             const w = ctx.measureText(label).width;
@@ -737,15 +764,16 @@ for (let i = 0; i < n; i++) {
             ctx.lineTo(x, baseline + H / 6);
             ctx.stroke();
 
-            if (left > lastLabelRight + 10) {
+            if (label !== lastLabelText && left > lastLabelRight + 10) {
               ctx.fillText(label, left, baseline + H / 5);
               lastLabelRight = right;
+              lastLabelText = label;
             }
           }
         }
 
         if (SELECTED_VALUE !== null) {
-          const x = toVP(SELECTED_VALUE, A, B, W);
+          const x = toVPFloat(SELECTED_VALUE, A, B, W);
           ctx.beginPath();
           ctx.strokeStyle = "#111827";
           ctx.globalAlpha = 0.35;
@@ -1076,6 +1104,7 @@ for (let i = 0; i < n; i++) {
 
       FOCUS_CANVAS.addEventListener("mousedown", (e) => {
         isDragging = true;
+        FOCUS_CANVAS.classList.add("dragging");
         dragMoved = false;
         dragStartX = getMouseXOnCanvas(e, FOCUS_CANVAS);
         dragStartA = GLOBAL_NL_A;
@@ -1084,12 +1113,19 @@ for (let i = 0; i < n; i++) {
 
       window.addEventListener("mouseup", () => {
         isDragging = false;
+        FOCUS_CANVAS.classList.remove("dragging");
+      });
+
+      FOCUS_CANVAS.addEventListener("mouseleave", () => {
+        if (!isDragging) return;
+        isDragging = false;
+        FOCUS_CANVAS.classList.remove("dragging");
       });
 
       FOCUS_CANVAS.addEventListener("mousemove", (e) => {
         if (!isDragging) return;
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
-        const dx = x - dragStartX;
+        const dx = (x - dragStartX) * PAN_SENSITIVITY;
         if (Math.abs(dx) > 2) dragMoved = true;
         const W = FOCUS_CANVAS.width;
 
@@ -1119,7 +1155,11 @@ for (let i = 0; i < n; i++) {
           e.preventDefault();
           const W = FOCUS_CANVAS.width;
           const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
-          const factor = Math.exp(e.deltaY * 0.0015);
+          const factor = clamp(
+            Math.exp(e.deltaY * WHEEL_ZOOM_INTENSITY),
+            MIN_WHEEL_FACTOR,
+            MAX_WHEEL_FACTOR
+          );
 
           if (!LOG_X) {
             const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
@@ -1284,7 +1324,7 @@ for (let i = 0; i < n; i++) {
       // ---------------------------
       function left_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * (3 / 4);
+        const dp = d * (1 / 3);
         GLOBAL_NL_B -= dp;
         GLOBAL_NL_A -= dp;
         requestRerender();
@@ -1292,7 +1332,7 @@ for (let i = 0; i < n; i++) {
 
       function right_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * (3 / 4);
+        const dp = d * (1 / 3);
         GLOBAL_NL_B += dp;
         GLOBAL_NL_A += dp;
         requestRerender();
@@ -1300,7 +1340,7 @@ for (let i = 0; i < n; i++) {
 
       function zoom_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * 0.15;
+        const dp = d * 0.08;
         GLOBAL_NL_B -= dp;
         GLOBAL_NL_A += dp;
         [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
@@ -1309,7 +1349,7 @@ for (let i = 0; i < n; i++) {
 
       function unzoom_click() {
         const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * 0.25;
+        const dp = d * 0.12;
         GLOBAL_NL_B += dp;
         GLOBAL_NL_A -= dp;
         [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
@@ -1433,6 +1473,9 @@ for (let i = 0; i < n; i++) {
         SELECTED_VALUE = null;
         for (const k in SEQ_META) delete SEQ_META[k];
         GLOBAL_SEARCH_LAST = "";
+        GLOBAL_RANGE_MIN_LAST = "";
+        GLOBAL_RANGE_MAX_LAST = "";
+        ACTIVE_RANGE_FILTER = null;
 
         CUSTOM_LAYER_KEY = null;
         const cs = document.getElementById("customStatus");
@@ -1783,6 +1826,64 @@ for (let i = 0; i < n; i++) {
       // ---------------------------
       // Details panel
       // ---------------------------
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function parseRangeInput(minRaw, maxRaw) {
+        const minText = String(minRaw || "").trim();
+        const maxText = String(maxRaw || "").trim();
+
+        if (!minText || !maxText) {
+          return { ok: false, error: "Enter both range values." };
+        }
+
+        const min = Number(minText);
+        const max = Number(maxText);
+
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          return { ok: false, error: "Range values must be valid numbers." };
+        }
+
+        if (min === max) {
+          return { ok: false, error: "Range start and end cannot be the same." };
+        }
+
+        return {
+          ok: true,
+          min: Math.min(min, max),
+          max: Math.max(min, max),
+        };
+      }
+
+      function getNumbersForActiveRange(numbers) {
+        if (!ACTIVE_RANGE_FILTER) return numbers;
+        const { min, max } = ACTIVE_RANGE_FILTER;
+        return numbers.filter((n) => {
+          const v = Number(n);
+          return Number.isFinite(v) && v >= min && v <= max;
+        });
+      }
+
+      function zoomToActiveRange() {
+        if (!ACTIVE_RANGE_FILTER) return;
+
+        const { min, max } = ACTIVE_RANGE_FILTER;
+        const d = Math.max(max - min, MIN_RANGE);
+        const pad = Math.max(d * 0.05, d < 10 ? 1 : 0);
+
+        GLOBAL_NL_A = min - pad;
+        GLOBAL_NL_B = max + pad;
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+
+        requestRerender();
+      }
+
       function renderSequenceDetailsPanel() {
         const box = document.getElementById("reportBox");
         const keys = Object.keys(SEQ_META);
@@ -1792,48 +1893,86 @@ for (let i = 0; i < n; i++) {
           return;
         }
 
+        const activeRangeLabel = ACTIVE_RANGE_FILTER
+          ? `<span class="badge badge-info">Active range: ${escapeHtml(ACTIVE_RANGE_FILTER.min)} to ${escapeHtml(ACTIVE_RANGE_FILTER.max)}</span>`
+          : `<span class="muted">No range filter active.</span>`;
+
         const searchUI = `
-          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
             <input id="globalSearchInput" class="form-control form-control-sm"
                   style="max-width:260px;"
                   placeholder="Search number (e.g. 233 or -41)"
-                  value="${GLOBAL_SEARCH_LAST.replace(/"/g, "&quot;")}" />
+                  value="${escapeHtml(GLOBAL_SEARCH_LAST)}" />
             <button id="globalSearchBtn" class="btn btn-sm btn-primary">Jump</button>
             <span class="muted" id="globalSearchStatus"></span>
           </div>
           <div id="globalSearchResults" style="margin-bottom:12px;"></div>
+
+          <div style="padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+              <div>
+                <b>Range filter</b>
+                <div class="muted">Show loaded numbers between two values. The range is inclusive.</div>
+              </div>
+              <div id="rangeFilterBadge">${activeRangeLabel}</div>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input id="rangeMinInput" class="form-control form-control-sm"
+                    style="max-width:150px;"
+                    placeholder="From e.g. 250"
+                    value="${escapeHtml(GLOBAL_RANGE_MIN_LAST)}" />
+              <input id="rangeMaxInput" class="form-control form-control-sm"
+                    style="max-width:150px;"
+                    placeholder="To e.g. 500"
+                    value="${escapeHtml(GLOBAL_RANGE_MAX_LAST)}" />
+              <button id="rangeApplyBtn" class="btn btn-sm btn-primary">Apply Range</button>
+              <button id="rangeClearBtn" class="btn btn-sm btn-outline-secondary">Clear Range</button>
+              <span class="muted" id="rangeFilterStatus"></span>
+            </div>
+          </div>
         `;
 
         const seqBlocks = keys
           .map((layerKey) => {
             const meta = SEQ_META[layerKey];
             const shown = meta.shown ?? INITIAL_SHOW;
-            const nums = meta.numbers.slice(0, shown);
+            const filteredNumbers = getNumbersForActiveRange(meta.numbers);
+            const nums = filteredNumbers.slice(0, shown);
 
             const title = `${meta.id}${meta.name ? " — " + meta.name : ""}`;
             const oeisUrl = meta.id === "CUSTOM" ? null : `https://oeis.org/${meta.id}`;
 
-            const numsHtml = nums
+            const numsHtml = nums.length
+              ? nums
               .map(
                 (n) =>
                   `<button class="btn btn-sm btn-light mr-1 mb-1 oeis-num"
                     data-val="${n}" data-layer="${layerKey}">${n}</button>`
               )
-              .join("");
+              .join("")
+              : `<span class="muted">No numbers in the active range.</span>`;
 
+            const visibleTotal = filteredNumbers.length;
             const moreBtn =
-              shown < meta.numbers.length
+              shown < visibleTotal
                 ? `<button class="btn btn-sm btn-outline-secondary oeis-more" data-layer="${layerKey}">
                     Show more (+${SHOW_STEP})
                   </button>`
-                : `<span class="muted">All loaded terms shown.</span>`;
+                : ACTIVE_RANGE_FILTER
+                  ? `<span class="muted">All matching loaded terms shown.</span>`
+                  : `<span class="muted">All loaded terms shown.</span>`;
 
             return `
               <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
                   <div>
                     ${oeisUrl ? `<a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>` : `<b>${title}</b>`}
-                    <div class="muted">Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}</div>
+                    <div class="muted">${
+                      ACTIVE_RANGE_FILTER
+                        ? `Showing ${Math.min(shown, visibleTotal)} / ${visibleTotal} matching terms (${meta.numbers.length} loaded total)`
+                        : `Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}`
+                    }</div>
                   </div>
                 </div>
                 <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
@@ -1887,6 +2026,62 @@ for (let i = 0; i < n; i++) {
         searchBtn.addEventListener("click", runSearch);
         input.addEventListener("keydown", (e) => {
           if (e.key === "Enter") runSearch();
+        });
+
+        const rangeMinInput = document.getElementById("rangeMinInput");
+        const rangeMaxInput = document.getElementById("rangeMaxInput");
+        const rangeApplyBtn = document.getElementById("rangeApplyBtn");
+        const rangeClearBtn = document.getElementById("rangeClearBtn");
+
+        function setRangeStatus(text) {
+          const el = document.getElementById("rangeFilterStatus");
+          if (el) el.textContent = text || "";
+        }
+
+        function applyRangeFilter() {
+          const minRaw = rangeMinInput ? rangeMinInput.value : "";
+          const maxRaw = rangeMaxInput ? rangeMaxInput.value : "";
+
+          GLOBAL_RANGE_MIN_LAST = String(minRaw || "").trim();
+          GLOBAL_RANGE_MAX_LAST = String(maxRaw || "").trim();
+
+          const parsed = parseRangeInput(GLOBAL_RANGE_MIN_LAST, GLOBAL_RANGE_MAX_LAST);
+          if (!parsed.ok) {
+            setRangeStatus(parsed.error);
+            return;
+          }
+
+          ACTIVE_RANGE_FILTER = { min: parsed.min, max: parsed.max };
+
+          Object.keys(SEQ_META).forEach((layerKey) => {
+            SEQ_META[layerKey].shown = INITIAL_SHOW;
+          });
+
+          zoomToActiveRange();
+          renderSequenceDetailsPanel();
+        }
+
+        function clearRangeFilter() {
+          ACTIVE_RANGE_FILTER = null;
+          GLOBAL_RANGE_MIN_LAST = "";
+          GLOBAL_RANGE_MAX_LAST = "";
+
+          Object.keys(SEQ_META).forEach((layerKey) => {
+            SEQ_META[layerKey].shown = INITIAL_SHOW;
+          });
+
+          renderSequenceDetailsPanel();
+          requestRerender();
+        }
+
+        if (rangeApplyBtn) rangeApplyBtn.addEventListener("click", applyRangeFilter);
+        if (rangeClearBtn) rangeClearBtn.addEventListener("click", clearRangeFilter);
+
+        [rangeMinInput, rangeMaxInput].forEach((el) => {
+          if (!el) return;
+          el.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") applyRangeFilter();
+          });
         });
 
         const v = parseInt(GLOBAL_SEARCH_LAST, 10);
