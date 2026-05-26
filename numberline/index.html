@@ -443,6 +443,7 @@ for (let i = 0; i < n; i++) {
       let GLOBAL_RANGE_MIN_LAST = "";
       let GLOBAL_RANGE_MAX_LAST = "";
       let ACTIVE_RANGE_FILTER = null; // { min, max } inclusive
+      let PIXEL_INSPECTOR_HTML = ""; // stays inside Details without replacing search/range controls
 
       // Colors per layer
       const PALETTE = [
@@ -541,6 +542,48 @@ for (let i = 0; i < n; i++) {
           B = mid + MAX_RANGE / 2;
         }
         return [A, B];
+      }
+
+      function hasSelectedZoomAnchor() {
+        return SELECTED_VALUE !== null && Number.isFinite(Number(SELECTED_VALUE));
+      }
+
+      function zoomWindowAroundValue(anchor, factor, centerAnchor) {
+        if (!Number.isFinite(anchor) || !Number.isFinite(factor) || factor <= 0) return;
+
+        if (!LOG_X) {
+          let A, B;
+          if (centerAnchor) {
+            const span = Math.max(MIN_RANGE, (GLOBAL_NL_B - GLOBAL_NL_A) * factor);
+            A = anchor - span / 2;
+            B = anchor + span / 2;
+          } else {
+            A = anchor - (anchor - GLOBAL_NL_A) * factor;
+            B = anchor + (GLOBAL_NL_B - anchor) * factor;
+          }
+          [A, B] = clampWindow(A, B);
+          GLOBAL_NL_A = A;
+          GLOBAL_NL_B = B;
+          return;
+        }
+
+        const At = xTransform(GLOBAL_NL_A);
+        const Bt = xTransform(GLOBAL_NL_B);
+        const anchorT = xTransform(anchor);
+
+        let newAt, newBt;
+        if (centerAnchor) {
+          const spanT = Math.max(MIN_RANGE, Math.abs(Bt - At) * factor);
+          newAt = anchorT - spanT / 2;
+          newBt = anchorT + spanT / 2;
+        } else {
+          newAt = anchorT - (anchorT - At) * factor;
+          newBt = anchorT + (Bt - anchorT) * factor;
+        }
+
+        GLOBAL_NL_A = xUntransform(newAt);
+        GLOBAL_NL_B = xUntransform(newBt);
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
       }
 
       function jumpToValue(v) {
@@ -1161,28 +1204,14 @@ for (let i = 0; i < n; i++) {
             MAX_WHEEL_FACTOR
           );
 
-          if (!LOG_X) {
-            const anchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
-            let A = anchor - (anchor - GLOBAL_NL_A) * factor;
-            let B = anchor + (GLOBAL_NL_B - anchor) * factor;
-            [A, B] = clampWindow(A, B);
-            GLOBAL_NL_A = A;
-            GLOBAL_NL_B = B;
+          if (hasSelectedZoomAnchor()) {
+            zoomWindowAroundValue(Number(SELECTED_VALUE), factor, true);
             requestRerender();
             return;
           }
 
-          const At = xTransform(GLOBAL_NL_A);
-          const Bt = xTransform(GLOBAL_NL_B);
-          const anchorT = At + (mouseX * (Bt - At)) / W;
-
-          const newAt = anchorT - (anchorT - At) * factor;
-          const newBt = anchorT + (Bt - anchorT) * factor;
-
-          GLOBAL_NL_A = xUntransform(newAt);
-          GLOBAL_NL_B = xUntransform(newBt);
-          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
-
+          const cursorAnchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          zoomWindowAroundValue(cursorAnchor, factor, false);
           requestRerender();
         },
         { passive: false }
@@ -1229,6 +1258,9 @@ for (let i = 0; i < n; i++) {
         );
 
         let totalFound = 0;
+        let nearestValue = null;
+        let nearestDistance = Infinity;
+        const centerValue = toNL(xPx, GLOBAL_NL_A, GLOBAL_NL_B, W);
         const blocks = [];
         const stepEst = Math.max(1e-12, Math.abs(R - L));
 
@@ -1250,6 +1282,14 @@ for (let i = 0; i < n; i++) {
           const title = meta
             ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
             : key;
+
+          sample.forEach((v) => {
+            const dist = Math.abs(Number(v) - centerValue);
+            if (Number.isFinite(dist) && dist < nearestDistance) {
+              nearestDistance = dist;
+              nearestValue = Number(v);
+            }
+          });
 
           const pills = sample
             .map(
@@ -1281,41 +1321,35 @@ for (let i = 0; i < n; i++) {
           </div>
         `;
 
-        const report = document.getElementById("reportBox");
-        if (!report) return;
-
         if (blocks.length === 0) {
-          report.innerHTML =
+          PIXEL_INSPECTOR_HTML =
             header +
             `<div class="muted">No values from enabled sequences fall into this pixel window. Zoom in to separate values.</div>`;
-          return;
+          renderSequenceDetailsPanel();
+          return null;
         }
 
-        report.innerHTML = header + blocks.join("");
-
-        report.querySelectorAll(".px-jump").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const v = Number(btn.getAttribute("data-val"));
-            jumpToValue(v);
-          });
-        });
+        PIXEL_INSPECTOR_HTML = header + blocks.join("");
+        renderSequenceDetailsPanel();
+        return nearestValue;
       }
 
       FOCUS_CANVAS.addEventListener("click", (e) => {
         if (dragMoved) return;
 
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
-        inspectPixelAtX(x);
+        const nearestClickedValue = inspectPixelAtX(x);
 
         const W = FOCUS_CANVAS.width;
         const center = toNL(x, GLOBAL_NL_A, GLOBAL_NL_B, W);
-        const integer = Math.round(center);
-        SELECTED_VALUE = integer;
-        GLOBAL_SEARCH_LAST = String(integer);
+        const selected = Number.isFinite(nearestClickedValue) ? nearestClickedValue : Math.round(center);
+        SELECTED_VALUE = selected;
+        GLOBAL_SEARCH_LAST = String(selected);
 
         const input = document.getElementById("globalSearchInput");
         if (input) input.value = GLOBAL_SEARCH_LAST;
 
+        showExactOverlapInPanel(selected);
         requestRerender();
       });
 
@@ -1339,20 +1373,18 @@ for (let i = 0; i < n; i++) {
       }
 
       function zoom_click() {
-        const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * 0.08;
-        GLOBAL_NL_B -= dp;
-        GLOBAL_NL_A += dp;
-        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        const anchor = hasSelectedZoomAnchor()
+          ? Number(SELECTED_VALUE)
+          : (GLOBAL_NL_A + GLOBAL_NL_B) / 2;
+        zoomWindowAroundValue(anchor, 0.84, hasSelectedZoomAnchor());
         requestRerender();
       }
 
       function unzoom_click() {
-        const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * 0.12;
-        GLOBAL_NL_B += dp;
-        GLOBAL_NL_A -= dp;
-        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        const anchor = hasSelectedZoomAnchor()
+          ? Number(SELECTED_VALUE)
+          : (GLOBAL_NL_A + GLOBAL_NL_B) / 2;
+        zoomWindowAroundValue(anchor, 1.24, hasSelectedZoomAnchor());
         requestRerender();
       }
 
@@ -1476,6 +1508,7 @@ for (let i = 0; i < n; i++) {
         GLOBAL_RANGE_MIN_LAST = "";
         GLOBAL_RANGE_MAX_LAST = "";
         ACTIVE_RANGE_FILTER = null;
+        PIXEL_INSPECTOR_HTML = "";
 
         CUSTOM_LAYER_KEY = null;
         const cs = document.getElementById("customStatus");
@@ -1931,6 +1964,10 @@ for (let i = 0; i < n; i++) {
               <span class="muted" id="rangeFilterStatus"></span>
             </div>
           </div>
+
+          <div id="pixelInspectorResults" style="margin-bottom:12px;">
+            ${PIXEL_INSPECTOR_HTML}
+          </div>
         `;
 
         const seqBlocks = keys
@@ -2006,6 +2043,16 @@ for (let i = 0; i < n; i++) {
           });
         });
 
+        box.querySelectorAll(".px-jump").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            if (!Number.isFinite(v)) return;
+            GLOBAL_SEARCH_LAST = String(v);
+            SELECTED_VALUE = v;
+            jumpToValue(v);
+          });
+        });
+
         const input = document.getElementById("globalSearchInput");
         const searchBtn = document.getElementById("globalSearchBtn");
 
@@ -2052,6 +2099,7 @@ for (let i = 0; i < n; i++) {
           }
 
           ACTIVE_RANGE_FILTER = { min: parsed.min, max: parsed.max };
+          PIXEL_INSPECTOR_HTML = "";
 
           Object.keys(SEQ_META).forEach((layerKey) => {
             SEQ_META[layerKey].shown = INITIAL_SHOW;
@@ -2065,6 +2113,7 @@ for (let i = 0; i < n; i++) {
           ACTIVE_RANGE_FILTER = null;
           GLOBAL_RANGE_MIN_LAST = "";
           GLOBAL_RANGE_MAX_LAST = "";
+          PIXEL_INSPECTOR_HTML = "";
 
           Object.keys(SEQ_META).forEach((layerKey) => {
             SEQ_META[layerKey].shown = INITIAL_SHOW;
