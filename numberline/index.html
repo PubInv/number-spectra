@@ -600,10 +600,49 @@ for (let i = 0; i < n; i++) {
         return hist;
       }
 
-      function formatAxisNumber(n) {
+      function lowerBoundLayer(layer, target) {
+        let lo = 0,
+          hi = layer.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (layer[mid].value < target) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+
+      // ✅ FIX: step-aware formatting so labels change while zooming
+      function formatAxisNumber(n, step) {
         const an = Math.abs(n);
         if (!Number.isFinite(n)) return "NaN";
         if (an === 0) return "0";
+
+        const hasStep = Number.isFinite(step) && step !== 0;
+        const absStep = hasStep ? Math.abs(step) : null;
+
+        if (hasStep) {
+          if (an < 1e6 && absStep < 1) {
+            const dec = Math.min(10, Math.max(0, -Math.floor(Math.log10(absStep)) + 1));
+            return n.toFixed(dec);
+          }
+
+          if (an >= 1e6) {
+            const rel = absStep / an;
+            let sig = 3;
+            if (rel < 1e-10) sig = 8;
+            else if (rel < 1e-8) sig = 7;
+            else if (rel < 1e-6) sig = 6;
+            else if (rel < 1e-4) sig = 5;
+            else if (rel < 1e-2) sig = 4;
+            return n.toExponential(Math.max(0, sig - 1));
+          }
+
+          if (absStep >= 1) return String(Math.round(n));
+
+          const dec = Math.min(10, Math.max(0, -Math.floor(Math.log10(absStep)) + 1));
+          return n.toFixed(dec);
+        }
+
         if (an >= 1e9) return n.toExponential(2);
         if (an >= 1e6) return n.toExponential(1);
         if (an >= 1e4) return String(Math.round(n));
@@ -628,7 +667,6 @@ for (let i = 0; i < n; i++) {
         var ctx = canvas.getContext("2d");
         const baseline = (3 * H) / 4;
 
-        // baseline
         ctx.beginPath();
         ctx.strokeStyle = "#1f3a8a";
         ctx.moveTo(0, baseline);
@@ -652,7 +690,7 @@ for (let i = 0; i < n; i++) {
 
           for (let t = first; t <= last + step * 0.5; t += step) {
             const x = toVP(t, A, B, W);
-            const label = formatAxisNumber(t);
+            const label = formatAxisNumber(t, step);
             const w = ctx.measureText(label).width;
 
             const left = x + 4;
@@ -683,9 +721,12 @@ for (let i = 0; i < n; i++) {
 
           for (let tt = firstT; tt <= lastT + stepT * 0.5; tt += stepT) {
             const val = xUntransform(tt);
-            const x = toVP(val, A, B, W);
+            const nextVal = xUntransform(tt + stepT);
+            const stepApprox = Math.abs(nextVal - val);
 
-            const label = formatAxisNumber(val);
+            const x = toVP(val, A, B, W);
+            const label = formatAxisNumber(val, stepApprox);
+
             const w = ctx.measureText(label).width;
             const left = x + 4;
             const right = left + w;
@@ -738,9 +779,6 @@ for (let i = 0; i < n; i++) {
         ctx.globalAlpha = 1.0;
       }
 
-      // ---------------------------
-      // Overlaps view
-      // ---------------------------
       function lowerBoundOverlap(arr, target) {
         let lo = 0,
           hi = arr.length;
@@ -807,108 +845,11 @@ for (let i = 0; i < n; i++) {
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
       }
 
-      function showOverlapsNear(centerValue) {
-        const W = FOCUS_CANVAS.width;
-        const centerPx = toVP(centerValue, GLOBAL_NL_A, GLOBAL_NL_B, W);
-        const leftVal = toNL(
-          Math.max(0, centerPx - CLICK_NEAR_PX),
-          GLOBAL_NL_A,
-          GLOBAL_NL_B,
-          W
-        );
-        const rightVal = toNL(
-          Math.min(W, centerPx + CLICK_NEAR_PX),
-          GLOBAL_NL_A,
-          GLOBAL_NL_B,
-          W
-        );
-
-        const A = Math.min(leftVal, rightVal);
-        const B = Math.max(leftVal, rightVal);
-
-        const s = lowerBoundOverlap(OVERLAP_VALUES, A);
-        const t = lowerBoundOverlap(OVERLAP_VALUES, B);
-
-        const slice = OVERLAP_VALUES
-          .slice(s, t)
-          .sort((p, q) => q.c - p.c)
-          .slice(0, 80);
-
-        if (!slice.length) {
-          document.getElementById("reportBox").innerHTML = `
-            <div><b>No overlaps near:</b> ${Math.round(centerValue)}</div>
-            <div class="muted">Try zooming in or loading more sequences.</div>
-          `;
-          return;
-        }
-
-        const itemsHtml = slice
-          .map((o) => {
-            const layers = VALUE_TO_LAYERS.get(o.v) || [];
-            return `
-              <div style="margin-bottom:6px;">
-                <button class="btn btn-sm btn-light jumpOverlap" data-val="${o.v}">
-                  ${o.v} (in ${o.c} sequences)
-                </button>
-                <div class="muted" style="margin-left:4px;">${layers.join(", ")}</div>
-              </div>
-            `;
-          })
-          .join("");
-
-        document.getElementById("reportBox").innerHTML = `
-          <div><b>Overlaps near:</b> ${Math.round(centerValue)}</div>
-          <div class="muted">Top overlaps in this region:</div>
-          <div style="margin-top:8px;">${itemsHtml}</div>
-        `;
-
-        document.querySelectorAll(".jumpOverlap").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const v = Number(btn.getAttribute("data-val"));
-            jumpToValue(v);
-          });
-        });
-      }
-
-      // ---------------------------
-      // Lanes view
-      // ---------------------------
       function getRenderableLaneKeys() {
         const enabled = Object.keys(LAYERS).filter(
           (k) => LAYER_SETTINGS[k]?.render
         );
         return enabled.slice(0, MAX_LANES_RENDER);
-      }
-
-      function lowerBoundLayer(layer, target) {
-        let lo = 0,
-          hi = layer.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >> 1;
-          if (layer[mid].value < target) lo = mid + 1;
-          else hi = mid;
-        }
-        return lo;
-      }
-
-      function binaryNearest(sortedPoints, target) {
-        let lo = 0,
-          hi = sortedPoints.length - 1;
-        if (hi < 0) return null;
-        if (target <= sortedPoints[0].value) return sortedPoints[0].value;
-        if (target >= sortedPoints[hi].value) return sortedPoints[hi].value;
-
-        while (lo + 1 < hi) {
-          const mid = (lo + hi) >> 1;
-          const v = sortedPoints[mid].value;
-          if (v === target) return v;
-          if (v < target) lo = mid;
-          else hi = mid;
-        }
-        return Math.abs(sortedPoints[lo].value - target) <=
-          Math.abs(sortedPoints[hi].value - target)
-          ? sortedPoints[lo].value
-          : sortedPoints[hi].value;
       }
 
       function setFocusCanvasHeightForView() {
@@ -1054,9 +995,6 @@ for (let i = 0; i < n; i++) {
         }
       }
 
-      // ---------------------------
-      // Density view
-      // ---------------------------
       function renderDensityView() {
         const W = FOCUS_CANVAS.width;
         const enabledKeys = Object.keys(LAYERS).filter(
@@ -1080,9 +1018,6 @@ for (let i = 0; i < n; i++) {
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
       }
 
-      // ---------------------------
-      // Main render
-      // ---------------------------
       function rerender_all() {
         const heightChanged = setFocusCanvasHeightForView();
         if (heightChanged) {
@@ -1114,6 +1049,7 @@ for (let i = 0; i < n; i++) {
       // Pan + wheel zoom (log-aware)
       // ---------------------------
       let isDragging = false;
+      let dragMoved = false;
       let dragStartX = 0;
       let dragStartA = 0;
       let dragStartB = 0;
@@ -1140,6 +1076,7 @@ for (let i = 0; i < n; i++) {
 
       FOCUS_CANVAS.addEventListener("mousedown", (e) => {
         isDragging = true;
+        dragMoved = false;
         dragStartX = getMouseXOnCanvas(e, FOCUS_CANVAS);
         dragStartA = GLOBAL_NL_A;
         dragStartB = GLOBAL_NL_B;
@@ -1153,6 +1090,7 @@ for (let i = 0; i < n; i++) {
         if (!isDragging) return;
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
         const dx = x - dragStartX;
+        if (Math.abs(dx) > 2) dragMoved = true;
         const W = FOCUS_CANVAS.width;
 
         if (!LOG_X) {
@@ -1211,6 +1149,137 @@ for (let i = 0; i < n; i++) {
       );
 
       // ---------------------------
+      // Pixel Inspector + click handler (RESTORED)
+      // ---------------------------
+      const PIXEL_INSPECT_RADIUS_PX = 2;
+      const MAX_VALUES_PER_LAYER = 40;
+      const MAX_TOTAL_VALUES = 300;
+
+      function clamp(v, lo, hi) {
+        return Math.max(lo, Math.min(hi, v));
+      }
+
+      function valuesInRange(layerArr, L, R, maxSample) {
+        if (!layerArr || layerArr.length === 0) return { count: 0, sample: [] };
+
+        const lo = lowerBoundLayer(layerArr, L);
+        const hi = lowerBoundLayer(layerArr, R);
+        const count = Math.max(0, hi - lo);
+
+        const sample = [];
+        const take = Math.min(count, maxSample);
+        for (let i = 0; i < take; i++) sample.push(layerArr[lo + i].value);
+
+        return { count, sample };
+      }
+
+      function inspectPixelAtX(xPx) {
+        const W = FOCUS_CANVAS.width;
+        if (!Number.isFinite(W) || W <= 0) return;
+
+        const x0 = clamp(Math.floor(xPx - PIXEL_INSPECT_RADIUS_PX), 0, W - 1);
+        const x1 = clamp(Math.floor(xPx + PIXEL_INSPECT_RADIUS_PX + 1), 1, W);
+
+        let L = toNL(x0, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        let R = toNL(x1, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        if (L > R) [L, R] = [R, L];
+
+        const enabledKeys = Object.keys(LAYERS).filter(
+          (k) => LAYER_SETTINGS[k]?.render
+        );
+
+        let totalFound = 0;
+        const blocks = [];
+        const stepEst = Math.max(1e-12, Math.abs(R - L));
+
+        for (const key of enabledKeys) {
+          if (totalFound >= MAX_TOTAL_VALUES) break;
+
+          const layer = LAYERS[key];
+          const { count, sample } = valuesInRange(
+            layer,
+            L,
+            R,
+            MAX_VALUES_PER_LAYER
+          );
+          if (count <= 0) continue;
+
+          totalFound += count;
+
+          const meta = SEQ_META[key];
+          const title = meta
+            ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
+            : key;
+
+          const pills = sample
+            .map(
+              (v) =>
+                `<button class="btn btn-sm btn-light mr-1 mb-1 px-jump" data-val="${v}">${v}</button>`
+            )
+            .join("");
+
+          blocks.push(`
+            <div style="margin-bottom:10px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+              <div><b>${title}</b> <span class="muted">(${count} value(s) in this pixel window)</span></div>
+              <div style="margin-top:8px; display:flex; flex-wrap:wrap;">${pills}</div>
+              ${
+                count > sample.length
+                  ? `<div class="muted">Showing ${sample.length} of ${count}.</div>`
+                  : ``
+              }
+            </div>
+          `);
+        }
+
+        const header = `
+          <div style="margin-bottom:10px;">
+            <div><b>Pixel Inspector</b></div>
+            <div class="muted">Approx range: [${formatAxisNumber(
+              L,
+              stepEst
+            )}, ${formatAxisNumber(R, stepEst)}) — total hits: ${totalFound}</div>
+          </div>
+        `;
+
+        const report = document.getElementById("reportBox");
+        if (!report) return;
+
+        if (blocks.length === 0) {
+          report.innerHTML =
+            header +
+            `<div class="muted">No values from enabled sequences fall into this pixel window. Zoom in to separate values.</div>`;
+          return;
+        }
+
+        report.innerHTML = header + blocks.join("");
+
+        report.querySelectorAll(".px-jump").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const v = Number(btn.getAttribute("data-val"));
+            jumpToValue(v);
+          });
+        });
+      }
+
+      FOCUS_CANVAS.addEventListener("click", (e) => {
+        if (dragMoved) return;
+
+        const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        inspectPixelAtX(x);
+
+        const W = FOCUS_CANVAS.width;
+        const center = toNL(x, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        const integer = Math.round(center);
+        SELECTED_VALUE = integer;
+        GLOBAL_SEARCH_LAST = String(integer);
+
+        const input = document.getElementById("globalSearchInput");
+        if (input) input.value = GLOBAL_SEARCH_LAST;
+
+        requestRerender();
+      });
+
+      // ---------------------------
       // UI buttons
       // ---------------------------
       function left_click() {
@@ -1247,10 +1316,18 @@ for (let i = 0; i < n; i++) {
         requestRerender();
       }
 
-      document.getElementById("left_button").addEventListener("click", left_click);
-      document.getElementById("right_button").addEventListener("click", right_click);
-      document.getElementById("zoom_button").addEventListener("click", zoom_click);
-      document.getElementById("unzoom_button").addEventListener("click", unzoom_click);
+      document
+        .getElementById("left_button")
+        .addEventListener("click", left_click);
+      document
+        .getElementById("right_button")
+        .addEventListener("click", right_click);
+      document
+        .getElementById("zoom_button")
+        .addEventListener("click", zoom_click);
+      document
+        .getElementById("unzoom_button")
+        .addEventListener("click", unzoom_click);
 
       document.getElementById("reset_button").addEventListener("click", () => {
         if (
@@ -1271,27 +1348,49 @@ for (let i = 0; i < n; i++) {
       function setView(v) {
         VIEW = v;
         document.getElementById("viewTag").textContent =
-          `View: ${v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"}`;
+          `View: ${
+            v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"
+          }`;
 
-        document.getElementById("view_overlaps").classList.toggle("btn-secondary", v === "overlaps");
-        document.getElementById("view_overlaps").classList.toggle("btn-outline-secondary", v !== "overlaps");
+        document
+          .getElementById("view_overlaps")
+          .classList.toggle("btn-secondary", v === "overlaps");
+        document
+          .getElementById("view_overlaps")
+          .classList.toggle("btn-outline-secondary", v !== "overlaps");
 
-        document.getElementById("view_lanes").classList.toggle("btn-secondary", v === "lanes");
-        document.getElementById("view_lanes").classList.toggle("btn-outline-secondary", v !== "lanes");
+        document
+          .getElementById("view_lanes")
+          .classList.toggle("btn-secondary", v === "lanes");
+        document
+          .getElementById("view_lanes")
+          .classList.toggle("btn-outline-secondary", v !== "lanes");
 
-        document.getElementById("view_density").classList.toggle("btn-secondary", v === "density");
-        document.getElementById("view_density").classList.toggle("btn-outline-secondary", v !== "density");
+        document
+          .getElementById("view_density")
+          .classList.toggle("btn-secondary", v === "density");
+        document
+          .getElementById("view_density")
+          .classList.toggle("btn-outline-secondary", v !== "density");
 
         requestRerender();
       }
 
-      document.getElementById("view_overlaps").addEventListener("click", () => setView("overlaps"));
-      document.getElementById("view_lanes").addEventListener("click", () => setView("lanes"));
-      document.getElementById("view_density").addEventListener("click", () => setView("density"));
+      document
+        .getElementById("view_overlaps")
+        .addEventListener("click", () => setView("overlaps"));
+      document
+        .getElementById("view_lanes")
+        .addEventListener("click", () => setView("lanes"));
+      document
+        .getElementById("view_density")
+        .addEventListener("click", () => setView("density"));
 
       document.getElementById("logx_toggle").addEventListener("change", (e) => {
         LOG_X = !!e.target.checked;
-        document.getElementById("scaleTag").textContent = `Scale: ${LOG_X ? "Log" : "Linear"}`;
+        document.getElementById("scaleTag").textContent = `Scale: ${
+          LOG_X ? "Log" : "Linear"
+        }`;
         requestRerender();
       });
 
@@ -1335,12 +1434,11 @@ for (let i = 0; i < n; i++) {
         for (const k in SEQ_META) delete SEQ_META[k];
         GLOBAL_SEARCH_LAST = "";
 
-        // Custom sequence UI reset
         CUSTOM_LAYER_KEY = null;
         const cs = document.getElementById("customStatus");
         if (cs) cs.textContent = "";
         const cc = document.getElementById("customCode");
-        if (cc) cc.value = cc.value; // keep user text
+        if (cc) cc.value = cc.value;
 
         document.getElementById("layers").innerHTML = "";
         document.getElementById("oeisStatus").textContent = "Cleared.";
@@ -1352,7 +1450,9 @@ for (let i = 0; i < n; i++) {
         requestRerender();
       }
 
-      document.getElementById("oeisClearBtn").addEventListener("click", clearAll);
+      document
+        .getElementById("oeisClearBtn")
+        .addEventListener("click", clearAll);
 
       function parseOeisIds(raw) {
         return String(raw || "")
@@ -1435,10 +1535,10 @@ for (let i = 0; i < n; i++) {
       }
 
       // ---------------------------
-      // Custom sequence (user code) - SAFE-ish mode
+      // Custom sequence (worker)
       // ---------------------------
       const MAX_CUSTOM_TERMS = 20000;
-      const CUSTOM_TIMEOUT_MS = 600; // kill runaway loops
+      const CUSTOM_TIMEOUT_MS = 600;
       let CUSTOM_LAYER_KEY = null;
 
       function sanitizeCustomCode(code) {
@@ -1455,9 +1555,7 @@ for (let i = 0; i < n; i++) {
           /\bwindow\b/i,
         ];
         for (const rx of bad) {
-          if (rx.test(s)) {
-            return { ok: false, error: `Blocked keyword/pattern: ${rx}` };
-          }
+          if (rx.test(s)) return { ok: false, error: `Blocked keyword/pattern: ${rx}` };
         }
         return { ok: true, code: s };
       }
@@ -1625,9 +1723,7 @@ for (let i = 0; i < n; i++) {
         clearAll();
         status.textContent = "Loading...";
 
-        const requests = ids.map((d) =>
-          $.getJSON(`http://localhost:3000/oeis/${d}`)
-        );
+        const requests = ids.map((d) => $.getJSON(`http://localhost:3000/oeis/${d}`));
         const results = await Promise.allSettled(requests);
 
         let loaded = 0;
@@ -1637,7 +1733,7 @@ for (let i = 0; i < n; i++) {
             return;
           }
 
-          const resp = r.value; // { id, name?, numbers, count }
+          const resp = r.value;
           const layerKey = `OEIS ${resp.id}`;
 
           const color = PALETTE[loaded % PALETTE.length];
@@ -1655,18 +1751,13 @@ for (let i = 0; i < n; i++) {
 
           indexLayerValues(layerKey, layer);
           add_layer_row(layerKey);
-
           loaded++;
         });
 
         rebuildOverview();
         buildOverlapValues();
 
-        if (
-          Number.isFinite(OVERVIEW_MIN) &&
-          Number.isFinite(OVERVIEW_MAX) &&
-          OVERVIEW_MAX > OVERVIEW_MIN
-        ) {
+        if (Number.isFinite(OVERVIEW_MIN) && Number.isFinite(OVERVIEW_MAX) && OVERVIEW_MAX > OVERVIEW_MIN) {
           const pad = (OVERVIEW_MAX - OVERVIEW_MIN) * 0.1 || 10;
           GLOBAL_NL_A = OVERVIEW_MIN - pad;
           GLOBAL_NL_B = OVERVIEW_MAX + pad;
@@ -1690,7 +1781,7 @@ for (let i = 0; i < n; i++) {
       });
 
       // ---------------------------
-      // Details panel (search + list)
+      // Details panel
       // ---------------------------
       function renderSequenceDetailsPanel() {
         const box = document.getElementById("reportBox");
@@ -1741,19 +1832,13 @@ for (let i = 0; i < n; i++) {
               <div style="margin-bottom:12px; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fbfbfc;">
                 <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
                   <div>
-                    ${
-                      oeisUrl
-                        ? `<a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>`
-                        : `<b>${title}</b>`
-                    }
+                    ${oeisUrl ? `<a href="${oeisUrl}" target="_blank" rel="noopener noreferrer"><b>${title}</b></a>` : `<b>${title}</b>`}
                     <div class="muted">Showing ${Math.min(shown, meta.numbers.length)} / ${meta.numbers.length}</div>
                   </div>
                 </div>
-
                 <div style="margin-top:8px; display:flex; flex-wrap:wrap;">
                   ${numsHtml}
                 </div>
-
                 <div style="margin-top:8px;">
                   ${moreBtn}
                 </div>
@@ -1775,8 +1860,7 @@ for (let i = 0; i < n; i++) {
         box.querySelectorAll(".oeis-more").forEach((btn) => {
           btn.addEventListener("click", () => {
             const layerKey = btn.getAttribute("data-layer");
-            SEQ_META[layerKey].shown =
-              (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
+            SEQ_META[layerKey].shown = (SEQ_META[layerKey].shown ?? INITIAL_SHOW) + SHOW_STEP;
             renderSequenceDetailsPanel();
             const v = parseInt(GLOBAL_SEARCH_LAST, 10);
             if (Number.isFinite(v)) showExactOverlapInPanel(v);
@@ -1819,19 +1903,14 @@ for (let i = 0; i < n; i++) {
       function showExactOverlapInPanel(v) {
         const layers = VALUE_TO_LAYERS.get(v) || [];
         if (layers.length === 0) {
-          showSearchStatus(
-            "Not found in loaded sequences.",
-            `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`
-          );
+          showSearchStatus("Not found in loaded sequences.", `<div class="muted">No loaded sequence contains <b>${v}</b>.</div>`);
           return;
         }
 
         const list = layers
           .map((layerKey) => {
             const meta = SEQ_META[layerKey];
-            const label = meta
-              ? `${meta.id}${meta.name ? " — " + meta.name : ""}`
-              : layerKey;
+            const label = meta ? `${meta.id}${meta.name ? " — " + meta.name : ""}` : layerKey;
             return `<li><b>${label}</b></li>`;
           })
           .join("");
@@ -1846,37 +1925,10 @@ for (let i = 0; i < n; i++) {
       }
 
       // ---------------------------
-      // Layer UI helper (kept)
-      // ---------------------------
-      function add_layer_row(key) {
-        const safeId = "checkbox-" + key.replace(/[^a-zA-Z0-9_-]/g, "_");
-        const color = LAYER_SETTINGS[key].color;
-
-        if (document.getElementById(safeId)) return;
-
-        const row = document.createElement("div");
-        row.className = "layerRow";
-        row.setAttribute("data-layer-key", key);
-
-        row.innerHTML = `
-          <div class="chip" style="background:${color}"></div>
-          <div class="layerName">${key}</div>
-          <input type="checkbox" id="${safeId}" checked />
-        `;
-
-        document.getElementById("layers").appendChild(row);
-
-        document.getElementById(safeId).addEventListener("change", (e) => {
-          LAYER_SETTINGS[key].render = e.target.checked;
-          requestRerender();
-        });
-      }
-
-      // ---------------------------
       // UI init
       // ---------------------------
       renderSequenceDetailsPanel();
-      setView("overlaps");
+      setView("density");
       rerender_all();
     </script>
   </body>
