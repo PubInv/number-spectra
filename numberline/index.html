@@ -267,13 +267,113 @@
           "Liberation Mono", "Courier New", monospace;
         font-size: 12px;
       }
+
+
+      /* Collapsible panels*/
+      .sidebar,
+      #report {
+        transition: width 180ms ease, height 180ms ease, padding 180ms ease;
+      }
+
+      .panelToggleBar,
+      .reportHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .panelToggleBtn {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: #111827;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .panelToggleBtn:hover {
+        background: #f3f4f6;
+      }
+
+      .sidebar.collapsed {
+        width: 48px;
+        min-width: 48px;
+        padding: 8px 6px;
+        overflow: hidden;
+      }
+
+      .sidebar.collapsed > :not(.panelToggleBar) {
+        display: none;
+      }
+
+      .sidebar.collapsed .panelToggleBar {
+        justify-content: center;
+        margin-bottom: 0;
+      }
+
+      .sidebar.collapsed .panelToggleTitle {
+        display: none;
+      }
+
+      #report.collapsed {
+        height: 46px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        overflow: hidden;
+      }
+
+      #report.collapsed #reportBox {
+        display: none;
+      }
+
+      #report.collapsed .reportHeader {
+        margin-bottom: 0;
+      }
+
+      @media (max-width: 760px) {
+        :root {
+          --sidebar-w: 300px;
+        }
+
+        .topRight {
+          max-width: calc(100vw - 260px);
+        }
+
+        .sidebar.collapsed {
+          width: 44px;
+          min-width: 44px;
+        }
+      }
     </style>
   </head>
 
   <body>
     <div class="app">
       <!-- SIDEBAR -->
-      <div class="sidebar">
+      <div class="sidebar" id="sequenceLoaderPanel">
+        <div class="panelToggleBar">
+          <div class="panelTitle panelToggleTitle">Sequence loader</div>
+          <button
+            id="sequenceLoaderToggle"
+            class="panelToggleBtn"
+            type="button"
+            title="Minimize sequence loader"
+            aria-label="Minimize sequence loader"
+            aria-expanded="true"
+          >
+            ‹
+          </button>
+        </div>
+
         <div class="panelTitle">OEIS</div>
         <div class="muted">
           Enter multiple IDs separated by commas/spaces/newlines. Example:
@@ -419,7 +519,19 @@ for (let i = 0; i < n; i++) {
         </div>
 
         <div id="report">
-          <div class="panelTitle">Details</div>
+          <div class="reportHeader">
+            <div class="panelTitle">Details</div>
+            <button
+              id="detailsToggle"
+              class="panelToggleBtn"
+              type="button"
+              title="Minimize details"
+              aria-label="Minimize details"
+              aria-expanded="true"
+            >
+              ˅
+            </button>
+          </div>
           <div class="reportBox" id="reportBox">No sequences loaded.</div>
         </div>
       </div>
@@ -483,6 +595,78 @@ for (let i = 0; i < n; i++) {
 
       var FOCUS_CANVAS = document.getElementById("focusCanvas");
       var OVERVIEW_CANVAS = document.getElementById("overviewCanvas");
+
+      let DETAILS_PANEL_COLLAPSED = false;
+      let SEQUENCE_LOADER_COLLAPSED = false;
+
+      function requestLayoutRerender() {
+        requestAnimationFrame(() => {
+          requestRerender();
+          requestAnimationFrame(() => requestRerender());
+        });
+      }
+
+      function setupCollapsiblePanels() {
+        const sequencePanel = document.getElementById("sequenceLoaderPanel");
+        const sequenceToggle = document.getElementById("sequenceLoaderToggle");
+        const detailsPanel = document.getElementById("report");
+        const detailsToggle = document.getElementById("detailsToggle");
+
+        function updateSequenceLoaderState() {
+          if (!sequencePanel || !sequenceToggle) return;
+          sequencePanel.classList.toggle("collapsed", SEQUENCE_LOADER_COLLAPSED);
+          sequenceToggle.textContent = SEQUENCE_LOADER_COLLAPSED ? "›" : "‹";
+          sequenceToggle.title = SEQUENCE_LOADER_COLLAPSED
+            ? "Restore sequence loader"
+            : "Minimize sequence loader";
+          sequenceToggle.setAttribute(
+            "aria-label",
+            SEQUENCE_LOADER_COLLAPSED
+              ? "Restore sequence loader"
+              : "Minimize sequence loader"
+          );
+          sequenceToggle.setAttribute("aria-expanded", String(!SEQUENCE_LOADER_COLLAPSED));
+          requestLayoutRerender();
+        }
+
+        function updateDetailsState() {
+          if (!detailsPanel || !detailsToggle) return;
+          detailsPanel.classList.toggle("collapsed", DETAILS_PANEL_COLLAPSED);
+          detailsToggle.textContent = DETAILS_PANEL_COLLAPSED ? "˄" : "˅";
+          detailsToggle.title = DETAILS_PANEL_COLLAPSED
+            ? "Restore details"
+            : "Minimize details";
+          detailsToggle.setAttribute(
+            "aria-label",
+            DETAILS_PANEL_COLLAPSED ? "Restore details" : "Minimize details"
+          );
+          detailsToggle.setAttribute("aria-expanded", String(!DETAILS_PANEL_COLLAPSED));
+          requestLayoutRerender();
+        }
+
+        if (sequenceToggle) {
+          sequenceToggle.addEventListener("click", () => {
+            SEQUENCE_LOADER_COLLAPSED = !SEQUENCE_LOADER_COLLAPSED;
+            updateSequenceLoaderState();
+          });
+        }
+
+        if (detailsToggle) {
+          detailsToggle.addEventListener("click", () => {
+            DETAILS_PANEL_COLLAPSED = !DETAILS_PANEL_COLLAPSED;
+            updateDetailsState();
+          });
+        }
+
+        [sequencePanel, detailsPanel].forEach((panel) => {
+          if (!panel) return;
+          panel.addEventListener("transitionend", requestLayoutRerender);
+        });
+
+        window.addEventListener("resize", requestLayoutRerender);
+        updateSequenceLoaderState();
+        updateDetailsState();
+      }
 
       // overlap cache
       let OVERLAP_VALUES = []; // [{v,c}] sorted
@@ -2171,6 +2355,7 @@ for (let i = 0; i < n; i++) {
       // ---------------------------
       // UI init
       // ---------------------------
+      setupCollapsiblePanels();
       renderSequenceDetailsPanel();
       setView("density");
       rerender_all();
