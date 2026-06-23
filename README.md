@@ -1,45 +1,126 @@
-# number-spectra
-Experimental study of finding simple closed-form expressions matching decimal expansions
+## Prerequisites
 
-cd mnumber-spectra
-mvn clean install test
+Before running the project, make sure you have:
 
-# How to run
+* Node.js
+* npm
 
-First install express
-```npm install express```
+Check your installed versions:
 
-to run the server go to /numberline folder on your terminal
-```cd ~/number-spectra/numberline```
-Then run ```node server.js```
+```bash
+node -v
+npm -v
+```
 
-to view the page on root folder
-/number-spectra
-run the command ```npm run dev```
+---
 
-# Run the backend
+## Clone the Repository
 
+```bash
+git clone https://github.com/pubinv/number-spectra.git
+cd number-spectra
+```
 
+---
 
-# Status
+## Install Dependencies
 
-This project is very early in its lifetime; at the time of this writing it is the first weekend.
+Install dependencies from the project root:
 
+```bash
+npm install
+```
 
-# Very Obsolete Version
+Then install dependencies for the `numberline` server:
 
-Go [https://pubinv.github.io/number-spectra/numberline/index.html](https://pubinv.github.io/number-spectra/numberline/index.html).
+```bash
+cd numberline
+npm install
+```
 
-# Related Works
+Return to the project root:
 
-[http://thetimelineproj.sourceforge.net/about.html](http://thetimelineproj.sourceforge.net/about.html)
+```bash
+cd ..
+```
 
-https://www.cs.ox.ac.uk/jeremy.gibbons/publications/rationals.pdf
+---
 
-https://www.quora.com/How-could-we-create-a-bijection-between-the-algebraic-and-natural-numbers-What-would-be-the-5th-algebraic-number-using-that-enumeration
+## How to Run the App
 
-https://en.wikipedia.org/wiki/Closed-form_expression#Closed-form_number
+You need two terminal windows.
 
-https://oeis.org/wiki/Orderings_of_algebraic_numbers
+---
 
-http://fredrikj.net/blog/2019/05/a-grimoire-of-functions/
+### Terminal 1 — Start the Numberline Server
+
+From the project root:
+
+```bash
+cd numberline
+node server.js
+```
+
+Keep this terminal running.
+
+---
+
+### Terminal 2 — Start the Frontend
+
+Open a second terminal and go to the project root:
+
+```bash
+cd number-spectra
+npm run dev
+```
+
+After the frontend starts, open the local URL shown in the terminal.
+
+It is usually something like:
+
+```text
+http://localhost:5173
+```
+
+The exact port may be different depending on your setup.
+
+---
+
+## Typical Local Development Workflow
+
+Start the backend server:
+
+```bash
+cd numberline
+node server.js
+```
+
+Start the frontend from another terminal:
+
+```bash
+npm run dev
+```
+
+Then open the local development URL in your browser.
+
+---
+
+## Obsolete Demo
+
+An older obsolete version is available here:
+
+https://pubinv.github.io/number-spectra/numberline/index.html
+
+This version may not reflect the current state of the project.
+
+---
+
+## Related Work
+
+* http://thetimelineproj.sourceforge.net/about.html
+* https://www.cs.ox.ac.uk/jeremy.gibbons/publications/rationals.pdf
+* https://www.quora.com/How-could-we-create-a-bijection-between-the-algebraic-and-natural-numbers-What-would-be-the-5th-algebraic-number-using-that-enumeration
+* https://en.wikipedia.org/wiki/Closed-form_expression#Closed-form_number
+* https://oeis.org/wiki/Orderings_of_algebraic_numbers
+* http://fredrikj.net/blog/2019/05/a-grimoire-of-functions/
+
