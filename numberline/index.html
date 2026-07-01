@@ -545,6 +545,8 @@ for (let i = 0; i < n; i++) {
       var LAYER_SETTINGS = {}; // key -> { render: bool, color: string }
       var VALUE_TO_LAYERS = new Map(); // value -> array of layer keys (exact overlap index)
       var OVERVIEW_POINTS = []; // [{value}] merged from all layers, sorted by value
+      var OVERVIEW_MIN = NaN;
+      var OVERVIEW_MAX = NaN;
 
       // Details panel metadata
       let SELECTED_VALUE = null;
