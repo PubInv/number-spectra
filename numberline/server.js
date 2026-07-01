@@ -3,6 +3,8 @@ import express from "express";
 
 const app = express();
 
+app.use(express.static("."));
+
 function toOeisId(raw) {
     // raw can be "40", "000040", "A40", "A000040"
     const s = String(raw).trim().toUpperCase().replace(/^A/, "");
@@ -25,20 +27,27 @@ function parseDataFieldToNumbers(dataStr) {
 
 app.get("/oeis/:anum", async (req, res) => {
     const id = toOeisId(req.params.anum);
-    if (!id) return res.status(400).json({ error: "Bad input. Use digits like 40, 000040, or A000040." });
+    if (!id) {
+        return res.status(400).json({
+            error: "Bad input. Use digits like 40, 000040, or A000040."
+        });
+    }
 
     const url = `https://oeis.org/${id}?fmt=json`;
 
     try {
-        const r = await fetch(url, { headers: { "User-Agent": "oeis-proxy/1.0" } });
-        if (!r.ok) return res.status(r.status).send(await r.text());
+        const r = await fetch(url, {
+            headers: { "User-Agent": "oeis-proxy/1.0" }
+        });
+
+        if (!r.ok) {
+            return res.status(r.status).send(await r.text());
+        }
 
         const json = await r.json();
 
-        // Handle both known shapes:
-        // 1) top-level: { data: "..." }
-        // 2) search-style: { results: [ { data: "..." } ] }
         const dataStr = json?.data ?? json?.results?.[0]?.data;
+        const name = json?.name ?? json?.results?.[0]?.name ?? "";
 
         if (!dataStr) {
             return res.status(502).json({
@@ -50,8 +59,14 @@ app.get("/oeis/:anum", async (req, res) => {
 
         const numbers = parseDataFieldToNumbers(dataStr);
 
-        res.set("Access-Control-Allow-Origin", "*"); // lock down later
-        return res.json({ id, numbers, count: numbers.length });
+        res.set("Access-Control-Allow-Origin", "*");
+
+        return res.json({
+            id,
+            name,
+            numbers,
+            count: numbers.length
+        });
     } catch (e) {
         return res.status(500).json({ error: String(e) });
     }
@@ -67,27 +82,43 @@ app.get("/oeis", async (req, res) => {
         .filter(Boolean);
 
     if (oeisIds.length === 0) {
-        return res.status(400).json({ error: "Provide ids query param like /oeis?ids=40,52,A000045" });
+        return res.status(400).json({
+            error: "Provide ids query param like /oeis?ids=40,52,A000045"
+        });
     }
 
-    // Fetch sequentially to be gentle (or parallel with a small concurrency limit)
     const out = [];
+
     for (const id of oeisIds) {
         const url = `https://oeis.org/${id}?fmt=json`;
+
         try {
-            const r = await fetch(url, { headers: { "User-Agent": "oeis-proxy/1.0" } });
+            const r = await fetch(url, {
+                headers: { "User-Agent": "oeis-proxy/1.0" }
+            });
+
             if (!r.ok) {
                 out.push({ id, error: `HTTP ${r.status}` });
                 continue;
             }
+
             const json = await r.json();
             const dataStr = json?.data ?? json?.results?.[0]?.data;
+            const name = json?.name ?? json?.results?.[0]?.name ?? "";
+
             if (!dataStr) {
                 out.push({ id, error: "Missing data field" });
                 continue;
             }
+
             const numbers = parseDataFieldToNumbers(dataStr);
-            out.push({ id, numbers, count: numbers.length });
+
+            out.push({
+                id,
+                name,
+                numbers,
+                count: numbers.length
+            });
         } catch (e) {
             out.push({ id, error: String(e) });
         }
@@ -96,4 +127,8 @@ app.get("/oeis", async (req, res) => {
     return res.json({ results: out });
 });
 
-app.listen(3000, () => console.log("OEIS proxy running: http://localhost:3000"));
+const PORT = 8000;
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Number Spectra running: http://0.0.0.0:${PORT}`);
+});
