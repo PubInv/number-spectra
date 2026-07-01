@@ -1983,7 +1983,7 @@ for (let i = 0; i < n; i++) {
         clearAll();
         status.textContent = "Loading...";
 
-        const requests = ids.map((d) => $.getJSON(`http://localhost:3000/oeis/${d}`));
+        const requests = ids.map((d) => $.getJSON(`${window.location.origin}/oeis/${d}`));
         const results = await Promise.allSettled(requests);
 
         let loaded = 0;
