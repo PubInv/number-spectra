@@ -552,8 +552,8 @@ for (let i = 0; i < n; i++) {
           <div class="canvasBlock">
             <canvas class="numberline" id="focusCanvas" tabindex="0" aria-label="Interactive number line. Drag or use arrow keys to pan. Use the wheel or plus and minus keys to zoom."></canvas>
             <div class="graphHelp">
-              <span><strong>Adaptive display:</strong> exact labels when they fit, grouped badges when they collide.</span>
-              <span>Double-click a group to expand · click the overview to move</span>
+              <span><strong>Adaptive display:</strong> exact labels when they fit; nearby values are listed together when space is tight.</span>
+              <span>Shared values say how many sequences contain them · double-click a nearby-values label to expand</span>
             </div>
             <canvas class="numberline" id="overviewCanvas" tabindex="0" aria-label="Number line overview. Click to move the main view."></canvas>
           </div>
@@ -1169,8 +1169,10 @@ for (let i = 0; i < n; i++) {
         const values = points.slice(0, SMART_TOOLTIP_LIMIT).map((p) => p.value);
         const extra = points.length - values.length;
         const title = points.length === 1
-          ? `${formatAxisNumber(points[0].value)} · ${points[0].layers.size} sequence${points[0].layers.size === 1 ? "" : "s"}`
-          : `${points.length} exact values`;
+          ? points[0].layers.size > 1
+            ? `Value ${formatAxisNumber(points[0].value)} appears in ${points[0].layers.size} enabled sequences`
+            : `Value ${formatAxisNumber(points[0].value)} appears in 1 enabled sequence`
+          : `${points.length} nearby values — click to list them`;
         const detail = values.join(", ") + (extra > 0 ? `, +${extra} more` : "");
 
         ctx.save();
@@ -1253,12 +1255,25 @@ for (let i = 0; i < n; i++) {
           ctx.stroke();
 
           ctx.fillStyle = selected ? "#2563eb" : color;
-          ctx.beginPath();
-          ctx.arc(point.x, baseline - stemHeight, selected ? 4.5 : 3, 0, Math.PI * 2);
-          ctx.fill();
+          const markerY = baseline - stemHeight;
+          if (overlap) {
+            // Shared values use a double tick, not the same dot used for a
+            // single-sequence value. The text label also states the meaning.
+            ctx.lineWidth = selected ? 3 : 2;
+            ctx.beginPath();
+            ctx.moveTo(point.x - 3, markerY - 5);
+            ctx.lineTo(point.x - 3, markerY + 5);
+            ctx.moveTo(point.x + 3, markerY - 5);
+            ctx.lineTo(point.x + 3, markerY + 5);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.arc(point.x, markerY, selected ? 4.5 : 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
 
           const label = formatAxisNumber(point.value, valueStep) +
-            (overlap ? ` ×${point.layers.size}` : "");
+            (overlap ? ` · in ${point.layers.size} sequences` : "");
           ctx.font = overlap ? "600 11px Arial" : "11px Arial";
           const width = ctx.measureText(label).width + 12;
           let row = -1;
@@ -1280,23 +1295,25 @@ for (let i = 0; i < n; i++) {
           const boxX = clamp(point.x - width / 2, 3, W - width - 3);
           const boxY = baseline - 38 - row * 26;
           roundedRectPath(ctx, boxX, boxY, width, 19, 6);
-          ctx.globalAlpha = overlap ? 0.96 : 0.9;
-          ctx.fillStyle = overlap ? "#111827" : "#ffffff";
+          ctx.globalAlpha = 0.94;
+          ctx.fillStyle = "#ffffff";
           ctx.fill();
-          ctx.strokeStyle = selected ? "#2563eb" : color;
-          ctx.lineWidth = selected ? 2 : 1;
+          ctx.strokeStyle = selected ? "#2563eb" : overlap ? "#2563eb" : color;
+          ctx.lineWidth = selected ? 2 : overlap ? 2 : 1;
           ctx.stroke();
           ctx.globalAlpha = 1;
-          ctx.fillStyle = overlap ? "#ffffff" : "#111827";
+          ctx.fillStyle = overlap ? "#1e40af" : "#111827";
           ctx.fillText(label, boxX + 6, boxY + 13);
 
           SMART_HIT_TARGETS.push({
             type: "point",
             point,
-            left: boxX,
-            right: boxX + width,
-            top: boxY,
-            bottom: baseline + 6,
+            labelLeft: boxX,
+            labelRight: boxX + width,
+            labelTop: boxY,
+            labelBottom: boxY + 19,
+            markerX: point.x,
+            markerY,
           });
         }
 
@@ -1304,9 +1321,7 @@ for (let i = 0; i < n; i++) {
         const clusterRowRight = [-Infinity, -Infinity, -Infinity];
         for (const cluster of clusters) {
           const count = cluster.points.length;
-          const membershipCount = cluster.points.reduce((n, p) => n + p.layers.size, 0);
-          const label = `${count} value${count === 1 ? "" : "s"}` +
-            (membershipCount > count ? ` · ${membershipCount} hits` : "");
+          const label = `${count} nearby value${count === 1 ? "" : "s"} — click to list`;
           ctx.font = "600 11px Arial";
           const width = ctx.measureText(label).width + 14;
           const center = (cluster.minX + cluster.maxX) / 2;
@@ -1325,13 +1340,24 @@ for (let i = 0; i < n; i++) {
           ctx.stroke();
           ctx.globalAlpha = 1;
 
-          roundedRectPath(ctx, boxX, boxY, width, 19, 7);
-          ctx.fillStyle = "#ede9fe";
-          ctx.fill();
-          ctx.strokeStyle = "#7c3aed";
-          ctx.stroke();
+          // A nearby-values group is a bracketed text callout rather than a
+          // pill/marker, so it cannot be mistaken for an individual value.
+          ctx.fillStyle = "rgba(250, 245, 255, 0.96)";
+          ctx.fillRect(boxX, boxY, width, 19);
           ctx.fillStyle = "#5b21b6";
           ctx.fillText(label, boxX + 7, boxY + 13);
+          ctx.strokeStyle = "#7c3aed";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(boxX + 3, boxY + 2);
+          ctx.lineTo(boxX, boxY + 2);
+          ctx.lineTo(boxX, boxY + 17);
+          ctx.lineTo(boxX + 3, boxY + 17);
+          ctx.moveTo(boxX + width - 3, boxY + 2);
+          ctx.lineTo(boxX + width, boxY + 2);
+          ctx.lineTo(boxX + width, boxY + 17);
+          ctx.lineTo(boxX + width - 3, boxY + 17);
+          ctx.stroke();
 
           cluster.left = boxX;
           cluster.right = boxX + width;
@@ -1765,23 +1791,29 @@ for (let i = 0; i < n; i++) {
       function findSmartTargetAt(x, y) {
         if (VIEW !== "overlaps") return null;
 
+        // Labels are the highest-confidence targets. Their hit areas no longer
+        // extend down to the axis, which previously made stacked values steal
+        // clicks from one another.
         for (let i = SMART_HIT_TARGETS.length - 1; i >= 0; i--) {
           const target = SMART_HIT_TARGETS[i];
-          if (
-            x >= target.left - 4 &&
-            x <= target.right + 4 &&
-            y >= target.top - 4 &&
-            y <= target.bottom + 4
-          ) {
+          const left = target.type === "point" ? target.labelLeft : target.left;
+          const right = target.type === "point" ? target.labelRight : target.right;
+          const top = target.type === "point" ? target.labelTop : target.top;
+          const bottom = target.type === "point" ? target.labelBottom : target.bottom;
+          if (x >= left - 2 && x <= right + 2 && y >= top - 2 && y <= bottom + 2) {
             return target;
           }
         }
 
+        // Marker selection is radial and chooses the genuinely closest value.
+        // Merely sharing the same x pixel is no longer enough to select a label.
         let nearest = null;
         let nearestDistance = CLICK_NEAR_PX + 1;
         for (const target of SMART_HIT_TARGETS) {
           if (target.type !== "point") continue;
-          const distance = Math.abs(target.point.x - x);
+          const dx = target.markerX - x;
+          const dy = target.markerY - y;
+          const distance = Math.hypot(dx, dy);
           if (distance < nearestDistance) {
             nearestDistance = distance;
             nearest = target;
@@ -1797,20 +1829,20 @@ for (let i = 0; i < n; i++) {
           .slice(0, maxShown)
           .map((point) => {
             const overlap = point.layers.size > 1
-              ? ` <span class="badge badge-dark">${point.layers.size} sequences</span>`
+              ? ` <span class="muted" style="margin-right:8px;">appears in ${point.layers.size} enabled sequences</span>`
               : "";
-            return `<button class="btn btn-sm btn-light mr-1 mb-1 px-jump" data-val="${point.value}">${point.value}</button>${overlap}`;
+            return `<span style="display:inline-flex; align-items:center;"><button class="btn btn-sm btn-light mr-1 mb-1 px-jump" data-val="${point.value}">${point.value}</button>${overlap}</span>`;
           })
           .join(" ");
         const hidden = Math.max(0, points.length - maxShown);
 
         PIXEL_INSPECTOR_HTML = `
           <div style="margin-bottom:10px; padding:10px; border:1px solid #c4b5fd; border-radius:10px; background:#faf5ff;">
-            <div><b>${points.length === 1 ? "Selected graph value" : "Grouped graph values"}</b></div>
+            <div><b>${points.length === 1 ? "Selected graph value" : "Nearby graph values"}</b></div>
             <div class="muted" style="margin:4px 0 8px;">
               ${points.length === 1
                 ? "This exact value is visible in the graph."
-                : `${points.length} exact values share too little screen space for separate labels. Double-click the group to zoom in.`}
+                : `${points.length} exact values are too close to label separately at this zoom. Choose the value below, or double-click the graph label to zoom in.`}
             </div>
             <div style="display:flex; align-items:center; flex-wrap:wrap; gap:3px;">${buttons}</div>
             ${hidden ? `<div class="muted">Showing ${maxShown} of ${points.length}. Zoom in to reveal the rest.</div>` : ""}
