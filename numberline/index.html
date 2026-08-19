@@ -48,6 +48,7 @@
 
       .main {
         flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -114,6 +115,13 @@
       canvas#focusCanvas {
         cursor: grab;
         touch-action: none;
+        outline: none;
+      }
+
+      canvas#focusCanvas:focus-visible,
+      canvas#overviewCanvas:focus-visible {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.28);
+        border-color: #3b82f6;
       }
 
       canvas#focusCanvas.dragging {
@@ -130,6 +138,39 @@
         background: #fafafa;
         border: 1px solid var(--line);
         border-radius: 10px;
+        cursor: pointer;
+        touch-action: none;
+      }
+
+      .graphHelp {
+        width: 92%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .graphHelp strong {
+        color: #374151;
+        font-weight: 600;
+      }
+
+      .viewOptions {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        padding-left: 8px;
+        border-left: 1px solid #e5e7eb;
+      }
+
+      .viewOptions.active {
+        display: inline-flex;
+      }
+
+      .viewOptions .btn {
+        white-space: nowrap;
       }
 
       .panelTitle {
@@ -307,21 +348,28 @@
       .sidebar.collapsed {
         width: 48px;
         min-width: 48px;
+        max-width: 48px;
+        flex: 0 0 48px;
+        box-sizing: border-box;
         padding: 8px 6px;
         overflow: hidden;
       }
 
       .sidebar.collapsed > :not(.panelToggleBar) {
-        display: none;
+        display: none !important;
+        visibility: hidden;
       }
 
       .sidebar.collapsed .panelToggleBar {
+        width: 100%;
+        min-width: 0;
         justify-content: center;
         margin-bottom: 0;
+        overflow: hidden;
       }
 
       .sidebar.collapsed .panelToggleTitle {
-        display: none;
+        display: none !important;
       }
 
       #report.collapsed {
@@ -351,6 +399,8 @@
         .sidebar.collapsed {
           width: 44px;
           min-width: 44px;
+          max-width: 44px;
+          flex-basis: 44px;
         }
       }
     </style>
@@ -446,6 +496,8 @@ for (let i = 0; i < n; i++) {
           <ul class="mb-0">
             <li>Drag on the plot to pan</li>
             <li>Mouse wheel to zoom (smooth)</li>
+            <li>Arrow keys pan; + / − keys zoom</li>
+            <li>Click the overview to reposition the window</li>
             <li>Click on plot or number buttons to jump</li>
             <li>Search uses exact match only</li>
             <li>Log X uses signed symlog (works for negatives + zero)</li>
@@ -461,6 +513,7 @@ for (let i = 0; i < n; i++) {
             <span class="muted ml-2">Drag to pan, wheel to zoom</span>
             <span id="viewTag" class="tag">View: Overlaps</span>
             <span id="scaleTag" class="tag">Scale: Linear</span>
+            <span id="visibleTag" class="tag">Visible: 0 values</span>
           </div>
 
           <div class="topRight">
@@ -495,6 +548,15 @@ for (let i = 0; i < n; i++) {
                 <input type="checkbox" id="logx_toggle" />
                 <span class="muted">Log X</span>
               </div>
+
+              <div id="densityOptions" class="viewOptions" aria-label="Density display mode">
+                <span class="controlLabel">Density</span>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button id="density_total" type="button" class="btn btn-secondary">Total</button>
+                  <button id="density_compare" type="button" class="btn btn-outline-secondary">Compare</button>
+                  <button id="density_normalized" type="button" class="btn btn-outline-secondary">Normalized</button>
+                </div>
+              </div>
             </div>
 
             <button id="left_button" class="btn btn-primary btn-sm">←</button>
@@ -513,8 +575,12 @@ for (let i = 0; i < n; i++) {
 
         <div class="plotWrap">
           <div class="canvasBlock">
-            <canvas class="numberline" id="focusCanvas"></canvas>
-            <canvas class="numberline" id="overviewCanvas"></canvas>
+            <canvas class="numberline" id="focusCanvas" tabindex="0" aria-label="Interactive number line. Drag or use arrow keys to pan. Use the wheel or plus and minus keys to zoom."></canvas>
+            <div class="graphHelp" id="graphHelp">
+              <span><strong>Adaptive display:</strong> exact labels when they fit; nearby values are listed together when space is tight.</span>
+              <span>Shared values say how many sequences contain them · double-click a nearby-values label to expand</span>
+            </div>
+            <canvas class="numberline" id="overviewCanvas" tabindex="0" aria-label="Number line overview. Click to move the main view."></canvas>
           </div>
         </div>
 
@@ -577,8 +643,26 @@ for (let i = 0; i < n; i++) {
       let VIEW = "overlaps"; // overlaps | lanes | density
       const MAX_LANES_RENDER = 200;
       const LANE_HEIGHT = 18;
-      const MAX_CONNECTORS = 200;
       const CLICK_NEAR_PX = 10;
+
+      // Lanes and density interaction state. Connectors in Lanes are
+      // contextual: only the hovered or selected value is connected.
+      let LANE_HOVER = null; // { value, x, laneKey }
+      let LANE_HIT_TARGETS = [];
+      let DENSITY_MODE = "total"; // total | compare | normalized
+      let DENSITY_BINS = [];
+      let DENSITY_HOVER_BIN = null;
+      const DENSITY_TARGET_BIN_PX = 16;
+
+      // Adaptive number display. Every visible value gets a marker. Labels are
+      // distributed across rows; values that cannot fit become clickable groups.
+      const SMART_LABEL_ROWS = 6;
+      const SMART_LABEL_GAP = 5;
+      const SMART_CLUSTER_GAP_PX = 30;
+      const SMART_TOOLTIP_LIMIT = 8;
+      let SMART_VISIBLE_POINTS = [];
+      let SMART_HIT_TARGETS = [];
+      let SMART_HOVER_TARGET = null;
 
       // ---------------------------
       // Numberline window
@@ -915,11 +999,13 @@ for (let i = 0; i < n; i++) {
         return niceBase * Math.pow(10, exp);
       }
 
-      function drawAxesSmart(canvas, A, B) {
+      function drawAxesSmart(canvas, A, B, options = {}) {
         const H = canvas.height;
         const W = canvas.width;
         var ctx = canvas.getContext("2d");
-        const baseline = (3 * H) / 4;
+        const baseline = Number.isFinite(options.baseline) ? options.baseline : (3 * H) / 4;
+        const tickHeight = options.compact ? 8 : H / 6;
+        const labelOffset = options.compact ? 17 : H / 5;
 
         ctx.beginPath();
         ctx.strokeStyle = "#1f3a8a";
@@ -954,11 +1040,11 @@ for (let i = 0; i < n; i++) {
             ctx.beginPath();
             ctx.strokeStyle = "#111827";
             ctx.moveTo(x, baseline);
-            ctx.lineTo(x, baseline + H / 6);
+            ctx.lineTo(x, baseline + tickHeight);
             ctx.stroke();
 
             if (label !== lastLabelText && left > lastLabelRight + 10) {
-              ctx.fillText(label, left, baseline + H / 5);
+              ctx.fillText(label, left, baseline + labelOffset);
               lastLabelRight = right;
               lastLabelText = label;
             }
@@ -990,11 +1076,11 @@ for (let i = 0; i < n; i++) {
             ctx.beginPath();
             ctx.strokeStyle = "#111827";
             ctx.moveTo(x, baseline);
-            ctx.lineTo(x, baseline + H / 6);
+            ctx.lineTo(x, baseline + tickHeight);
             ctx.stroke();
 
             if (label !== lastLabelText && left > lastLabelRight + 10) {
-              ctx.fillText(label, left, baseline + H / 5);
+              ctx.fillText(label, left, baseline + labelOffset);
               lastLabelRight = right;
               lastLabelText = label;
             }
@@ -1007,7 +1093,7 @@ for (let i = 0; i < n; i++) {
           ctx.strokeStyle = "#111827";
           ctx.globalAlpha = 0.35;
           ctx.moveTo(x, 0);
-          ctx.lineTo(x, H);
+          ctx.lineTo(x, options.compact ? baseline : H);
           ctx.stroke();
           ctx.globalAlpha = 1.0;
         }
@@ -1047,59 +1133,277 @@ for (let i = 0; i < n; i++) {
         return lo;
       }
 
+      function roundedRectPath(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + width - r, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+        ctx.lineTo(x + width, y + height - r);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        ctx.lineTo(x + r, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      function collectVisibleValuePoints() {
+        const enabledKeys = Object.keys(LAYERS).filter(
+          (key) => LAYER_SETTINGS[key]?.render
+        );
+        const byValue = new Map();
+
+        for (const key of enabledKeys) {
+          const layer = LAYERS[key] || [];
+          const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
+          const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
+
+          for (let i = lo; i < hi; i++) {
+            const value = Number(layer[i].value);
+            if (!Number.isFinite(value)) continue;
+
+            let point = byValue.get(value);
+            if (!point) {
+              point = { value, layers: new Set(), occurrences: 0, x: 0 };
+              byValue.set(value, point);
+            }
+            point.layers.add(key);
+            point.occurrences++;
+          }
+        }
+
+        return Array.from(byValue.values()).sort((a, b) => a.value - b.value);
+      }
+
+      function clusterUnplacedPoints(points) {
+        const clusters = [];
+        let current = null;
+
+        for (const point of points) {
+          if (!current || point.x - current.maxX > SMART_CLUSTER_GAP_PX) {
+            current = {
+              type: "cluster",
+              points: [point],
+              minX: point.x,
+              maxX: point.x,
+            };
+            clusters.push(current);
+          } else {
+            current.points.push(point);
+            current.maxX = point.x;
+          }
+        }
+
+        return clusters;
+      }
+
+      function drawSmartTooltip(ctx, target, W, H) {
+        if (!target) return;
+        const points = target.type === "point" ? [target.point] : target.points;
+        const values = points.slice(0, SMART_TOOLTIP_LIMIT).map((p) => p.value);
+        const extra = points.length - values.length;
+        const title = points.length === 1
+          ? points[0].layers.size > 1
+            ? `Value ${formatAxisNumber(points[0].value)} appears in ${points[0].layers.size} enabled sequences`
+            : `Value ${formatAxisNumber(points[0].value)} appears in 1 enabled sequence`
+          : `${points.length} nearby values — click to list them`;
+        const detail = values.join(", ") + (extra > 0 ? `, +${extra} more` : "");
+
+        ctx.save();
+        ctx.font = "600 12px Arial";
+        const width = Math.min(
+          W - 20,
+          Math.max(ctx.measureText(title).width, ctx.measureText(detail).width) + 20
+        );
+        const height = 48;
+        const anchorX = target.type === "point"
+          ? target.point.x
+          : (target.minX + target.maxX) / 2;
+        const x = clamp(anchorX - width / 2, 10, W - width - 10);
+        const y = Math.max(10, H * 0.74 - 122);
+
+        ctx.shadowColor = "rgba(17, 24, 39, 0.18)";
+        ctx.shadowBlur = 12;
+        roundedRectPath(ctx, x, y, width, height, 8);
+        ctx.fillStyle = "#111827";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(title, x + 10, y + 19);
+        ctx.font = "11px Arial";
+        ctx.fillStyle = "#d1d5db";
+        const clipped = detail.length > 95 ? detail.slice(0, 92) + "…" : detail;
+        ctx.fillText(clipped, x + 10, y + 37);
+        ctx.restore();
+      }
+
       function renderOverlapHeatline() {
         const W = FOCUS_CANVAS.width;
         const H = FOCUS_CANVAS.height;
         const ctx = FOCUS_CANVAS.getContext("2d");
         const baseline = (3 * H) / 4;
 
-        ctx.beginPath();
-        ctx.strokeStyle = "#1f3a8a";
-        ctx.moveTo(0, baseline);
-        ctx.lineTo(W, baseline);
-        ctx.stroke();
+        SMART_VISIBLE_POINTS = collectVisibleValuePoints();
+        SMART_HIT_TARGETS = [];
 
-        if (!OVERLAP_VALUES.length || !(GLOBAL_NL_B > GLOBAL_NL_A)) {
+        const totalOccurrences = SMART_VISIBLE_POINTS.reduce(
+          (sum, point) => sum + point.occurrences,
+          0
+        );
+        const visibleTag = document.getElementById("visibleTag");
+        if (visibleTag) {
+          visibleTag.textContent = `Visible: ${SMART_VISIBLE_POINTS.length.toLocaleString()} values`;
+          visibleTag.title = `${totalOccurrences.toLocaleString()} loaded terms in the current window`;
+        }
+
+        if (!SMART_VISIBLE_POINTS.length || !(GLOBAL_NL_B > GLOBAL_NL_A)) {
           drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
           return;
         }
 
-        const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
-        const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
-        if (end <= start) {
-          drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
-          return;
-        }
+        const valueStep = Math.max(
+          1e-12,
+          Math.abs(toNL(1, GLOBAL_NL_A, GLOBAL_NL_B, W) - toNL(0, GLOBAL_NL_A, GLOBAL_NL_B, W))
+        );
+        const rowRight = new Array(SMART_LABEL_ROWS).fill(-Infinity);
+        const unplaced = [];
 
-        const strengths = new Array(W).fill(0);
-        for (let i = start; i < end; i++) {
-          const ov = OVERLAP_VALUES[i];
-          const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-          if (x >= 0 && x < W) strengths[x] += ov.c;
-        }
+        ctx.save();
+        ctx.lineWidth = 1;
+        for (const point of SMART_VISIBLE_POINTS) {
+          point.x = toVPFloat(point.value, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          const overlap = point.layers.size > 1;
+          const firstLayer = point.layers.values().next().value;
+          const color = overlap
+            ? "#111827"
+            : LAYER_SETTINGS[firstLayer]?.color || "#4b5563";
+          const selected = SELECTED_VALUE !== null && Number(SELECTED_VALUE) === point.value;
+          const stemHeight = 12 + Math.min(34, (point.layers.size - 1) * 7);
 
-        const maxStrength = strengths.reduce((m, v) => Math.max(m, v), 1);
-
-        ctx.globalAlpha = 0.85;
-        for (let x = 0; x < W; x++) {
-          const s = strengths[x];
-          if (s <= 0) continue;
-
-          const h = (s / maxStrength) * (H * 0.65);
+          ctx.globalAlpha = overlap ? 0.9 : 0.62;
+          ctx.strokeStyle = selected ? "#2563eb" : color;
+          ctx.lineWidth = selected ? 3 : overlap ? 2 : 1;
           ctx.beginPath();
-          ctx.strokeStyle = "#111827";
-          ctx.moveTo(x, baseline);
-          ctx.lineTo(x, baseline - h);
+          ctx.moveTo(point.x, baseline);
+          ctx.lineTo(point.x, baseline - stemHeight);
           ctx.stroke();
 
-          ctx.beginPath();
-          ctx.fillStyle = "#111827";
-          ctx.arc(x, baseline - 2, 1.7, 0, Math.PI * 2);
+          ctx.fillStyle = selected ? "#2563eb" : color;
+          const markerY = baseline - stemHeight;
+          if (overlap) {
+            // Shared values use a double tick, not the same dot used for a
+            // single-sequence value. The text label also states the meaning.
+            ctx.lineWidth = selected ? 3 : 2;
+            ctx.beginPath();
+            ctx.moveTo(point.x - 3, markerY - 5);
+            ctx.lineTo(point.x - 3, markerY + 5);
+            ctx.moveTo(point.x + 3, markerY - 5);
+            ctx.lineTo(point.x + 3, markerY + 5);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.arc(point.x, markerY, selected ? 4.5 : 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          const label = formatAxisNumber(point.value, valueStep) +
+            (overlap ? ` · in ${point.layers.size} sequences` : "");
+          ctx.font = overlap ? "600 11px Arial" : "11px Arial";
+          const width = ctx.measureText(label).width + 12;
+          let row = -1;
+
+          for (let candidate = 0; candidate < SMART_LABEL_ROWS; candidate++) {
+            const left = point.x - width / 2;
+            if (left > rowRight[candidate] + SMART_LABEL_GAP) {
+              row = candidate;
+              rowRight[candidate] = point.x + width / 2;
+              break;
+            }
+          }
+
+          if (row < 0) {
+            unplaced.push(point);
+            continue;
+          }
+
+          const boxX = clamp(point.x - width / 2, 3, W - width - 3);
+          const boxY = baseline - 38 - row * 26;
+          roundedRectPath(ctx, boxX, boxY, width, 19, 6);
+          ctx.globalAlpha = 0.94;
+          ctx.fillStyle = "#ffffff";
           ctx.fill();
+          ctx.strokeStyle = selected ? "#2563eb" : overlap ? "#2563eb" : color;
+          ctx.lineWidth = selected ? 2 : overlap ? 2 : 1;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = overlap ? "#1e40af" : "#111827";
+          ctx.fillText(label, boxX + 6, boxY + 13);
+
+          SMART_HIT_TARGETS.push({
+            type: "point",
+            point,
+            labelLeft: boxX,
+            labelRight: boxX + width,
+            labelTop: boxY,
+            labelBottom: boxY + 19,
+            markerX: point.x,
+            markerY,
+          });
         }
-        ctx.globalAlpha = 1.0;
+
+        const clusters = clusterUnplacedPoints(unplaced);
+        const clusterRowRight = [-Infinity, -Infinity, -Infinity];
+        for (const cluster of clusters) {
+          const count = cluster.points.length;
+          const label = `${count} nearby value${count === 1 ? "" : "s"} — click to list`;
+          ctx.font = "600 11px Arial";
+          const width = ctx.measureText(label).width + 14;
+          const center = (cluster.minX + cluster.maxX) / 2;
+          let row = clusterRowRight.findIndex((right) => center - width / 2 > right + 5);
+          if (row < 0) row = clusterRowRight.indexOf(Math.min(...clusterRowRight));
+          const boxX = clamp(center - width / 2, 4, W - width - 4);
+          const boxY = 12 + row * 25;
+          clusterRowRight[row] = boxX + width;
+
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = "#7c3aed";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(cluster.minX, baseline - 9);
+          ctx.lineTo(cluster.maxX, baseline - 9);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+
+          // A nearby-values group is a bracketed text callout rather than a
+          // pill/marker, so it cannot be mistaken for an individual value.
+          ctx.fillStyle = "rgba(250, 245, 255, 0.96)";
+          ctx.fillRect(boxX, boxY, width, 19);
+          ctx.fillStyle = "#5b21b6";
+          ctx.fillText(label, boxX + 7, boxY + 13);
+          ctx.strokeStyle = "#7c3aed";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(boxX + 3, boxY + 2);
+          ctx.lineTo(boxX, boxY + 2);
+          ctx.lineTo(boxX, boxY + 17);
+          ctx.lineTo(boxX + 3, boxY + 17);
+          ctx.moveTo(boxX + width - 3, boxY + 2);
+          ctx.lineTo(boxX + width, boxY + 2);
+          ctx.lineTo(boxX + width, boxY + 17);
+          ctx.lineTo(boxX + width - 3, boxY + 17);
+          ctx.stroke();
+
+          cluster.left = boxX;
+          cluster.right = boxX + width;
+          cluster.top = boxY;
+          cluster.bottom = boxY + 19;
+          SMART_HIT_TARGETS.push(cluster);
+        }
+        ctx.restore();
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+        drawSmartTooltip(ctx, SMART_HOVER_TARGET, W, H);
       }
 
       function getRenderableLaneKeys() {
@@ -1118,7 +1422,7 @@ for (let i = 0; i < n; i++) {
         } else {
           const keys = getRenderableLaneKeys();
           const laneCount = keys.length;
-          const h = Math.max(220, laneCount * LANE_HEIGHT + 30);
+          const h = Math.max(220, laneCount * LANE_HEIGHT + 50);
           desired = h + "px";
         }
 
@@ -1136,19 +1440,19 @@ for (let i = 0; i < n; i++) {
         const H = FOCUS_CANVAS.height;
         const ctx = FOCUS_CANVAS.getContext("2d");
 
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = "#e5e7eb";
-        for (let i = 0; i <= keys.length; i++) {
-          const y = i * LANE_HEIGHT + 10;
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(W, y);
-          ctx.stroke();
-        }
-        ctx.globalAlpha = 1.0;
+        LANE_HIT_TARGETS = [];
 
-        const laneIndex = {};
-        keys.forEach((k, idx) => (laneIndex[k] = idx));
+        keys.forEach((key, idx) => {
+          const y0 = idx * LANE_HEIGHT + 10;
+          ctx.fillStyle = idx % 2 ? "rgba(249,250,251,0.72)" : "rgba(255,255,255,0.72)";
+          ctx.fillRect(0, y0, W, LANE_HEIGHT);
+          ctx.strokeStyle = "#e5e7eb";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, y0 + LANE_HEIGHT);
+          ctx.lineTo(W, y0 + LANE_HEIGHT);
+          ctx.stroke();
+        });
 
         keys.forEach((key, idx) => {
           const layer = LAYERS[key];
@@ -1158,90 +1462,73 @@ for (let i = 0; i < n; i++) {
           const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
           const color = LAYER_SETTINGS[key].color;
 
-          ctx.font = "11px Arial";
-          ctx.fillStyle = "#111827";
-          ctx.globalAlpha = 0.8;
-          ctx.fillText(key.replace("OEIS ", ""), 6, yMid + 4);
-          ctx.globalAlpha = 1.0;
-
           const lo = lowerBoundLayer(layer, GLOBAL_NL_A);
           const hi = lowerBoundLayer(layer, GLOBAL_NL_B);
           const visibleCount = Math.max(0, hi - lo);
           const pointsPerPixel = visibleCount / Math.max(1, W);
 
-          if (pointsPerPixel < 0.7) {
+          if (pointsPerPixel < 0.45) {
             ctx.strokeStyle = color;
             ctx.globalAlpha = 0.85;
             for (let i = lo; i < hi; i++) {
-              const v = layer[i].value;
-              const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+              const v = Number(layer[i].value);
+              const x = toVPFloat(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
               ctx.beginPath();
               ctx.moveTo(x, yMid - 5);
               ctx.lineTo(x, yMid + 5);
               ctx.stroke();
+              LANE_HIT_TARGETS.push({ value: v, x, y: yMid, laneKey: key });
             }
             ctx.globalAlpha = 1.0;
           } else {
-            const bins = new Array(W).fill(0);
+            const binWidth = 3;
+            const binCount = Math.ceil(W / binWidth);
+            const bins = new Array(binCount).fill(0);
             for (let i = lo; i < hi; i++) {
               const v = layer[i].value;
-              const x = toVP(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-              if (x >= 0 && x < W) bins[x]++;
+              const x = toVPFloat(v, GLOBAL_NL_A, GLOBAL_NL_B, W);
+              const bin = Math.floor(x / binWidth);
+              if (bin >= 0 && bin < binCount) bins[bin]++;
             }
             const maxBin = bins.reduce((m, v) => Math.max(m, v), 1);
-            ctx.globalAlpha = 0.7;
-            ctx.strokeStyle = color;
-            for (let x = 0; x < W; x++) {
-              const b = bins[x];
+            ctx.globalAlpha = 0.72;
+            ctx.fillStyle = color;
+            for (let bin = 0; bin < binCount; bin++) {
+              const b = bins[bin];
               if (!b) continue;
-              const h = (b / maxBin) * 8;
-              ctx.beginPath();
-              ctx.moveTo(x, yMid + 5);
-              ctx.lineTo(x, yMid + 5 - h);
-              ctx.stroke();
+              const h = Math.max(2, (b / maxBin) * 10);
+              ctx.fillRect(bin * binWidth, yMid + 5 - h, binWidth, h);
             }
             ctx.globalAlpha = 1.0;
           }
         });
 
-        const start = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_A);
-        const end = lowerBoundOverlap(OVERLAP_VALUES, GLOBAL_NL_B);
-        const overlapsInView = OVERLAP_VALUES.slice(start, end);
+        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B, {
+          baseline: H - 26,
+          compact: true,
+        });
+        drawLaneContext(ctx, keys, LANE_HOVER?.value ?? SELECTED_VALUE, W);
 
-        overlapsInView.sort((a, b) => b.c - a.c);
-        const chosen = overlapsInView.slice(0, MAX_CONNECTORS);
-
-        ctx.globalAlpha = 0.25;
-        ctx.strokeStyle = "#111827";
-
-        for (const ov of chosen) {
-          const layers = VALUE_TO_LAYERS.get(ov.v) || [];
-          let minLane = Infinity,
-            maxLane = -Infinity,
-            countVisible = 0;
-
-          for (const lk of layers) {
-            if (laneIndex[lk] === undefined) continue;
-            const idx = laneIndex[lk];
-            const y0 = idx * LANE_HEIGHT + 10;
-            const yMid = y0 + Math.floor(LANE_HEIGHT / 2);
-            minLane = Math.min(minLane, yMid);
-            maxLane = Math.max(maxLane, yMid);
-            countVisible++;
-          }
-
-          if (countVisible < 2 || !(maxLane > minLane)) continue;
-
-          const x = toVP(ov.v, GLOBAL_NL_A, GLOBAL_NL_B, W);
-          ctx.beginPath();
-          ctx.moveTo(x, minLane);
-          ctx.lineTo(x, maxLane);
-          ctx.stroke();
-        }
-
-        ctx.globalAlpha = 1.0;
-
-        drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+        // Fixed label rail: lane names remain readable while the data pans.
+        const labelWidth = 104;
+        ctx.fillStyle = "rgba(255,255,255,0.94)";
+        ctx.fillRect(0, 9, labelWidth, Math.min(H - 9, keys.length * LANE_HEIGHT + 1));
+        ctx.strokeStyle = "#d1d5db";
+        ctx.beginPath();
+        ctx.moveTo(labelWidth, 9);
+        ctx.lineTo(labelWidth, Math.min(H, keys.length * LANE_HEIGHT + 10));
+        ctx.stroke();
+        ctx.font = "600 11px Arial";
+        keys.forEach((key, idx) => {
+          const yMid = idx * LANE_HEIGHT + 10 + Math.floor(LANE_HEIGHT / 2);
+          const color = LAYER_SETTINGS[key]?.color || "#6b7280";
+          const meta = SEQ_META[key];
+          const name = meta?.id || key.replace("OEIS ", "");
+          ctx.fillStyle = color;
+          ctx.fillRect(6, yMid - 4, 7, 7);
+          ctx.fillStyle = "#111827";
+          ctx.fillText(String(name).slice(0, 13), 18, yMid + 4);
+        });
 
         const enabledTotal = Object.keys(LAYERS).filter(
           (k) => LAYER_SETTINGS[k]?.render
@@ -1252,27 +1539,223 @@ for (let i = 0; i < n; i++) {
         }
       }
 
+      function drawLaneContext(ctx, keys, value, W) {
+        if (!Number.isFinite(Number(value))) return;
+        const numericValue = Number(value);
+        const matching = keys
+          .map((key, idx) => ({ key, idx }))
+          .filter(({ key }) => {
+            const layer = LAYERS[key] || [];
+            const at = lowerBoundLayer(layer, numericValue);
+            return at < layer.length && Number(layer[at].value) === numericValue;
+          });
+        if (!matching.length) return;
+
+        const x = toVPFloat(numericValue, GLOBAL_NL_A, GLOBAL_NL_B, W);
+        const minY = matching[0].idx * LANE_HEIGHT + 19;
+        const maxY = matching[matching.length - 1].idx * LANE_HEIGHT + 19;
+        ctx.save();
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.72;
+        ctx.beginPath();
+        ctx.moveTo(x, minY);
+        ctx.lineTo(x, maxY);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        matching.forEach(({ idx }) => {
+          const y = idx * LANE_HEIGHT + 19;
+          ctx.beginPath();
+          ctx.moveTo(x - 6, y);
+          ctx.lineTo(x + 6, y);
+          ctx.stroke();
+        });
+
+        const text = `${formatAxisNumber(numericValue)} · ${matching.length} matching lane${matching.length === 1 ? "" : "s"}`;
+        ctx.font = "600 11px Arial";
+        const width = ctx.measureText(text).width + 14;
+        const boxX = clamp(x - width / 2, 108, W - width - 4);
+        ctx.fillStyle = "#eff6ff";
+        ctx.fillRect(boxX, 3, width, 18);
+        ctx.strokeStyle = "#2563eb";
+        ctx.strokeRect(boxX, 3, width, 18);
+        ctx.fillStyle = "#1e40af";
+        ctx.fillText(text, boxX + 7, 16);
+        ctx.restore();
+      }
+
+      function buildDensityBins(enabledKeys, W) {
+        const binCount = clamp(Math.floor(W / DENSITY_TARGET_BIN_PX), 24, 140);
+        const pixelWidth = W / binCount;
+        const enabledSet = new Set(enabledKeys);
+        const bins = [];
+
+        for (let bin = 0; bin < binCount; bin++) {
+          const x0 = bin * pixelWidth;
+          const x1 = (bin + 1) * pixelWidth;
+          let left = toNL(x0, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          let right = toNL(x1, GLOBAL_NL_A, GLOBAL_NL_B, W);
+          if (left > right) [left, right] = [right, left];
+          const counts = enabledKeys.map((key) => {
+            const layer = LAYERS[key] || [];
+            return Math.max(0, lowerBoundLayer(layer, right) - lowerBoundLayer(layer, left));
+          });
+          const values = new Set();
+          enabledKeys.forEach((key) => {
+            const layer = LAYERS[key] || [];
+            const lo = lowerBoundLayer(layer, left);
+            const hi = lowerBoundLayer(layer, right);
+            for (let i = lo; i < hi; i++) values.add(Number(layer[i].value));
+          });
+          let shared = 0;
+          values.forEach((value) => {
+            const memberships = VALUE_TO_LAYERS.get(value) || [];
+            if (memberships.filter((key) => enabledSet.has(key)).length > 1) shared++;
+          });
+          bins.push({
+            index: bin,
+            x0,
+            x1,
+            left,
+            right,
+            counts,
+            total: counts.reduce((sum, count) => sum + count, 0),
+            distinct: values.size,
+            shared,
+          });
+        }
+        return bins;
+      }
+
       function renderDensityView() {
         const W = FOCUS_CANVAS.width;
+        const H = FOCUS_CANVAS.height;
+        const ctx = FOCUS_CANVAS.getContext("2d");
+        const baseline = (3 * H) / 4;
+        const top = 34;
+        const graphHeight = Math.max(20, baseline - top);
         const enabledKeys = Object.keys(LAYERS).filter(
           (k) => LAYER_SETTINGS[k]?.render
         );
 
-        enabledKeys.forEach((key) => {
-          const layer = LAYERS[key];
-          const color = LAYER_SETTINGS[key].color;
-          const hist = computeHistogramForLayer(
-            layer,
-            0,
-            W,
-            GLOBAL_NL_A,
-            GLOBAL_NL_B,
-            W
-          );
-          drawLayerDensity(FOCUS_CANVAS, hist, color, 0.55);
-        });
+        DENSITY_BINS = buildDensityBins(enabledKeys, W);
+        const maxTotal = Math.max(1, ...DENSITY_BINS.map((bin) => bin.total));
+
+        ctx.save();
+        if (DENSITY_MODE === "total") {
+          ctx.fillStyle = "rgba(75,85,99,0.56)";
+          DENSITY_BINS.forEach((bin) => {
+            const height = (bin.total / maxTotal) * graphHeight;
+            ctx.fillRect(bin.x0, baseline - height, Math.max(1, bin.x1 - bin.x0 - 1), height);
+          });
+        } else if (DENSITY_MODE === "compare") {
+          DENSITY_BINS.forEach((bin) => {
+            let y = baseline;
+            bin.counts.forEach((count, index) => {
+              if (!count) return;
+              const height = (count / maxTotal) * graphHeight;
+              y -= height;
+              ctx.fillStyle = LAYER_SETTINGS[enabledKeys[index]]?.color || "#6b7280";
+              ctx.globalAlpha = 0.72;
+              ctx.fillRect(bin.x0, y, Math.max(1, bin.x1 - bin.x0 - 1), height);
+            });
+          });
+        } else {
+          enabledKeys.forEach((key, keyIndex) => {
+            const ownMax = Math.max(1, ...DENSITY_BINS.map((bin) => bin.counts[keyIndex]));
+            ctx.strokeStyle = LAYER_SETTINGS[key]?.color || "#6b7280";
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            DENSITY_BINS.forEach((bin, binIndex) => {
+              const x = (bin.x0 + bin.x1) / 2;
+              const y = baseline - (bin.counts[keyIndex] / ownMax) * graphHeight;
+              if (binIndex === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+          });
+        }
+        ctx.restore();
 
         drawAxesSmart(FOCUS_CANVAS, GLOBAL_NL_A, GLOBAL_NL_B);
+
+        ctx.save();
+        ctx.font = "600 11px Arial";
+        ctx.fillStyle = "#4b5563";
+        const scaleLabel = DENSITY_MODE === "normalized"
+          ? "Relative density (each sequence scaled to 100%)"
+          : DENSITY_MODE === "compare"
+            ? "Terms per adaptive range · stacked by sequence"
+            : "Total terms per adaptive range";
+        ctx.fillText(scaleLabel, 10, 18);
+        if (DENSITY_HOVER_BIN) drawDensityTooltip(ctx, DENSITY_HOVER_BIN, enabledKeys, W, H);
+        ctx.restore();
+      }
+
+      function drawDensityTooltip(ctx, bin, enabledKeys, W, H) {
+        ctx.fillStyle = "rgba(37,99,235,0.10)";
+        ctx.fillRect(bin.x0, 24, Math.max(1, bin.x1 - bin.x0), (3 * H) / 4 - 24);
+        ctx.strokeStyle = "#2563eb";
+        ctx.strokeRect(bin.x0, 24, Math.max(1, bin.x1 - bin.x0), (3 * H) / 4 - 24);
+
+        const step = Math.abs(bin.right - bin.left);
+        const lines = [
+          `Range ${formatAxisNumber(bin.left, step)} to ${formatAxisNumber(bin.right, step)}`,
+          `${bin.total} terms · ${bin.distinct} distinct values · ${bin.shared} shared values`,
+        ];
+        enabledKeys.slice(0, 6).forEach((key, index) => {
+          const meta = SEQ_META[key];
+          lines.push(`${meta?.id || key}: ${bin.counts[index]} terms`);
+        });
+        if (enabledKeys.length > 6) lines.push(`+${enabledKeys.length - 6} more sequences`);
+
+        ctx.font = "600 11px Arial";
+        const width = Math.min(W - 20, Math.max(...lines.map((line) => ctx.measureText(line).width)) + 20);
+        const height = lines.length * 17 + 12;
+        const anchor = (bin.x0 + bin.x1) / 2;
+        const x = clamp(anchor - width / 2, 10, W - width - 10);
+        const y = 30;
+        roundedRectPath(ctx, x, y, width, height, 8);
+        ctx.fillStyle = "rgba(17,24,39,0.96)";
+        ctx.fill();
+        lines.forEach((line, index) => {
+          ctx.fillStyle = index === 0 ? "#ffffff" : "#d1d5db";
+          ctx.font = index === 0 ? "600 11px Arial" : "11px Arial";
+          ctx.fillText(line, x + 10, y + 18 + index * 17);
+        });
+      }
+
+      function drawOverviewViewport() {
+        if (
+          !Number.isFinite(OVERVIEW_MIN) ||
+          !Number.isFinite(OVERVIEW_MAX) ||
+          !(OVERVIEW_MAX > OVERVIEW_MIN)
+        ) return;
+
+        const ctx = OVERVIEW_CANVAS.getContext("2d");
+        const W = OVERVIEW_CANVAS.width;
+        const H = OVERVIEW_CANVAS.height;
+        const left = clamp(
+          toVPFloat(GLOBAL_NL_A, OVERVIEW_MIN, OVERVIEW_MAX, W),
+          0,
+          W
+        );
+        const right = clamp(
+          toVPFloat(GLOBAL_NL_B, OVERVIEW_MIN, OVERVIEW_MAX, W),
+          0,
+          W
+        );
+        const x = Math.min(left, right);
+        const width = Math.max(3, Math.abs(right - left));
+
+        ctx.save();
+        ctx.fillStyle = "rgba(37, 99, 235, 0.10)";
+        ctx.strokeStyle = "rgba(37, 99, 235, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, 2, width, H - 4);
+        ctx.strokeRect(x, 2, width, H - 4);
+        ctx.restore();
       }
 
       function rerender_all() {
@@ -1284,6 +1767,16 @@ for (let i = 0; i < n; i++) {
 
         clearFocusCanvas();
         clearOverviewCanvas();
+
+        if (VIEW !== "overlaps") {
+          const visiblePoints = collectVisibleValuePoints();
+          const visibleTag = document.getElementById("visibleTag");
+          if (visibleTag) {
+            const terms = visiblePoints.reduce((sum, point) => sum + point.occurrences, 0);
+            visibleTag.textContent = `Visible: ${visiblePoints.length.toLocaleString()} values`;
+            visibleTag.title = `${terms.toLocaleString()} loaded terms in the current window`;
+          }
+        }
 
         if (VIEW === "overlaps") renderOverlapHeatline();
         else if (VIEW === "lanes") renderLanesView();
@@ -1300,6 +1793,7 @@ for (let i = 0; i < n; i++) {
         );
         drawLayerDensity(OVERVIEW_CANVAS, ohist, "#6b7280", 0.7);
         drawAxesSmart(OVERVIEW_CANVAS, OVERVIEW_MIN, OVERVIEW_MAX);
+        drawOverviewViewport();
       }
 
       // ---------------------------
@@ -1331,6 +1825,46 @@ for (let i = 0; i < n; i++) {
         return e.clientY - rect.top;
       }
 
+      function nearestLaneValueAt(x, y, maxPixelDistance = 14) {
+        const keys = getRenderableLaneKeys();
+        const laneIndex = Math.floor((y - 10) / LANE_HEIGHT);
+        if (laneIndex < 0 || laneIndex >= keys.length) return null;
+        const laneKey = keys[laneIndex];
+        const layer = LAYERS[laneKey] || [];
+        if (!layer.length) return null;
+        const approximateValue = toNL(x, GLOBAL_NL_A, GLOBAL_NL_B, FOCUS_CANVAS.width);
+        const at = lowerBoundLayer(layer, approximateValue);
+        const candidates = [at - 1, at, at + 1]
+          .filter((index) => index >= 0 && index < layer.length)
+          .map((index) => Number(layer[index].value))
+          .filter(Number.isFinite);
+        if (!candidates.length) return null;
+        const value = candidates.reduce((best, candidate) =>
+          Math.abs(toVPFloat(candidate, GLOBAL_NL_A, GLOBAL_NL_B, FOCUS_CANVAS.width) - x) <
+          Math.abs(toVPFloat(best, GLOBAL_NL_A, GLOBAL_NL_B, FOCUS_CANVAS.width) - x)
+            ? candidate
+            : best
+        );
+        const valueX = toVPFloat(value, GLOBAL_NL_A, GLOBAL_NL_B, FOCUS_CANVAS.width);
+        if (Math.abs(valueX - x) > maxPixelDistance) return null;
+        return { value, x: valueX, laneKey };
+      }
+
+      function densityBinAt(x, y) {
+        if (y < 22 || y > (3 * FOCUS_CANVAS.height) / 4) return null;
+        return DENSITY_BINS.find((bin) => x >= bin.x0 && x < bin.x1) || null;
+      }
+
+      function selectGraphValue(value) {
+        if (!Number.isFinite(Number(value))) return;
+        SELECTED_VALUE = Number(value);
+        GLOBAL_SEARCH_LAST = String(value);
+        const input = document.getElementById("globalSearchInput");
+        if (input) input.value = GLOBAL_SEARCH_LAST;
+        showExactOverlapInPanel(Number(value));
+        requestRerender();
+      }
+
       FOCUS_CANVAS.addEventListener("mousedown", (e) => {
         isDragging = true;
         FOCUS_CANVAS.classList.add("dragging");
@@ -1352,7 +1886,37 @@ for (let i = 0; i < n; i++) {
       });
 
       FOCUS_CANVAS.addEventListener("mousemove", (e) => {
-        if (!isDragging) return;
+        if (!isDragging) {
+          const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+          const y = getMouseYOnCanvas(e, FOCUS_CANVAS);
+          if (VIEW === "lanes") {
+            const hovered = nearestLaneValueAt(x, y);
+            const changed = (hovered?.value ?? null) !== (LANE_HOVER?.value ?? null) ||
+              (hovered?.laneKey ?? null) !== (LANE_HOVER?.laneKey ?? null);
+            LANE_HOVER = hovered;
+            FOCUS_CANVAS.style.cursor = hovered ? "pointer" : "grab";
+            if (changed) requestRerender();
+            return;
+          }
+          if (VIEW === "density") {
+            const hovered = densityBinAt(x, y);
+            const changed = (hovered?.index ?? null) !== (DENSITY_HOVER_BIN?.index ?? null);
+            DENSITY_HOVER_BIN = hovered;
+            FOCUS_CANVAS.style.cursor = hovered ? "zoom-in" : "grab";
+            if (changed) requestRerender();
+            return;
+          }
+          const hovered = findSmartTargetAt(
+            x,
+            y
+          );
+          if (hovered !== SMART_HOVER_TARGET) {
+            SMART_HOVER_TARGET = hovered;
+            FOCUS_CANVAS.style.cursor = hovered ? "pointer" : "grab";
+            requestRerender();
+          }
+          return;
+        }
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
         const dx = (x - dragStartX) * PAN_SENSITIVITY;
         if (Math.abs(dx) > 2) dragMoved = true;
@@ -1382,7 +1946,19 @@ for (let i = 0; i < n; i++) {
         "wheel",
         (e) => {
           e.preventDefault();
+          SMART_HOVER_TARGET = null;
+          LANE_HOVER = null;
+          DENSITY_HOVER_BIN = null;
           const W = FOCUS_CANVAS.width;
+
+          const horizontalDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY)
+            ? e.deltaX
+            : e.shiftKey ? e.deltaY : 0;
+          if (horizontalDelta) {
+            panWindowByFraction((horizontalDelta / Math.max(1, W)) * 0.8);
+            return;
+          }
+
           const mouseX = getMouseXOnCanvas(e, FOCUS_CANVAS);
           const factor = clamp(
             Math.exp(e.deltaY * WHEEL_ZOOM_INTENSITY),
@@ -1390,18 +1966,47 @@ for (let i = 0; i < n; i++) {
             MAX_WHEEL_FACTOR
           );
 
-          if (hasSelectedZoomAnchor()) {
-            zoomWindowAroundValue(Number(SELECTED_VALUE), factor, true);
-            requestRerender();
-            return;
-          }
-
           const cursorAnchor = toNL(mouseX, GLOBAL_NL_A, GLOBAL_NL_B, W);
           zoomWindowAroundValue(cursorAnchor, factor, false);
           requestRerender();
         },
         { passive: false }
       );
+
+      function recenterWindowAt(value) {
+        if (!Number.isFinite(value)) return;
+        const At = xTransform(GLOBAL_NL_A);
+        const Bt = xTransform(GLOBAL_NL_B);
+        const halfSpan = Math.abs(Bt - At) / 2;
+        const centerT = xTransform(value);
+        GLOBAL_NL_A = xUntransform(centerT - halfSpan);
+        GLOBAL_NL_B = xUntransform(centerT + halfSpan);
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        SMART_HOVER_TARGET = null;
+        requestRerender();
+      }
+
+      OVERVIEW_CANVAS.addEventListener("click", (e) => {
+        if (
+          !Number.isFinite(OVERVIEW_MIN) ||
+          !Number.isFinite(OVERVIEW_MAX) ||
+          !(OVERVIEW_MAX > OVERVIEW_MIN)
+        ) return;
+        const x = getMouseXOnCanvas(e, OVERVIEW_CANVAS);
+        recenterWindowAt(
+          toNL(x, OVERVIEW_MIN, OVERVIEW_MAX, OVERVIEW_CANVAS.width)
+        );
+      });
+
+      FOCUS_CANVAS.addEventListener("mouseleave", () => {
+        if (SMART_HOVER_TARGET || LANE_HOVER || DENSITY_HOVER_BIN) {
+          SMART_HOVER_TARGET = null;
+          LANE_HOVER = null;
+          DENSITY_HOVER_BIN = null;
+          FOCUS_CANVAS.style.cursor = "grab";
+          requestRerender();
+        }
+      });
 
       // ---------------------------
       // Pixel Inspector + click handler (RESTORED)
@@ -1426,6 +2031,88 @@ for (let i = 0; i < n; i++) {
         for (let i = 0; i < take; i++) sample.push(layerArr[lo + i].value);
 
         return { count, sample };
+      }
+
+      function findSmartTargetAt(x, y) {
+        if (VIEW !== "overlaps") return null;
+
+        // Labels are the highest-confidence targets. Their hit areas no longer
+        // extend down to the axis, which previously made stacked values steal
+        // clicks from one another.
+        for (let i = SMART_HIT_TARGETS.length - 1; i >= 0; i--) {
+          const target = SMART_HIT_TARGETS[i];
+          const left = target.type === "point" ? target.labelLeft : target.left;
+          const right = target.type === "point" ? target.labelRight : target.right;
+          const top = target.type === "point" ? target.labelTop : target.top;
+          const bottom = target.type === "point" ? target.labelBottom : target.bottom;
+          if (x >= left - 2 && x <= right + 2 && y >= top - 2 && y <= bottom + 2) {
+            return target;
+          }
+        }
+
+        // Marker selection is radial and chooses the genuinely closest value.
+        // Merely sharing the same x pixel is no longer enough to select a label.
+        let nearest = null;
+        let nearestDistance = CLICK_NEAR_PX + 1;
+        for (const target of SMART_HIT_TARGETS) {
+          if (target.type !== "point") continue;
+          const dx = target.markerX - x;
+          const dy = target.markerY - y;
+          const distance = Math.hypot(dx, dy);
+          if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = target;
+          }
+        }
+        return nearest;
+      }
+
+      function inspectSmartTarget(target) {
+        const points = target.type === "point" ? [target.point] : target.points;
+        const maxShown = 120;
+        const buttons = points
+          .slice(0, maxShown)
+          .map((point) => {
+            const overlap = point.layers.size > 1
+              ? ` <span class="muted" style="margin-right:8px;">appears in ${point.layers.size} enabled sequences</span>`
+              : "";
+            return `<span style="display:inline-flex; align-items:center;"><button class="btn btn-sm btn-light mr-1 mb-1 px-jump" data-val="${point.value}">${point.value}</button>${overlap}</span>`;
+          })
+          .join(" ");
+        const hidden = Math.max(0, points.length - maxShown);
+
+        PIXEL_INSPECTOR_HTML = `
+          <div style="margin-bottom:10px; padding:10px; border:1px solid #c4b5fd; border-radius:10px; background:#faf5ff;">
+            <div><b>${points.length === 1 ? "Selected graph value" : "Nearby graph values"}</b></div>
+            <div class="muted" style="margin:4px 0 8px;">
+              ${points.length === 1
+                ? "This exact value is visible in the graph."
+                : `${points.length} exact values are too close to label separately at this zoom. Choose the value below, or double-click the graph label to zoom in.`}
+            </div>
+            <div style="display:flex; align-items:center; flex-wrap:wrap; gap:3px;">${buttons}</div>
+            ${hidden ? `<div class="muted">Showing ${maxShown} of ${points.length}. Zoom in to reveal the rest.</div>` : ""}
+          </div>
+        `;
+        renderSequenceDetailsPanel();
+      }
+
+      function zoomToSmartTarget(target) {
+        const points = target.type === "point" ? [target.point] : target.points;
+        if (points.length === 1) {
+          zoomWindowAroundValue(points[0].value, 0.35, true);
+        } else {
+          const min = points[0].value;
+          const max = points[points.length - 1].value;
+          const transformedSpan = Math.abs(xTransform(max) - xTransform(min));
+          const currentSpan = Math.abs(xTransform(GLOBAL_NL_B) - xTransform(GLOBAL_NL_A));
+          const desiredSpan = Math.max(transformedSpan * 2.4, currentSpan * 0.18);
+          const midT = (xTransform(min) + xTransform(max)) / 2;
+          GLOBAL_NL_A = xUntransform(midT - desiredSpan / 2);
+          GLOBAL_NL_B = xUntransform(midT + desiredSpan / 2);
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        }
+        SMART_HOVER_TARGET = null;
+        requestRerender();
       }
 
       function inspectPixelAtX(xPx) {
@@ -1524,6 +2211,43 @@ for (let i = 0; i < n; i++) {
         if (dragMoved) return;
 
         const x = getMouseXOnCanvas(e, FOCUS_CANVAS);
+        const y = getMouseYOnCanvas(e, FOCUS_CANVAS);
+        if (VIEW === "lanes") {
+          const laneValue = nearestLaneValueAt(x, y, 18);
+          if (laneValue) selectGraphValue(laneValue.value);
+          return;
+        }
+        if (VIEW === "density") {
+          const bin = densityBinAt(x, y);
+          if (!bin) return;
+          const leftT = xTransform(bin.left);
+          const rightT = xTransform(bin.right);
+          const padding = Math.max(Math.abs(rightT - leftT) * 0.25, 1e-12);
+          GLOBAL_NL_A = xUntransform(leftT - padding);
+          GLOBAL_NL_B = xUntransform(rightT + padding);
+          [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+          DENSITY_HOVER_BIN = null;
+          requestRerender();
+          return;
+        }
+        const smartTarget = findSmartTargetAt(x, y);
+        if (smartTarget) {
+          inspectSmartTarget(smartTarget);
+          const points = smartTarget.type === "point"
+            ? [smartTarget.point]
+            : smartTarget.points;
+          const nearest = points.reduce((best, point) =>
+            Math.abs(point.x - x) < Math.abs(best.x - x) ? point : best
+          );
+          SELECTED_VALUE = nearest.value;
+          GLOBAL_SEARCH_LAST = String(nearest.value);
+          const input = document.getElementById("globalSearchInput");
+          if (input) input.value = GLOBAL_SEARCH_LAST;
+          showExactOverlapInPanel(nearest.value);
+          requestRerender();
+          return;
+        }
+
         const nearestClickedValue = inspectPixelAtX(x);
 
         const W = FOCUS_CANVAS.width;
@@ -1539,23 +2263,36 @@ for (let i = 0; i < n; i++) {
         requestRerender();
       });
 
+      FOCUS_CANVAS.addEventListener("dblclick", (e) => {
+        const target = findSmartTargetAt(
+          getMouseXOnCanvas(e, FOCUS_CANVAS),
+          getMouseYOnCanvas(e, FOCUS_CANVAS)
+        );
+        if (target) zoomToSmartTarget(target);
+      });
+
       // ---------------------------
       // UI buttons
       // ---------------------------
-      function left_click() {
-        const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * (1 / 3);
-        GLOBAL_NL_B -= dp;
-        GLOBAL_NL_A -= dp;
+      function panWindowByFraction(fraction) {
+        const At = xTransform(GLOBAL_NL_A);
+        const Bt = xTransform(GLOBAL_NL_B);
+        const shift = (Bt - At) * fraction;
+        GLOBAL_NL_A = xUntransform(At + shift);
+        GLOBAL_NL_B = xUntransform(Bt + shift);
+        [GLOBAL_NL_A, GLOBAL_NL_B] = clampWindow(GLOBAL_NL_A, GLOBAL_NL_B);
+        SMART_HOVER_TARGET = null;
+        LANE_HOVER = null;
+        DENSITY_HOVER_BIN = null;
         requestRerender();
       }
 
+      function left_click() {
+        panWindowByFraction(-1 / 3);
+      }
+
       function right_click() {
-        const d = GLOBAL_NL_B - GLOBAL_NL_A;
-        const dp = d * (1 / 3);
-        GLOBAL_NL_B += dp;
-        GLOBAL_NL_A += dp;
-        requestRerender();
+        panWindowByFraction(1 / 3);
       }
 
       function zoom_click() {
@@ -1587,6 +2324,25 @@ for (let i = 0; i < n; i++) {
         .getElementById("unzoom_button")
         .addEventListener("click", unzoom_click);
 
+      FOCUS_CANVAS.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          panWindowByFraction(-0.12);
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          panWindowByFraction(0.12);
+        } else if (e.key === "+" || e.key === "=") {
+          e.preventDefault();
+          zoom_click();
+        } else if (e.key === "-" || e.key === "_") {
+          e.preventDefault();
+          unzoom_click();
+        } else if (e.key === "Home" || e.key === "0") {
+          e.preventDefault();
+          document.getElementById("reset_button").click();
+        }
+      });
+
       document.getElementById("reset_button").addEventListener("click", () => {
         if (
           Number.isFinite(OVERVIEW_MIN) &&
@@ -1605,6 +2361,11 @@ for (let i = 0; i < n; i++) {
 
       function setView(v) {
         VIEW = v;
+        SMART_HOVER_TARGET = null;
+        SMART_HIT_TARGETS = [];
+        LANE_HOVER = null;
+        DENSITY_HOVER_BIN = null;
+        FOCUS_CANVAS.style.cursor = "grab";
         document.getElementById("viewTag").textContent =
           `View: ${
             v === "overlaps" ? "Overlaps" : v === "lanes" ? "Lanes" : "Density"
@@ -1631,6 +2392,29 @@ for (let i = 0; i < n; i++) {
           .getElementById("view_density")
           .classList.toggle("btn-outline-secondary", v !== "density");
 
+        document.getElementById("densityOptions").classList.toggle("active", v === "density");
+        const help = document.getElementById("graphHelp");
+        if (help) {
+          if (v === "lanes") {
+            help.innerHTML = `<span><strong>Lanes:</strong> exact ticks appear when space allows; dense ranges become compact strips.</span><span>Hover a term to connect every matching lane · click to select the exact value</span>`;
+          } else if (v === "density") {
+            help.innerHTML = `<span><strong>Density:</strong> adaptive ranges recalculate as you pan and zoom.</span><span>Hover for exact counts · click a range to zoom into it</span>`;
+          } else {
+            help.innerHTML = `<span><strong>Adaptive display:</strong> exact labels when they fit; nearby values are listed together when space is tight.</span><span>Shared values say how many sequences contain them · double-click a nearby-values label to expand</span>`;
+          }
+        }
+
+        requestRerender();
+      }
+
+      function setDensityMode(mode) {
+        DENSITY_MODE = mode;
+        DENSITY_HOVER_BIN = null;
+        ["total", "compare", "normalized"].forEach((name) => {
+          const button = document.getElementById(`density_${name}`);
+          button.classList.toggle("btn-secondary", name === mode);
+          button.classList.toggle("btn-outline-secondary", name !== mode);
+        });
         requestRerender();
       }
 
@@ -1643,6 +2427,9 @@ for (let i = 0; i < n; i++) {
       document
         .getElementById("view_density")
         .addEventListener("click", () => setView("density"));
+      document.getElementById("density_total").addEventListener("click", () => setDensityMode("total"));
+      document.getElementById("density_compare").addEventListener("click", () => setDensityMode("compare"));
+      document.getElementById("density_normalized").addEventListener("click", () => setDensityMode("normalized"));
 
       document.getElementById("logx_toggle").addEventListener("change", (e) => {
         LOG_X = !!e.target.checked;
@@ -2359,7 +3146,7 @@ for (let i = 0; i < n; i++) {
       // ---------------------------
       setupCollapsiblePanels();
       renderSequenceDetailsPanel();
-      setView("density");
+      setView("overlaps");
       rerender_all();
     </script>
   </body>
