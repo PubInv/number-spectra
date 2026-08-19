@@ -127,7 +127,7 @@ app.get("/oeis", async (req, res) => {
     return res.json({ results: out });
 });
 
-const PORT = 8000;
+const PORT = 80;
 
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Number Spectra running: http://0.0.0.0:${PORT}`);
