@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description"
+    content="Learn how to explore integer sequences with Number Spectra: load OEIS sequences, compare shared values, and navigate an interactive number line.">
+  <meta name="theme-color" content="#f7f9f8">
+  <title>Welcome to Number Spectra</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182d28;
+      --muted: #52665e;
+      --green: #137444;
+      --line: #dce5df;
+      --paper: #f7f9f8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 100px;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.65 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a {
+      color: var(--green);
+      text-underline-offset: 4px;
+    }
+
+    a:hover {
+      text-decoration-thickness: 2px;
+    }
+
+    :focus-visible {
+      outline: 3px solid #125cde;
+      outline-offset: 5px;
+    }
+
+    .skip {
+      position: fixed;
+      top: -100px;
+      left: 16px;
+      z-index: 10;
+      padding: 10px 16px;
+      background: white;
+    }
+
+    .skip:focus {
+      top: 10px;
+    }
+
+    .wrap {
+      max-width: 1160px;
+      margin: auto;
+      padding-inline: 32px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 249, 248, .97);
+    }
+
+    .header-row {
+      min-height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 750;
+      font-size: 19px;
+      letter-spacing: -.5px;
+      text-decoration: none;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .brand svg {
+      width: 34px;
+      height: 34px;
+    }
+
+    nav {
+      display: flex;
+      gap: 26px;
+    }
+
+    nav a {
+      font-size: 14px;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: var(--green);
+    }
+
+    .launch {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 18px 30px;
+      background: var(--green);
+      border: 1px solid var(--green);
+      border-radius: 12px;
+      color: white;
+      font-size: 20px;
+      font-weight: 720;
+      line-height: 1.35;
+      text-decoration: none;
+      box-shadow: 0 8px 22px #13744420;
+    }
+
+    .launch:hover {
+      background: #0b5b34;
+      border-color: #0b5b34;
+      transform: translateY(-1px);
+    }
+
+    .launch-small {
+      padding: 10px 17px;
+      font-size: 14px;
+      border-radius: 9px;
+      box-shadow: none;
+      gap: 10px;
+    }
+
+    .hero {
+      padding-block: 70px 58px;
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      align-items: center;
+      gap: 70px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--green);
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 650px;
+      font-size: clamp(38px, 4.7vw, 60px);
+      line-height: 1.12;
+      font-weight: 730;
+      letter-spacing: -2.5px;
+    }
+
+    h1 span {
+      color: var(--green);
+    }
+
+    .lead {
+      margin: 22px 0 0;
+      max-width: 590px;
+      font-size: 18px;
+      color: var(--muted);
+    }
+
+    .hero-links {
+      margin-top: 24px;
+      display: flex;
+      gap: 24px;
+      font-size: 14px;
+    }
+
+    .launch-panel {
+      padding: 34px;
+      border: 1px solid #c7dfce;
+      border-radius: 20px;
+      background: #edf5ef;
+    }
+
+    .launch-panel h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      letter-spacing: -.7px;
+    }
+
+    .launch-panel p {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .launch-panel .launch {
+      width: 100%;
+    }
+
+    .launch-panel small {
+      display: block;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .spectrum {
+      margin: 0 0 62px;
+      padding: 24px 28px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: white;
+    }
+
+    .preview-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .preview-heading strong {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .spectrum svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      margin-top: 14px;
+    }
+
+    .spectrum figcaption {
+      border-top: 1px solid #edf1ee;
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    section {
+      padding-bottom: 58px;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.3;
+      letter-spacing: -.8px;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: white;
+    }
+
+    .number {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 50%;
+      background: #eaf3ed;
+      color: var(--green);
+      font: 700 13px/1 system-ui, sans-serif;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: -.3px;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    code,
+    kbd {
+      background: #eef2ef;
+      border: 1px solid #dce5df;
+      border-radius: 5px;
+      padding: 2px 6px;
+      color: #244436;
+      font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    .example {
+      display: block;
+      width: 100%;
+      margin: 14px 0;
+      padding: 10px 12px;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .mode {
+      border-top: 3px solid var(--mode);
+    }
+
+    .mode .label {
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--mode);
+      margin-bottom: 15px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 32px;
+    }
+
+    .controls {
+      margin: 22px 0 0;
+    }
+
+    .controls div {
+      display: grid;
+      grid-template-columns: 185px 1fr;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      gap: 18px;
+      font-size: 14px;
+    }
+
+    .controls dt {
+      font-weight: 650;
+    }
+
+    .controls dd {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .tips {
+      padding: 26px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+
+    .tips ul {
+      padding-left: 20px;
+      margin: 16px 0 0;
+    }
+
+    .tips li {
+      padding-left: 4px;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .tips li:last-child {
+      margin-bottom: 0;
+    }
+
+    details {
+      border-bottom: 1px solid var(--line);
+      padding: 17px 0;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    details p {
+      margin: 12px 0 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 14px 0 0;
+      background: #eef2ef;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    pre code {
+      padding: 0;
+      border: 0;
+    }
+
+    .closing {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding: 28px 32px;
+      margin-bottom: 40px;
+      background: #eaf3ed;
+      border: 1px solid #c7dfce;
+      border-radius: 14px;
+    }
+
+    .closing p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    footer {
+      padding: 20px 0 32px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    footer .wrap {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    @media(max-width:900px) {
+      .hero {
+        gap: 30px;
+        padding-top: 44px;
+      }
+
+      nav {
+        gap: 16px;
+      }
+
+      .launch-panel {
+        padding: 24px;
+      }
+
+      .grid {
+        gap: 12px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+    }
+
+    @media(max-width:680px) {
+      .wrap {
+        padding-inline: 20px;
+      }
+
+      .header-row {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-block: 13px;
+      }
+
+      .brand {
+        font-size: 15px;
+        gap: 8px;
+      }
+
+      .brand svg {
+        width: 26px;
+      }
+
+      .launch-small {
+        font-size: 12px;
+        padding: 9px 12px;
+        gap: 8px;
+      }
+
+      nav {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      nav a {
+        font-size: 12px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        padding-block: 38px;
+      }
+
+      h1 {
+        letter-spacing: -1.5px;
+      }
+
+      .lead {
+        font-size: 16px;
+      }
+
+      .launch-panel {
+        padding: 24px;
+      }
+
+      .spectrum {
+        padding: 18px 14px 14px;
+        margin-bottom: 40px;
+      }
+
+      .preview-heading {
+        display: block;
+      }
+
+      .preview-heading span {
+        display: block;
+        margin-top: 4px;
+      }
+
+      .section-heading {
+        display: block;
+      }
+
+      .section-heading p {
+        margin-top: 8px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding-bottom: 40px;
+      }
+
+      .controls div {
+        grid-template-columns: 135px 1fr;
+        gap: 12px;
+        font-size: 13px;
+      }
+
+      .closing {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 24px;
+      }
+
+      h2 {
+        font-size: 25px;
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      .launch:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+
+<body id="top">
+
+  <a class="skip" href="#main">Skip to content</a>
+  <header>
+    <div class="wrap header-row">
+      <a class="brand" href="#top" aria-label="Number Spectra welcome">
+        <svg viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect width="36" height="36" rx="10" fill="#137444" />
+          <path d="M7 24H29M11 24V17M18 24V10M25 24V14" stroke="white" stroke-width="2" />
+          <circle cx="11" cy="15" r="2" fill="#c4edd2" />
+          <circle cx="18" cy="8" r="2" fill="#c4edd2" />
+          <circle cx="25" cy="12" r="2" fill="#c4edd2" />
+        </svg>
+        Number Spectra
+      </a>
+      <nav aria-label="Welcome page sections"><a href="#start">Quick start</a><a href="#views">Explore the views</a><a
+          href="#help">Help &amp; tips</a> <a href="#about">Who we are</a></nav>
+      <a class="launch launch-small" href="/app">Launch app <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main id="main" class="wrap">
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Welcome to Number Spectra</p>
+        <h1>See the patterns.<br><span>Explore the numbers.</span></h1>
+        <p class="lead">Put integer sequences on the same number line. Find shared values, compare distributions, and
+          take a closer look at what connects them.</p>
+        <div class="hero-links"><a href="#start">Learn the basics ↓</a><a href="#help">See the controls</a></div>
+      </div>
+      <aside class="launch-panel" aria-labelledby="launch-title">
+        <h2 id="launch-title">Your workspace is ready.</h2>
+        <p>Read the guide at your own pace, then open the interactive number line when you're ready to explore.</p>
+        <a class="launch" href="/app">Launch app <span aria-hidden="true">→</span></a>
+        <small>Opens in this tab · no account required</small>
+      </aside>
+    </div>
+    <figure class="spectrum">
+      <div class="preview-heading"><strong>A small glimpse of the number line</strong><span>Primes · Fibonacci numbers ·
+          shared values</span></div>
+      <svg viewBox="0 0 1040 134" role="img" aria-labelledby="preview-title preview-desc">
+        <title id="preview-title">Primes and Fibonacci numbers between zero and twenty-one</title>
+        <desc id="preview-desc">Illustration: 2, 3, 5 and 13 belong to both sequences. Blue markers show other prime
+          values; orange markers show other Fibonacci values. This is a static preview.</desc>
+        <path d="M24 88H1016" stroke="#a8bbb1" stroke-width="1.5" />
+        <g stroke="#dce5df">
+          <path d="M24 20V96M260 20V96M496 20V96M733 20V96M969 20V96" />
+        </g>
+        <g fill="#52665e" font-family="system-ui,sans-serif" font-size="12"><text x="20" y="118">0</text><text x="256"
+            y="118">5</text><text x="489" y="118">10</text><text x="726" y="118">15</text><text x="962"
+            y="118">20</text></g>
+        <g stroke="#ca6b22" stroke-width="2">
+          <path d="M24 88V69M71 88V69M402 88V69M1016 88V69" />
+        </g>
+        <g fill="#ca6b22">
+          <circle cx="24" cy="66" r="4" />
+          <circle cx="71" cy="66" r="4" />
+          <circle cx="402" cy="66" r="4" />
+          <circle cx="1016" cy="66" r="4" />
+        </g>
+        <g stroke="#3978bd" stroke-width="2">
+          <path d="M355 88V69M544 88V69M827 88V69M922 88V69" />
+        </g>
+        <g fill="#3978bd">
+          <circle cx="355" cy="66" r="4" />
+          <circle cx="544" cy="66" r="4" />
+          <circle cx="827" cy="66" r="4" />
+          <circle cx="922" cy="66" r="4" />
+        </g>
+        <g stroke="#137444" stroke-width="2">
+          <path
+            d="M118 88V48M165 88V48M260 88V48M638 88V48M115 42V53M121 42V53M162 42V53M168 42V53M257 42V53M263 42V53M635 42V53M641 42V53" />
+        </g>
+        <g fill="#137444" font-family="system-ui,sans-serif" font-size="13" font-weight="650"><text x="114"
+            y="31">2</text><text x="161" y="31">3</text><text x="256" y="31">5</text><text x="585" y="31">13 ·
+            shared</text></g>
+      </svg>
+      <figcaption>Illustrative preview. In the app, each loaded sequence has its own color, and shared-value labels tell
+        you how many enabled sequences contain a value.</figcaption>
+    </figure>
+    <section id="start" aria-labelledby="start-title">
+      <div class="section-heading">
+        <h2 id="start-title">Start with three simple steps.</h2>
+        <p>No coding needed to explore OEIS sequences.</p>
+      </div>
+      <div class="grid">
+        <article class="card"><span class="number">01</span>
+          <h3>Load a few sequences</h3>
+          <p>In the app's <strong>Sequence loader</strong>, enter OEIS IDs separated by commas, spaces, or newlines. Try
+            primes and Fibonacci numbers:</p><code class="example">40, 45</code>
+          <p>Select <strong>Load</strong>, or press <kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd> inside the OEIS
+            field.</p>
+        </article>
+        <article class="card"><span class="number">02</span>
+          <h3>Choose your perspective</h3>
+          <p>Begin with <strong>Overlaps</strong> to find shared values. Switch to <strong>Lanes</strong> to separate
+            sequences, or <strong>Density</strong> to compare where terms are concentrated.</p>
+        </article>
+        <article class="card"><span class="number">03</span>
+          <h3>Follow a number</h3>
+          <p>Drag to pan and use the mouse wheel to zoom. Click a value to inspect it in <strong>Details</strong>. Try
+            searching for <strong>13</strong> with <strong>Jump</strong> to find it in both example sequences.</p>
+        </article>
+      </div>
+    </section>
+    <section id="views" aria-labelledby="views-title">
+      <div class="section-heading">
+        <h2 id="views-title">One number line. Three ways to look.</h2>
+        <p>Change views with the buttons in the app's top bar.</p>
+      </div>
+      <div class="grid">
+        <article class="card mode" style="--mode:#137444">
+          <div class="label">Overlaps</div>
+          <h3>What do they share?</h3>
+          <p>Explore exact values on a shared axis. Labels identify values found in multiple enabled sequences. Click a
+            nearby-values label to list its contents; double-click it to zoom in.</p>
+        </article>
+        <article class="card mode" style="--mode:#3978bd">
+          <div class="label">Lanes</div>
+          <h3>How do they compare?</h3>
+          <p>Give each sequence its own row. Hover over a term to connect matching lanes, then click to select it. Dense
+            ranges appear as compact strips until you zoom in.</p>
+        </article>
+        <article class="card mode" style="--mode:#8a54aa">
+          <div class="label">Density</div>
+          <h3>Where do terms gather?</h3>
+          <p>Use <strong>Total</strong> for combined counts, <strong>Compare</strong> for stacked sequence counts, or
+            <strong>Normalized</strong> to scale each sequence to its own peak in the current view. Hover for counts;
+            click a range to zoom.
+          </p>
+        </article>
+      </div>
+    </section>
+    <section id="help" aria-labelledby="help-title">
+      <div class="two-col">
+        <div>
+          <h2 id="help-title">A few controls go a long way.</h2>
+          <dl class="controls">
+            <div>
+              <dt>Move along the line</dt>
+              <dd>Drag the main plot or use the left / right buttons.</dd>
+            </div>
+            <div>
+              <dt>Zoom in or out</dt>
+              <dd>Use the mouse wheel or the Zoom In / Zoom Out buttons.</dd>
+            </div>
+            <div>
+              <dt>Keyboard navigation</dt>
+              <dd>Focus the main plot, then use <kbd>←</kbd> <kbd>→</kbd> to pan, <kbd>+</kbd> <kbd>−</kbd> to zoom, and
+                <kbd>Home</kbd> to reset.
+              </dd>
+            </div>
+            <div>
+              <dt>Jump across the view</dt>
+              <dd>Click the smaller overview below the main plot to reposition your window.</dd>
+            </div>
+            <div>
+              <dt>Find an exact integer</dt>
+              <dd>Enter it in the Details search field and select <strong>Jump</strong>. Search checks loaded terms.
+              </dd>
+            </div>
+            <div>
+              <dt>Focus on a range</dt>
+              <dd>Enter two endpoints in <strong>Range filter</strong>, then select <strong>Apply Range</strong>. Both
+                endpoints are included in the Details list.</dd>
+            </div>
+          </dl>
+        </div>
+        <aside class="tips" aria-labelledby="tips-title">
+          <p class="eyebrow">Good to know</p>
+          <h3 id="tips-title">Keep these in mind as you explore.</h3>
+          <ul>
+            <li><strong>Start small.</strong> Two or three sequences are easier to compare. Use the checkboxes under
+              Sequences to hide or show them on the main plot.</li>
+            <li><strong>Try Log X for wide ranges.</strong> It uses a signed logarithmic scale, so zero and negative
+              values still work.</li>
+            <li><strong>Make room for the graph.</strong> The small arrow buttons collapse the Sequence loader and
+              Details panels.</li>
+            <li><strong>Loaded terms are a sample.</strong> The app uses the terms returned by OEIS, not every term in
+              an infinite sequence. A missing result doesn't prove a number isn't in the sequence.</li>
+            <li><strong>Use a desktop for the full workspace.</strong> The current app is built around a mouse and
+              keyboard.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+    <section aria-labelledby="questions-title">
+      <h2 id="questions-title">Before you launch</h2>
+      <details>
+        <summary>What is OEIS, and which IDs can I enter?</summary>
+        <p>The <a href="https://oeis.org/" target="_blank" rel="noopener noreferrer">On-Line Encyclopedia of Integer
+            Sequences</a> catalogs integer sequences. This app accepts forms such as <code>40</code>,
+          <code>000040</code>, or <code>A000040</code>. Use <code>40, 45</code> to compare primes with Fibonacci
+          numbers.
+        </p>
+      </details>
+      <details>
+        <summary>Can I create my own sequence?</summary>
+        <p>Yes. In <strong>Custom sequence</strong>, set the term count and write JavaScript that adds numbers to the
+          array <code>a</code>. The variable <code>n</code> is your requested count. For example, generate squares:</p>
+        <pre><code>for (let i = 0; i &lt; n; i++) {
+  a.push(i * i);
+}</code></pre>
+        <p>Select <strong>Compute</strong> to run it in a browser worker with a short timeout. Use code you understand
+          and trust. Only one custom sequence is kept at a time; computing another replaces it.</p>
+      </details>
+      <details>
+        <summary>Why isn't a sequence loading?</summary>
+        <p>Check the ID and your connection. Loading OEIS data requires the Node server and access to OEIS. If several
+          IDs fail, try one at a time and check the browser console or server output for details. The welcome page
+          itself doesn't contact OEIS.</p>
+      </details>
+      <details>
+        <summary>Will my sequences be saved?</summary>
+        <p>The current app keeps its workspace in this tab's memory. Refreshing or leaving it clears the workspace.
+          Loading OEIS IDs also replaces the current set, including a custom sequence. Keep a copy of IDs or custom code
+          you want to use again.</p>
+      </details>
+      <details>
+        <summary>Why do I see grouped values or large-number formatting?</summary>
+        <p>Nearby values are grouped when labels won't fit; zoom in or select the group to inspect them. Axis labels may
+          be rounded for readability. The app also uses JavaScript numbers, so integers beyond
+          <code>9,007,199,254,740,991</code> may lose precision; avoid relying on exact overlap results for those
+          values.
+        </p>
+      </details>
+    </section>
+    <div class="closing">
+      <div>
+        <h2>Ready to explore?</h2>
+        <p>Start with 40 and 45, then follow your curiosity.</p>
+      </div><a class="launch" href="/app">Launch app <span aria-hidden="true">→</span></a>
+    </div>
+    <section id="about" aria-labelledby="about-title">
+      <div class="section-heading">
+        <h2 id="about-title">Who we are</h2>
+        <p>Curious minds building for the public good.</p>
+      </div>
+
+      <div class="grid">
+        <article class="card">
+          <h3>Our community</h3>
+          <p>
+            Number Spectra is a Public Invention project.
+            We're part of a nonprofit community of inventors,
+            engineers, students, and volunteers creating
+            technology that helps people.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3>What we do</h3>
+          <p>
+            We build openly and share what we learn.
+            With Number Spectra, we make integer sequences
+            easier to explore, compare, and discover.
+          </p>
+        </article>
+
+        <article class="card">
+          <h3>Let's connect</h3>
+          <p>
+            Have a question, an idea, or want to contribute?
+            We'd like to hear from you.
+          </p>
+          <p style="margin-top: 14px;">
+            <a href="https://www.pubinv.org/contact-us/" target="_blank" rel="noopener noreferrer">Contact Public
+              Invention ↗</a>
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="wrap"><span>Number Spectra · Integer sequence explorer</span><span>Sequence data from <a
+          href="https://oeis.org/" target="_blank" rel="noopener noreferrer">OEIS</a> · <a href="#top">Back to top
+          ↑</a></span></div>
+  </footer>
+</body>
+
+</html>
